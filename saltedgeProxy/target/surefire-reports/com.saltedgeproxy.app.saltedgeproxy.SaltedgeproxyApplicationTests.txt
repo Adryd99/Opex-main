@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.saltedgeproxy.app.saltedgeproxy.SaltedgeproxyApplicationTests
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.524 s -- in com.saltedgeproxy.app.saltedgeproxy.SaltedgeproxyApplicationTests
