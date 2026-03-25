@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,6 +18,9 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, String
 
     // Trova tutti i conti dell'utente
     Page<BankAccount> findByUserId(String userId, Pageable pageable);
+
+    // Variante non paginata, utile per analisi e dashboard
+    List<BankAccount> findByUserId(String userId);
 
     // Trova un conto specifico controllando anche il proprietario (previene accessi illeciti)
     Optional<BankAccount> findBySaltedgeAccountIdAndUserId(String saltedgeAccountId, String userId);
@@ -29,4 +33,12 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, String
             "SUM(CASE WHEN b.balance < 0 THEN b.balance ELSE 0 END)) " +
             "FROM BankAccount b WHERE b.userId = :userId GROUP BY b.connectionId")
     List<AggregatedBalanceResponse> aggregateBalancesByConnectionId(@Param("userId") String userId);
+
+    // Somma totale dei saldi dei conti usati come "savings" per le tasse
+    @Query("SELECT COALESCE(SUM(b.balance), 0) " +
+            "FROM BankAccount b " +
+            "WHERE b.userId = :userId " +
+            "AND (:connectionId IS NULL OR b.connectionId = :connectionId) " +
+            "AND (LOWER(COALESCE(b.nature, '')) = 'savings' OR b.isForTax = true)")
+    BigDecimal sumSavingsBalance(@Param("userId") String userId, @Param("connectionId") String connectionId);
 }

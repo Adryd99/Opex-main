@@ -130,9 +130,9 @@ public class UserController {
                 account.setUserId(user.getId());
                 account.setConnectionId(connection.getId());
                 account.setBalance(item.getBalance());
-                account.setInstitutionName(connection.getProviderName()); // Usiamo il nome della banca dalla connessione
+                account.setInstitutionName(item.getName()); // Usiamo il nome del conto
                 account.setCurrency(item.getCurrencyCode());
-                account.setNature(item.getNature());
+//                account.setNature(item.getNature());
                 account.setIsSaltedge(true);
                 if (account.getIsForTax() == null) account.setIsForTax(false);
 

@@ -91,8 +91,12 @@ public class BankAccountService {
         account.setInstitutionName(request.getInstitutionName());
         account.setCountry(request.getCountry());
         account.setCurrency(request.getCurrency());
-        account.setIsForTax(request.getIsForTax());
         account.setNature(request.getNature());
+        if (isSavingsNature(request.getNature())) {
+            account.setIsForTax(true);
+        } else {
+            account.setIsForTax(request.getIsForTax());
+        }
 
         return bankAccountRepository.save(account);
     }
@@ -103,17 +107,25 @@ public class BankAccountService {
         BankAccount account = bankAccountRepository.findBySaltedgeAccountIdAndUserId(accountId, userId)
                 .orElseThrow(() -> new RuntimeException("Conto non trovato o non autorizzato"));
 
-        if (Boolean.TRUE.equals(account.getIsSaltedge())) {
-            throw new RuntimeException("Operazione negata. Non puoi modificare manualmente i conti di SaltEdge.");
-        }
+//        if (Boolean.TRUE.equals(account.getIsSaltedge())) {
+//            throw new RuntimeException("Operazione negata. Non puoi modificare manualmente i conti di SaltEdge.");
+//        }
 
         if (request.getBalance() != null) account.setBalance(request.getBalance());
         if (request.getInstitutionName() != null) account.setInstitutionName(request.getInstitutionName());
         if (request.getCountry() != null) account.setCountry(request.getCountry());
         if (request.getCurrency() != null) account.setCurrency(request.getCurrency());
-        if (request.getIsForTax() != null) account.setIsForTax(request.getIsForTax());
         if (request.getNature() != null) account.setNature(request.getNature());
+        if (isSavingsNature(account.getNature())) {
+            account.setIsForTax(true);
+        } else if (request.getIsForTax() != null) {
+            account.setIsForTax(request.getIsForTax());
+        }
 
         return bankAccountRepository.save(account);
+    }
+
+    private boolean isSavingsNature(String nature) {
+        return nature != null && "savings".equalsIgnoreCase(nature.trim());
     }
 }
