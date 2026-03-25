@@ -5,7 +5,6 @@ import com.opex.backend.dto.TaxRequest;
 import com.opex.backend.model.BankConnection;
 import com.opex.backend.model.Tax;
 import com.opex.backend.model.Transaction;
-import com.opex.backend.repository.BankAccountRepository;
 import com.opex.backend.repository.BankConnectionRepository;
 import com.opex.backend.repository.TaxRepository;
 import com.opex.backend.repository.TransactionRepository;
@@ -41,7 +40,6 @@ public class TaxService {
     private static final int MONEY_SCALE = 2;
     private static final String DEFAULT_CURRENCY = "EUR";
 
-    private final BankAccountRepository bankAccountRepository;
     private final TaxRepository taxRepository;
     private final TransactionRepository transactionRepository;
     private final BankConnectionRepository bankConnectionRepository;
@@ -67,7 +65,7 @@ public class TaxService {
         BigDecimal vatLiability = money(resolveVatLiability(yearlyTaxes, taxableIncome));
         BigDecimal subtotal = money(incomeTax.add(socialContributions));
         BigDecimal shouldSetAside = money(subtotal.add(vatLiability));
-        BigDecimal alreadySaved = money(resolveAlreadySaved(userId, connectionId));
+        BigDecimal alreadySaved = money(resolveAlreadySaved(yearlyTransactions, yearlyTaxes));
         BigDecimal missing = money(maxZero(shouldSetAside.subtract(alreadySaved)));
         BigDecimal completionPercentage = percentage(alreadySaved, shouldSetAside);
         BigDecimal weeklyTarget = money(computeWeeklyTarget(missing, targetYear));
@@ -319,10 +317,22 @@ public class TaxService {
         return taxableIncome.multiply(VAT_FALLBACK_RATE);
     }
 
-    private BigDecimal resolveAlreadySaved(String userId, String connectionId) {
-        String scopedConnectionId = isBlank(connectionId) ? null : connectionId;
-        BigDecimal savingsBalance = bankAccountRepository.sumSavingsBalance(userId, scopedConnectionId);
-        return maxZero(Optional.ofNullable(savingsBalance).orElse(BigDecimal.ZERO));
+    private BigDecimal resolveAlreadySaved(List<Transaction> yearlyTransactions, List<Tax> yearlyTaxes) {
+        BigDecimal fromTransactions = yearlyTransactions.stream()
+                .filter(t -> t.getAmount() != null && t.getAmount().compareTo(BigDecimal.ZERO) > 0)
+                .filter(this::isBufferRelatedTransaction)
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (fromTransactions.compareTo(BigDecimal.ZERO) > 0) {
+            return fromTransactions;
+        }
+
+        return yearlyTaxes.stream()
+                .filter(tax -> tax.getAmount() != null)
+                .filter(tax -> isPaidStatus(tax.getStatus()))
+                .map(Tax::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private BigDecimal sumTaxAmountsByKeywords(List<Tax> taxes, List<String> keywords) {
@@ -331,6 +341,11 @@ public class TaxService {
                 .filter(tax -> containsAnyKeyword(tax.getName(), keywords))
                 .map(Tax::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private boolean isBufferRelatedTransaction(Transaction transaction) {
+        return containsAnyKeyword(transaction.getCategory(), List.of("buffer", "tax", "vat", "f24", "save")) ||
+                containsAnyKeyword(transaction.getDescription(), List.of("buffer", "tax", "vat", "f24", "save"));
     }
 
     private boolean containsAnyKeyword(String source, List<String> keywords) {

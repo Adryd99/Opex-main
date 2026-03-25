@@ -40,9 +40,6 @@ export interface UserProfile {
 
 export interface BankAccountRecord {
   id: string;
-  accountId?: string | null;
-  saltedgeAccountId?: string | null;
-  saltedge_account_id?: string | null;
   institutionName: string;
   currency: string;
   balance: number;

@@ -30,84 +30,6 @@ const BANK_PROVIDERS_UPDATED_EVENT = 'opex:bank-providers-updated';
 const SELECTED_PROVIDER_KEY = 'opex_selected_provider_name';
 const PROVIDER_SELECTION_UPDATED_EVENT = 'opex:provider-selection-updated';
 
-const normalizeText = (value: string | null | undefined): string => (value ?? '').trim();
-
-const buildProviderMap = (providers: TaxBufferProviderItem[]): Map<string, string> => {
-  const providerMap = new Map<string, string>();
-  providers.forEach((provider) => {
-    const connectionId = normalizeText(provider.connectionId);
-    const providerName = normalizeText(provider.providerName);
-    if (connectionId.length > 0 && providerName.length > 0) {
-      providerMap.set(connectionId, providerName);
-    }
-  });
-  return providerMap;
-};
-
-const resolveAccountProviderName = (
-  account: BankAccountRecord,
-  providerByConnectionId: Map<string, string>
-): string => {
-  const connectionId = normalizeText(account.connectionId);
-  if (connectionId.length > 0) {
-    const providerName = providerByConnectionId.get(connectionId);
-    if (providerName) {
-      return providerName;
-    }
-  }
-  return normalizeText(account.institutionName);
-};
-
-const toConnectionIcon = (value: string): string => {
-  const sanitized = value.replace(/[^a-zA-Z0-9]+/g, ' ').trim();
-  if (!sanitized) {
-    return 'BA';
-  }
-
-  const parts = sanitized.split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-  }
-
-  return sanitized.slice(0, 2).toUpperCase();
-};
-
-const resolveBankAccountId = (account: BankAccountRecord | null | undefined): string | null => {
-  if (!account) {
-    return null;
-  }
-
-  const extendedAccount = account as BankAccountRecord & {
-    accountId?: string | null;
-    bankAccountId?: string | null;
-    saltedgeAccountId?: string | null;
-    saltedge_account_id?: string | null;
-  };
-
-  const accountId = normalizeText(extendedAccount.accountId);
-  if (accountId.length > 0) {
-    return accountId;
-  }
-
-  const saltedgeAccountId = normalizeText(extendedAccount.saltedgeAccountId);
-  if (saltedgeAccountId.length > 0) {
-    return saltedgeAccountId;
-  }
-
-  const saltedgeAccountIdSnake = normalizeText(extendedAccount.saltedge_account_id);
-  if (saltedgeAccountIdSnake.length > 0) {
-    return saltedgeAccountIdSnake;
-  }
-
-  const bankAccountId = normalizeText(extendedAccount.bankAccountId);
-  if (bankAccountId.length > 0) {
-    return bankAccountId;
-  }
-
-  const fallbackId = normalizeText(account.id);
-  return fallbackId.length > 0 ? fallbackId : null;
-};
-
 const getSelectedProviderFromStorage = (): string | null => {
   const value = window.localStorage.getItem(SELECTED_PROVIDER_KEY);
   if (!value) {
@@ -127,17 +49,8 @@ const resolveSelectedConnectionId = (
     return undefined;
   }
 
-  const selectedProvider = normalizeText(providerName);
-  const providerByConnectionId = buildProviderMap(providers);
-
   const accountConnectionId = accounts
-    .find((account) => {
-      const connectionId = normalizeText(account.connectionId);
-      if (connectionId.length === 0) {
-        return false;
-      }
-      return resolveAccountProviderName(account, providerByConnectionId) === selectedProvider;
-    })
+    .find((account) => (account.institutionName ?? '').trim() === providerName && (account.connectionId ?? '').trim().length > 0)
     ?.connectionId;
 
   if (accountConnectionId && accountConnectionId.trim().length > 0) {
@@ -145,7 +58,7 @@ const resolveSelectedConnectionId = (
   }
 
   const providerConnectionId = providers
-    .find((provider) => normalizeText(provider.providerName) === selectedProvider && normalizeText(provider.connectionId).length > 0)
+    .find((provider) => (provider.providerName ?? '').trim() === providerName && (provider.connectionId ?? '').trim().length > 0)
     ?.connectionId;
 
   return providerConnectionId && providerConnectionId.trim().length > 0 ? providerConnectionId : undefined;
@@ -155,9 +68,6 @@ export const useAppController = (isAuthenticated: boolean) => {
   const [activeTab, setActiveTab] = useState('DASHBOARD');
   const [lastMainTab, setLastMainTab] = useState('DASHBOARD');
   const [selectedBank, setSelectedBank] = useState<BankOption | null>(null);
-  const [selectedBankAccount, setSelectedBankAccount] = useState<BankAccountRecord | null>(null);
-  const [selectedBankAccountId, setSelectedBankAccountId] = useState<string | null>(null);
-  const [connectionSetupAccounts, setConnectionSetupAccounts] = useState<BankAccountRecord[]>([]);
 
   const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
   const [bankAccounts, setBankAccounts] = useState<BankAccountRecord[]>([]);
@@ -216,16 +126,6 @@ export const useAppController = (isAuthenticated: boolean) => {
       setTimeAggregatedBalances(timeAggregatedResult);
       setTaxBufferProviders(taxProvidersResult);
       setTaxBufferDashboard(taxDashboardResult);
-
-      return {
-        accountsResult,
-        transactionsResult,
-        taxesResult,
-        aggregatedResult,
-        timeAggregatedResult,
-        taxProvidersResult,
-        taxDashboardResult
-      };
     } catch (error) {
       setErrorMessage(toErrorMessage(error));
       throw error;
@@ -293,25 +193,17 @@ export const useAppController = (isAuthenticated: boolean) => {
   }, [isAuthenticated, refreshDashboardData]);
 
   useEffect(() => {
-    const providerByConnectionId = buildProviderMap(taxBufferProviders);
-    const providerNames = Array.from(new Set([
-      ...taxBufferProviders
-        .map((provider) => normalizeText(provider.providerName))
-        .filter((name) => name.length > 0),
-      ...bankAccounts
-        .map((account) => resolveAccountProviderName(account, providerByConnectionId))
-        .filter((name) => name.length > 0)
-    ]));
+    const providerNames = Array.from(
+      new Set(
+        bankAccounts
+          .map((account) => (account.institutionName ?? '').trim())
+          .filter((name) => name.length > 0)
+      )
+    );
 
     window.localStorage.setItem(BANK_PROVIDERS_KEY, JSON.stringify(providerNames));
     window.dispatchEvent(new Event(BANK_PROVIDERS_UPDATED_EVENT));
-  }, [bankAccounts, taxBufferProviders]);
-
-  const providerByConnectionId = useMemo(() => buildProviderMap(taxBufferProviders), [taxBufferProviders]);
-
-  const doesAccountMatchSelectedProvider = useCallback((account: BankAccountRecord, providerName: string) => {
-    return resolveAccountProviderName(account, providerByConnectionId) === providerName;
-  }, [providerByConnectionId]);
+  }, [bankAccounts]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -351,7 +243,7 @@ export const useAppController = (isAuthenticated: boolean) => {
     if (selectedProviderName) {
       allowedConnectionIds = new Set(
         bankAccounts
-          .filter((account) => doesAccountMatchSelectedProvider(account, selectedProviderName))
+          .filter((account) => (account.institutionName ?? '').trim() === selectedProviderName)
           .map((account) => account.connectionId ?? '')
           .filter((connectionId) => connectionId.length > 0)
       );
@@ -383,11 +275,11 @@ export const useAppController = (isAuthenticated: boolean) => {
 
     return new Set(
       bankAccounts
-        .filter((account) => doesAccountMatchSelectedProvider(account, selectedProviderName))
+        .filter((account) => (account.institutionName ?? '').trim() === selectedProviderName)
         .map((account) => account.connectionId ?? '')
         .filter((connectionId) => connectionId.length > 0)
     );
-  }, [bankAccounts, doesAccountMatchSelectedProvider, selectedProviderName]);
+  }, [bankAccounts, selectedProviderName]);
 
   const visibleTransactions = useMemo(() => {
     if (!selectedProviderName) {
@@ -408,9 +300,9 @@ export const useAppController = (isAuthenticated: boolean) => {
         return false;
       }
 
-      return doesAccountMatchSelectedProvider(relatedAccount, selectedProviderName);
+      return (relatedAccount.institutionName ?? '').trim() === selectedProviderName;
     });
-  }, [allowedConnectionIdsForSelectedProvider, bankAccounts, doesAccountMatchSelectedProvider, selectedProviderName, transactions]);
+  }, [allowedConnectionIdsForSelectedProvider, bankAccounts, selectedProviderName, transactions]);
 
   const timeAggregatedSummary = useMemo(() => {
     const aggregateByPeriod = (items: TimeAggregatedRecord['byMonth']) => {
@@ -461,9 +353,6 @@ export const useAppController = (isAuthenticated: boolean) => {
 
   const startBankFlow = (bank: BankOption) => {
     setSelectedBank(bank);
-    setSelectedBankAccount(null);
-    setSelectedBankAccountId(null);
-    setConnectionSetupAccounts([]);
     if (bank.isManual) {
       setBankPopupUrl(null);
       setBankSyncStage('idle');
@@ -473,41 +362,6 @@ export const useAppController = (isAuthenticated: boolean) => {
     setBankPopupUrl(null);
     setBankSyncStage('idle');
     setActiveTab('SETTINGS_BANK_REDIRECT');
-  };
-
-  const selectConnectionAccountForSetup = useCallback((account: BankAccountRecord): boolean => {
-    const bankAccountId = resolveBankAccountId(account);
-    if (!bankAccountId) {
-      setErrorMessage('Unable to edit this connection because accountId is missing.');
-      return false;
-    }
-
-    setErrorMessage(null);
-    setSelectedBankAccount(account);
-    setSelectedBankAccountId(bankAccountId);
-    return true;
-  }, []);
-
-  const startConnectionSetup = (account: BankAccountRecord, providerName?: string) => {
-    const normalizedConnectionId = normalizeText(account.connectionId);
-    const relatedAccounts = normalizedConnectionId.length > 0
-      ? bankAccounts.filter((item) => normalizeText(item.connectionId) === normalizedConnectionId)
-      : [account];
-    const initialAccount = relatedAccounts[0] ?? account;
-
-    if (!selectConnectionAccountForSetup(initialAccount)) {
-      return;
-    }
-    const resolvedProviderName = normalizeText(providerName) || resolveAccountProviderName(account, providerByConnectionId) || 'Connection';
-    setSelectedBank({
-      name: resolvedProviderName,
-      color: 'bg-opex-dark',
-      icon: toConnectionIcon(resolvedProviderName)
-    });
-    setConnectionSetupAccounts(relatedAccounts.length > 0 ? relatedAccounts : [account]);
-    setBankPopupUrl(null);
-    setBankSyncStage('idle');
-    setActiveTab('SETTINGS_BANK_SETUP');
   };
 
   const syncExternalBankAndNavigate = useCallback(async () => {
@@ -545,62 +399,16 @@ export const useAppController = (isAuthenticated: boolean) => {
     setIsBankSyncInProgress(true);
     setBankSyncStage('syncing_success');
     setErrorMessage(null);
-    const existingAccountIds = new Set(
-      bankAccounts
-        .map((account) => resolveBankAccountId(account))
-        .filter((accountId): accountId is string => Boolean(accountId))
-    );
 
     try {
       await opexApi.bankIntegrationSync();
-      const refreshedData = await refreshDashboardData();
+      await refreshDashboardData();
       window.localStorage.setItem(BANK_SYNC_COMPLETED_EVENT_KEY, String(Date.now()));
       if (window.location.pathname === '/success') {
         window.history.replaceState({}, document.title, '/');
       }
-
-      const refreshedAccounts = refreshedData.accountsResult.content;
-      const newSaltedgeAccounts = refreshedAccounts.filter((account) => {
-        if (!account.isSaltedge) {
-          return false;
-        }
-
-        const accountId = resolveBankAccountId(account);
-        return Boolean(accountId) && !existingAccountIds.has(accountId);
-      });
-
-      const firstNewAccount = newSaltedgeAccounts[0];
-      if (firstNewAccount) {
-        const newConnectionId = normalizeText(firstNewAccount.connectionId);
-        const accountsForNewConnection = newConnectionId.length > 0
-          ? refreshedAccounts.filter((account) => normalizeText(account.connectionId) === newConnectionId)
-          : [firstNewAccount];
-        const providerFromTaxProviders = newConnectionId.length > 0
-          ? refreshedData.taxProvidersResult.find((provider) => normalizeText(provider.connectionId) === newConnectionId)?.providerName
-          : null;
-        const providerName = normalizeText(providerFromTaxProviders) || normalizeText(firstNewAccount.institutionName) || 'Connection';
-        const initialAccount = accountsForNewConnection[0] ?? firstNewAccount;
-
-        setSelectedBank({
-          name: providerName,
-          color: 'bg-opex-dark',
-          icon: toConnectionIcon(providerName)
-        });
-        setConnectionSetupAccounts(accountsForNewConnection);
-        if (!selectConnectionAccountForSetup(initialAccount)) {
-          setActiveTab('DASHBOARD');
-          return;
-        }
-        setActiveTab('SETTINGS_BANK_SETUP');
-      } else {
-        setSelectedBank(null);
-        setSelectedBankAccount(null);
-        setSelectedBankAccountId(null);
-        setConnectionSetupAccounts([]);
-        setActiveTab('DASHBOARD');
-      }
-
       setBankPopupUrl(null);
+      setActiveTab('DASHBOARD');
       setBankSyncStage('idle');
     } catch (error) {
       setErrorMessage(toErrorMessage(error));
@@ -608,7 +416,7 @@ export const useAppController = (isAuthenticated: boolean) => {
     } finally {
       setIsBankSyncInProgress(false);
     }
-  }, [bankAccounts, refreshDashboardData, selectConnectionAccountForSetup]);
+  }, [refreshDashboardData]);
 
   const completeManualBankSetup = useCallback(
     async (payload: ManualBankSetupInput) => {
@@ -619,29 +427,6 @@ export const useAppController = (isAuthenticated: boolean) => {
         await opexApi.createLocalBankAccount(payload);
         await refreshDashboardData();
         setActiveTab('DASHBOARD');
-      } catch (error) {
-        setErrorMessage(toErrorMessage(error));
-        throw error;
-      } finally {
-        setIsManualBankSaving(false);
-      }
-    },
-    [refreshDashboardData]
-  );
-
-  const completeConnectionSetup = useCallback(
-    async (bankAccountId: string, payload: ManualBankSetupInput) => {
-      setIsManualBankSaving(true);
-      setErrorMessage(null);
-
-      try {
-        await opexApi.updateLocalBankAccount(bankAccountId, {
-          institutionName: payload.institutionName,
-          nature: payload.nature,
-          isForTax: payload.isForTax
-        });
-        await refreshDashboardData();
-        setActiveTab('SETTINGS_OPEN_BANKING');
       } catch (error) {
         setErrorMessage(toErrorMessage(error));
         throw error;
@@ -695,11 +480,7 @@ export const useAppController = (isAuthenticated: boolean) => {
     lastMainTab,
     setLastMainTab,
     selectedBank,
-    selectedBankAccount,
-    selectedBankAccountId,
-    connectionSetupAccounts,
     setSelectedBank,
-    setSelectedBankAccount,
     userProfile,
     setUserProfile,
     bankAccounts,
@@ -722,13 +503,10 @@ export const useAppController = (isAuthenticated: boolean) => {
     clearError,
     handleNavigate,
     startBankFlow,
-    startConnectionSetup,
-    selectConnectionAccountForSetup,
     refreshDashboardData,
     syncExternalBankAndNavigate,
     syncAfterSuccessRedirect,
     completeManualBankSetup,
-    completeConnectionSetup,
     createLocalTransaction,
     saveUserProfile
   };

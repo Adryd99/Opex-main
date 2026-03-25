@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 import { Sidebar, TopBar } from './views/components';
-import { TaxesPage, InsightsDetail, BreakdownLayout, TransactionsPage, AddTransactionPage, AddInvoicePage, BankRedirectionPage, AccountSetupPage, InvoicingPage, DashboardPage, BudgetPage, EditProfilePage, RenewConsentPage, ChangePasswordPage, CategoriesPage, NotificationDetailsPage, SupportPage, RecurringPage, SettingsPage } from './views/pages';
+import { TaxesPage, InsightsDetail, BreakdownLayout, TransactionsPage, AddTransactionPage, AddInvoicePage, BankRedirectionPage, AccountSetupPage, AddBankPage, InvoicingPage, DashboardPage, BudgetPage, EditProfilePage, RenewConsentPage, ChangePasswordPage, CategoriesPage, NotificationDetailsPage, SupportPage, RecurringPage, SettingsPage } from './views/pages';
 
 
 
@@ -29,9 +29,6 @@ export const App = () => {
     setActiveTab,
     lastMainTab,
     selectedBank,
-    selectedBankAccount,
-    selectedBankAccountId,
-    connectionSetupAccounts,
     userProfile,
     setUserProfile,
     bankAccounts,
@@ -52,13 +49,10 @@ export const App = () => {
     clearError,
     handleNavigate,
     startBankFlow,
-    startConnectionSetup,
-    selectConnectionAccountForSetup,
     refreshDashboardData,
     syncExternalBankAndNavigate,
     syncAfterSuccessRedirect,
     completeManualBankSetup,
-    completeConnectionSetup,
     createLocalTransaction,
     saveUserProfile
   } = useAppController(isAuthenticated);
@@ -187,17 +181,9 @@ export const App = () => {
           <SettingsPage 
             userProfile={userProfile}
             setUserProfile={setUserProfile}
-            bankAccounts={bankAccounts}
-            taxBufferProviders={taxBufferProviders}
-            onBankSelect={startBankFlow}
-            onConnectionSelect={startConnectionSetup}
-            onCreateOpenBankConnection={syncExternalBankAndNavigate}
-            isConnectingOpenBank={isBankSyncInProgress}
-            openBankErrorMessage={appErrorMessage}
-            initialSection="PROFILE"
             onNavigate={(v) => {
               // If it's a global quick action, don't prefix with SETTINGS_
-              if (v.startsWith('QUICK_') || v === 'ADD_BANK' || v === 'OPEN_BANKING' || v === 'SETTINGS_OPEN_BANKING') {
+              if (v.startsWith('QUICK_') || v === 'ADD_BANK') {
                 handleNavigate(v);
               } else {
                 handleNavigate('SETTINGS_' + v);
@@ -240,27 +226,15 @@ export const App = () => {
             onBack={() => setActiveTab('SETTINGS')}
           />
         );
-      case 'SETTINGS_OPEN_BANKING':
-      case 'SETTINGS_ADD_BANK': // Legacy alias
+      case 'SETTINGS_ADD_BANK':
         return (
-          <SettingsPage
-            userProfile={userProfile}
-            setUserProfile={setUserProfile}
-            bankAccounts={bankAccounts}
-            taxBufferProviders={taxBufferProviders}
+          <AddBankPage
+            onNavigate={handleNavigate}
             onBankSelect={startBankFlow}
-            onConnectionSelect={startConnectionSetup}
+            bankAccounts={bankAccounts}
             onCreateOpenBankConnection={syncExternalBankAndNavigate}
             isConnectingOpenBank={isBankSyncInProgress}
             openBankErrorMessage={appErrorMessage}
-            initialSection="BANKING"
-            onNavigate={(v) => {
-              if (v.startsWith('QUICK_') || v === 'ADD_BANK' || v === 'OPEN_BANKING' || v === 'SETTINGS_OPEN_BANKING') {
-                handleNavigate(v);
-              } else {
-                handleNavigate('SETTINGS_' + v);
-              }
-            }}
           />
         );
       case 'SETTINGS_BANK_REDIRECT':
@@ -268,7 +242,7 @@ export const App = () => {
           <BankRedirectionPage
             bank={selectedBank}
             onComplete={syncExternalBankAndNavigate}
-            onBack={() => setActiveTab('SETTINGS_OPEN_BANKING')}
+            onBack={() => setActiveTab('SETTINGS_ADD_BANK')}
             isSyncing={isBankSyncInProgress}
             syncStage={bankSyncStage}
             errorMessage={appErrorMessage}
@@ -278,21 +252,10 @@ export const App = () => {
         return selectedBank ? (
           <AccountSetupPage
             bank={selectedBank}
-            onBack={() => setActiveTab('SETTINGS_OPEN_BANKING')}
-            onComplete={(payload) => {
-              if (selectedBankAccount) {
-                if (!selectedBankAccountId) {
-                  return Promise.reject(new Error('Missing accountId for selected connection.'));
-                }
-                return completeConnectionSetup(selectedBankAccountId, payload);
-              }
-              return completeManualBankSetup(payload);
-            }}
+            onBack={() => setActiveTab('SETTINGS_ADD_BANK')}
+            onComplete={completeManualBankSetup}
             isSaving={isManualBankSaving}
             isManual={Boolean(selectedBank.isManual)}
-            presetAccount={selectedBankAccount}
-            connectionAccounts={connectionSetupAccounts}
-            onSelectConnectionAccount={selectConnectionAccountForSetup}
           />
         ) : null;
       case 'SETTINGS_RENEW_CONSENT':
@@ -307,26 +270,14 @@ export const App = () => {
         return <SupportPage onBack={() => setActiveTab('SETTINGS')} />;
       
       case 'ADD_BANK': // Global shortcut
-      case 'OPEN_BANKING': // Global shortcut alias
         return (
-          <SettingsPage
-            userProfile={userProfile}
-            setUserProfile={setUserProfile}
-            bankAccounts={bankAccounts}
-            taxBufferProviders={taxBufferProviders}
+          <AddBankPage
+            onNavigate={handleNavigate}
             onBankSelect={startBankFlow}
-            onConnectionSelect={startConnectionSetup}
+            bankAccounts={bankAccounts}
             onCreateOpenBankConnection={syncExternalBankAndNavigate}
             isConnectingOpenBank={isBankSyncInProgress}
             openBankErrorMessage={appErrorMessage}
-            initialSection="BANKING"
-            onNavigate={(v) => {
-              if (v.startsWith('QUICK_') || v === 'ADD_BANK' || v === 'OPEN_BANKING' || v === 'SETTINGS_OPEN_BANKING') {
-                handleNavigate(v);
-              } else {
-                handleNavigate('SETTINGS_' + v);
-              }
-            }}
           />
         );
 
@@ -362,8 +313,7 @@ export const App = () => {
     }
   };
 
-  const isSubpage = ['INCOME', 'EXPENSES', 'INSIGHTS', '[]', 'QUICK_INCOME', 'QUICK_EXPENSE', 'QUICK_INVOICE', 'SETTINGS_BANK_SETUP'].includes(activeTab)
-    || (activeTab.startsWith('SETTINGS_') && !['SETTINGS_OPEN_BANKING', 'SETTINGS_ADD_BANK'].includes(activeTab));
+  const isSubpage = ['INCOME', 'EXPENSES', 'INSIGHTS', '[]', 'QUICK_INCOME', 'QUICK_EXPENSE', 'QUICK_INVOICE', 'ADD_BANK', 'SETTINGS_ADD_BANK', 'SETTINGS_BANK_SETUP'].includes(activeTab) || activeTab.startsWith('SETTINGS_');
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex text-gray-900">

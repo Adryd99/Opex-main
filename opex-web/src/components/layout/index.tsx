@@ -150,7 +150,7 @@ export const QuickActions = ({ compact = false, onNavigate }: { compact?: boolea
     { label: 'Add Income', icon: ArrowUp, color: 'text-green-500', bg: 'bg-green-50', id: 'QUICK_INCOME' },
     { label: 'Add Expense', icon: ArrowDownRight, color: 'text-red-500', bg: 'bg-red-50', id: 'QUICK_EXPENSE' },
     { label: 'Add Invoice', icon: Receipt, color: 'text-blue-500', bg: 'bg-blue-50', id: 'QUICK_INVOICE' },
-    { label: 'Open Banking', icon: Building2, color: 'text-purple-500', bg: 'bg-purple-50', id: 'OPEN_BANKING' },
+    { label: 'Add Bank Account', icon: Building2, color: 'text-purple-500', bg: 'bg-purple-50', id: 'ADD_BANK' },
   ];
 
   return (

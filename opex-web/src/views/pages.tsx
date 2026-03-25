@@ -91,65 +91,6 @@ const formatCurrency = (value: number): string =>
     maximumFractionDigits: 2
   }).format(value);
 
-const ACCOUNT_CATEGORY_OPTIONS = ['Personal', 'Business', 'Savings'] as const;
-type AccountCategory = (typeof ACCOUNT_CATEGORY_OPTIONS)[number];
-
-const toAccountCategory = (nature?: string | null): AccountCategory => {
-  const normalized = (nature ?? '').trim().toLowerCase();
-  if (normalized === 'business') {
-    return 'Business';
-  }
-  if (normalized === 'savings') {
-    return 'Savings';
-  }
-  return 'Personal';
-};
-
-const ACCOUNT_CATEGORY_TO_NATURE: Record<AccountCategory, string> = {
-  Personal: 'personal',
-  Business: 'business',
-  Savings: 'savings'
-};
-
-const resolveConnectionAccountName = (
-  account: Pick<BankAccountRecord, 'id' | 'institutionName'> | null | undefined,
-  providerName?: string
-): string => {
-  const fallbackName = (account?.id ?? '').trim();
-  const institutionName = (account?.institutionName ?? '').trim();
-
-  if (institutionName.length === 0) {
-    return fallbackName || 'Connection';
-  }
-  if (providerName && institutionName.toLowerCase() === providerName.trim().toLowerCase()) {
-    return fallbackName || institutionName;
-  }
-  return institutionName;
-};
-
-const resolveConnectionRecordId = (account: BankAccountRecord | null | undefined): string => {
-  if (!account) {
-    return '';
-  }
-
-  const accountId = (account.accountId ?? '').trim();
-  if (accountId.length > 0) {
-    return accountId;
-  }
-
-  const saltedgeAccountId = (account.saltedgeAccountId ?? '').trim();
-  if (saltedgeAccountId.length > 0) {
-    return saltedgeAccountId;
-  }
-
-  const saltedgeAccountIdSnake = (account.saltedge_account_id ?? '').trim();
-  if (saltedgeAccountIdSnake.length > 0) {
-    return saltedgeAccountIdSnake;
-  }
-
-  return (account.id ?? '').trim();
-};
-
 export const TaxesPage = ({
   onNavigate,
   selectedProviderName,
@@ -1152,63 +1093,40 @@ export const AccountSetupPage = ({
   onBack,
   onComplete,
   isSaving = false,
-  isManual = false,
-  presetAccount = null,
-  connectionAccounts = [],
-  onSelectConnectionAccount
+  isManual = false
 }: {
   bank: BankOption;
   onBack: () => void;
   onComplete: (payload: ManualBankSetupInput) => Promise<void>;
   isSaving?: boolean;
   isManual?: boolean;
-  presetAccount?: BankAccountRecord | null;
-  connectionAccounts?: BankAccountRecord[];
-  onSelectConnectionAccount?: (account: BankAccountRecord) => void;
 }) => {
-  const isConnectionEdit = !isManual && Boolean(presetAccount);
-  const selectedConnectionRecordId = resolveConnectionRecordId(presetAccount);
-  const [accountType, setAccountType] = useState<AccountCategory>(toAccountCategory(presetAccount?.nature));
-  const [isTaxBuffer, setIsTaxBuffer] = useState(Boolean(presetAccount?.isForTax));
-  const [institutionName, setInstitutionName] = useState(
-    isConnectionEdit ? ((presetAccount?.institutionName ?? '').trim() || bank.name) : bank.name
-  );
-  const [balance, setBalance] = useState(String(presetAccount?.balance ?? 0));
-  const [currency, setCurrency] = useState((presetAccount?.currency ?? 'EUR').trim().toUpperCase() || 'EUR');
+  const [accountType, setAccountType] = useState('Personal');
+  const [isTaxBuffer, setIsTaxBuffer] = useState(false);
+  const [institutionName, setInstitutionName] = useState(bank.name);
+  const [balance, setBalance] = useState('0');
+  const [currency, setCurrency] = useState('EUR');
   const [formError, setFormError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setAccountType(toAccountCategory(presetAccount?.nature));
-    setIsTaxBuffer(Boolean(presetAccount?.isForTax));
-    setInstitutionName(isConnectionEdit ? ((presetAccount?.institutionName ?? '').trim() || bank.name) : bank.name);
-    setBalance(String(presetAccount?.balance ?? 0));
-    setCurrency((presetAccount?.currency ?? 'EUR').trim().toUpperCase() || 'EUR');
-    setFormError(null);
-  }, [
-    bank.name,
-    isConnectionEdit,
-    presetAccount?.balance,
-    presetAccount?.currency,
-    presetAccount?.id,
-    presetAccount?.isForTax,
-    presetAccount?.nature
-  ]);
 
   const handleComplete = async () => {
     const parsedBalance = Number.parseFloat(balance);
-    if (isManual && !Number.isFinite(parsedBalance)) {
+    if (!Number.isFinite(parsedBalance)) {
       setFormError('Please provide a valid numeric balance.');
       return;
     }
 
-    const fallbackBalance = Number.isFinite(parsedBalance) ? parsedBalance : Number(presetAccount?.balance ?? 0) || 0;
+    const natureByType: Record<string, string> = {
+      Personal: 'cash',
+      Business: 'cash',
+      Savings: 'cash'
+    };
 
     const payload: ManualBankSetupInput = {
       institutionName: institutionName.trim() || bank.name,
-      balance: fallbackBalance,
+      balance: parsedBalance,
       currency: currency.trim().toUpperCase() || 'EUR',
       isForTax: isTaxBuffer,
-      nature: ACCOUNT_CATEGORY_TO_NATURE[accountType]
+      nature: natureByType[accountType] ?? 'cash'
     };
 
     setFormError(null);
@@ -1220,11 +1138,12 @@ export const AccountSetupPage = ({
   };
 
   return (
-    <SubpageShell onBack={onBack} title={isConnectionEdit ? 'Edit Connection' : 'Configure Account'}>
+    <SubpageShell onBack={onBack} title="Configure Account">
        <div className="max-w-2xl mx-auto space-y-8 pb-20">
           <Card>
              <div className="flex items-center gap-5 p-2">
                 <div className={`w-16 h-16 rounded-[1.5rem] ${bank.color} text-white flex items-center justify-center text-2xl font-black shadow-lg`}>
+                   {/* Fix: Use React.cloneElement to safely pass props to a ReactNode icon element */}
                    {typeof bank.icon === 'string' ? bank.icon : React.isValidElement(bank.icon) ? React.cloneElement(bank.icon as React.ReactElement<any>, { size: 32 }) : bank.icon}
                 </div>
                 <div>
@@ -1237,73 +1156,39 @@ export const AccountSetupPage = ({
              </div>
           </Card>
 
-          {isConnectionEdit && connectionAccounts.length > 0 && (
-            <Card title="Connection Accounts">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {connectionAccounts.map((account, index) => {
-                  const connectionRecordId = resolveConnectionRecordId(account) || `${index}`;
-                  const isSelected = connectionRecordId === selectedConnectionRecordId;
-                  const accountLabel = resolveConnectionAccountName(account, bank.name);
-                  const accountSubtitle = (account.institutionName ?? '').trim() || 'Unknown Institution';
-                  const accountIcon = accountSubtitle.slice(0, 2).toUpperCase();
-
-                  return (
-                    <button
-                      key={`${connectionRecordId}-${index}`}
-                      onClick={() => onSelectConnectionAccount?.(account)}
-                      className={`text-left p-6 rounded-[2rem] border transition-all ${
-                        isSelected
-                          ? 'bg-white border-opex-teal/40 shadow-lg shadow-teal-900/10'
-                          : 'bg-gray-50 border-gray-100 hover:border-gray-200'
-                      }`}
-                    >
-                      <div className={`w-14 h-14 rounded-2xl ${isSelected ? 'bg-opex-dark' : 'bg-opex-dark/90'} text-white flex items-center justify-center font-black text-xl shadow-md`}>
-                        {accountIcon}
-                      </div>
-                      <p className="mt-5 text-base font-black text-gray-900 leading-tight">{accountLabel}</p>
-                      <p className="mt-1 text-xs font-medium text-gray-500">{accountSubtitle}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            </Card>
-          )}
-
-          {(isManual || isConnectionEdit) && (
-            <Card title={isConnectionEdit ? 'Connection Details' : 'Manual Account Details'}>
+          {isManual && (
+            <Card title="Manual Account Details">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{isConnectionEdit ? 'Account Name' : 'Institution Name'}</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Institution Name</label>
                   <input
                     value={institutionName}
                     onChange={(event) => setInstitutionName(event.target.value)}
                     className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none"
-                    placeholder={isConnectionEdit ? 'Primary account' : 'Contanti nel cassetto'}
+                    placeholder="Contanti nel cassetto"
                   />
                 </div>
-                {isManual && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Initial Balance</label>
-                      <input
-                        type="number"
-                        value={balance}
-                        onChange={(event) => setBalance(event.target.value)}
-                        className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none"
-                        placeholder="500.50"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Currency</label>
-                      <input
-                        value={currency}
-                        onChange={(event) => setCurrency(event.target.value)}
-                        className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none"
-                        placeholder="EUR"
-                      />
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Initial Balance</label>
+                    <input
+                      type="number"
+                      value={balance}
+                      onChange={(event) => setBalance(event.target.value)}
+                      className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none"
+                      placeholder="500.50"
+                    />
                   </div>
-                )}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Currency</label>
+                    <input
+                      value={currency}
+                      onChange={(event) => setCurrency(event.target.value)}
+                      className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none"
+                      placeholder="EUR"
+                    />
+                  </div>
+                </div>
               </div>
             </Card>
           )}
@@ -1311,7 +1196,7 @@ export const AccountSetupPage = ({
           <div className="space-y-4">
              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Account Category</h3>
              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {ACCOUNT_CATEGORY_OPTIONS.map(type => (
+                {['Personal', 'Business', 'Savings'].map(type => (
                   <button 
                     key={type}
                     onClick={() => setAccountType(type)}
@@ -1346,7 +1231,7 @@ export const AccountSetupPage = ({
 
           <div className="pt-6">
              <Button fullWidth size="lg" icon={Check} onClick={() => void handleComplete()} disabled={isSaving}>
-               {isSaving ? 'Saving...' : isConnectionEdit ? 'Save Changes' : 'Complete Setup'}
+               {isSaving ? 'Saving...' : 'Complete Setup'}
              </Button>
              {formError && <p className="mt-3 text-sm text-red-600 font-medium">{formError}</p>}
           </div>
@@ -1360,46 +1245,30 @@ export const AccountSetupPage = ({
 export const AddBankPage = ({
   onNavigate,
   onBankSelect,
-  onConnectionSelect,
   bankAccounts,
-  taxBufferProviders = [],
   onCreateOpenBankConnection,
   isConnectingOpenBank = false,
-  openBankErrorMessage = null,
-  embeddedInSettings = false
+  openBankErrorMessage = null
 }: {
   onNavigate: (v: string) => void;
   onBankSelect: (bank: BankOption) => void;
-  onConnectionSelect: (account: BankAccountRecord, providerName: string) => void;
   bankAccounts: BankAccountRecord[];
-  taxBufferProviders?: TaxBufferProviderItem[];
   onCreateOpenBankConnection: () => Promise<void>;
   isConnectingOpenBank?: boolean;
   openBankErrorMessage?: string | null;
-  embeddedInSettings?: boolean;
 }) => {
-  const providerByConnectionId = useMemo(() => {
-    const providerMap = new Map<string, string>();
-    taxBufferProviders.forEach((provider) => {
-      const connectionId = (provider.connectionId ?? '').trim();
-      const providerName = (provider.providerName ?? '').trim();
-      if (connectionId.length > 0 && providerName.length > 0) {
-        providerMap.set(connectionId, providerName);
-      }
-    });
-    return providerMap;
-  }, [taxBufferProviders]);
-
+  const banks: BankOption[] = [
+    { name: 'Bunq', color: 'bg-opex-teal', icon: 'B' },
+    { name: 'Rabobank', color: 'bg-orange-600', icon: 'R' },
+    { name: 'Revolut', color: 'bg-black', icon: 'Rv' },
+    { name: 'Intesa Sanpaolo', color: 'bg-green-600', icon: 'I' },
+    { name: 'UniCredit', color: 'bg-red-600', icon: 'U' },
+  ];
   const groupedByProvider = useMemo(() => {
     const groups = new Map<string, BankAccountRecord[]>();
 
     bankAccounts.forEach((account) => {
-      const connectionId = (account.connectionId ?? '').trim();
-      const providerName = (
-        (connectionId.length > 0 ? providerByConnectionId.get(connectionId) : undefined)
-        || (account.institutionName ?? '').trim()
-        || 'Unknown Provider'
-      );
+      const providerName = (account.institutionName ?? '').trim() || 'Unknown Provider';
       if (!groups.has(providerName)) {
         groups.set(providerName, []);
       }
@@ -1407,37 +1276,10 @@ export const AddBankPage = ({
     });
 
     return Array.from(groups.entries())
-      .map(([providerName, connections]) => ({
-        providerName,
-        connections: [...connections].sort((left, right) =>
-          resolveConnectionAccountName(left, providerName).localeCompare(
-            resolveConnectionAccountName(right, providerName)
-          )
-        )
-      }))
+      .map(([providerName, connections]) => ({ providerName, connections }))
       .sort((left, right) => left.providerName.localeCompare(right.providerName));
-  }, [bankAccounts, providerByConnectionId]);
+  }, [bankAccounts]);
   const [expandedProviders, setExpandedProviders] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    if (groupedByProvider.length === 0) {
-      setExpandedProviders({});
-      return;
-    }
-
-    setExpandedProviders((previous) => {
-      const next: Record<string, boolean> = {};
-      groupedByProvider.forEach(({ providerName }) => {
-        next[providerName] = previous[providerName] ?? false;
-      });
-
-      const hasExpanded = Object.values(next).some(Boolean);
-      if (!hasExpanded) {
-        next[groupedByProvider[0].providerName] = true;
-      }
-      return next;
-    });
-  }, [groupedByProvider]);
 
   const toggleProvider = (providerName: string) => {
     setExpandedProviders((previous) => ({
@@ -1446,11 +1288,12 @@ export const AddBankPage = ({
     }));
   };
 
-  const pageContent = (
-    <div className="max-w-4xl mx-auto space-y-8">
-        <Card title="Connections By Provider">
+  return (
+    <SubpageShell onBack={() => onNavigate('SETTINGS')} title="Add Bank">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <Card title="Connected Bank Accounts By Provider">
           {groupedByProvider.length === 0 ? (
-            <p className="text-sm text-gray-500 font-medium">No connections available yet.</p>
+            <p className="text-sm text-gray-500 font-medium">No bank accounts connected yet.</p>
           ) : (
             <div className="space-y-3">
               {groupedByProvider.map(({ providerName, connections }) => {
@@ -1475,41 +1318,28 @@ export const AddBankPage = ({
                     </button>
 
                     {isExpanded && (
-                      <div className="border-t border-gray-100 bg-white/80 p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {connections.map((account, index) => (
-                            <button
-                              key={`${providerName}-${account.connectionId ?? 'no-connection'}-${account.id ?? account.institutionName ?? 'account'}-${index}`}
-                              onClick={() => onConnectionSelect(account, providerName)}
-                              className="text-left w-full rounded-2xl border border-gray-100 bg-white px-4 py-4 hover:border-opex-teal/30 hover:shadow-sm transition-all"
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="space-y-1">
-                                  <p className="text-sm font-black text-gray-900">{resolveConnectionAccountName(account, providerName)}</p>
-                                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                    {toAccountCategory(account.nature)} • {account.isSaltedge ? 'Open Banking' : 'Local'}
-                                  </p>
-                                </div>
-                                <ChevronRight size={16} className="text-gray-400" />
-                              </div>
-                              <div className="mt-3 flex items-center justify-between gap-3">
-                                <p className="text-sm font-bold text-gray-700">
-                                  {new Intl.NumberFormat('it-IT', {
-                                    style: 'currency',
-                                    currency: account.currency || 'EUR',
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 2
-                                  }).format(account.balance ?? 0)}
-                                </p>
-                                {account.isForTax && (
-                                  <span className="inline-flex items-center rounded-full bg-opex-teal/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-opex-teal">
-                                    Tax Buffer
-                                  </span>
-                                )}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
+                      <div className="border-t border-gray-100 bg-white/70">
+                        {connections.map((account) => (
+                          <div
+                            key={account.id}
+                            className="px-4 py-3 flex items-center justify-between gap-4 border-b border-gray-100 last:border-b-0"
+                          >
+                            <div>
+                              <p className="text-sm font-bold text-gray-800">{account.id}</p>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                {account.currency} {account.isSaltedge ? '• Open Banking' : '• Local'}
+                              </p>
+                            </div>
+                            <p className="text-sm font-bold text-gray-700">
+                              {new Intl.NumberFormat('it-IT', {
+                                style: 'currency',
+                                currency: account.currency || 'EUR',
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2
+                              }).format(account.balance ?? 0)}
+                            </p>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -1541,24 +1371,32 @@ export const AddBankPage = ({
             {isConnectingOpenBank ? <Loader2 size={20} className="text-opex-teal animate-spin" /> : <ChevronRight size={20} className="text-opex-teal" />}
           </button>
           {openBankErrorMessage && <p className="mt-3 text-sm text-red-600 font-medium">{openBankErrorMessage}</p>}
-          <button
-            onClick={() => onBankSelect({ name: 'Manual Account', color: 'bg-gray-400', icon: <Plus />, isManual: true })}
-            className="mt-4 w-full bg-gray-50 p-4 rounded-2xl border border-dashed border-gray-300 text-left hover:bg-gray-100 transition-all"
-          >
-            <p className="text-sm font-black text-gray-700">Add Manual Account</p>
-            <p className="text-xs text-gray-500 font-medium mt-1">Create a local account without Open Banking authorization.</p>
-          </button>
         </Card>
-    </div>
-  );
 
-  if (embeddedInSettings) {
-    return pageContent;
-  }
-
-  return (
-    <SubpageShell onBack={() => onNavigate('SETTINGS')} title="Add Bank">
-      {pageContent}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+          {banks.map(bank => (
+            <button 
+              key={bank.name} 
+              onClick={() => onBankSelect(bank)}
+              className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col items-center gap-4 hover:shadow-md hover:border-opex-teal/30 transition-all group"
+            >
+              <div className={`w-16 h-16 rounded-2xl ${bank.color} text-white flex items-center justify-center font-black text-2xl group-hover:scale-110 transition-transform shadow-lg`}>
+                {bank.icon}
+              </div>
+              <span className="font-bold text-gray-900">{bank.name}</span>
+            </button>
+          ))}
+          <button 
+            onClick={() => onBankSelect({ name: 'Manual Account', color: 'bg-gray-400', icon: <Plus />, isManual: true })}
+            className="bg-gray-50 p-8 rounded-[2.5rem] border border-dashed border-gray-300 flex flex-col items-center gap-4 hover:bg-gray-100 transition-all"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-white border border-gray-200 text-gray-400 flex items-center justify-center">
+              <Plus size={32} />
+            </div>
+            <span className="font-bold text-gray-500">Manual Account</span>
+          </button>
+        </div>
+      </div>
     </SubpageShell>
   );
 };
@@ -4443,42 +4281,18 @@ export const RecurringPage = ({ onBack }: { onBack: () => void }) => {
   );
 };
 
-export const SettingsPage = ({
-  userProfile,
-  setUserProfile,
-  onNavigate,
-  bankAccounts,
-  taxBufferProviders,
-  onBankSelect,
-  onConnectionSelect,
-  onCreateOpenBankConnection,
-  isConnectingOpenBank = false,
-  openBankErrorMessage = null,
-  initialSection = 'PROFILE'
-}: {
-  userProfile: any,
+export const SettingsPage = ({ userProfile, setUserProfile, onNavigate }: { 
+  userProfile: any, 
   setUserProfile: (p: any) => void,
-  onNavigate: (view: string) => void,
-  bankAccounts: BankAccountRecord[],
-  taxBufferProviders: TaxBufferProviderItem[],
-  onBankSelect: (bank: BankOption) => void,
-  onConnectionSelect: (account: BankAccountRecord, providerName: string) => void,
-  onCreateOpenBankConnection: () => Promise<void>,
-  isConnectingOpenBank?: boolean,
-  openBankErrorMessage?: string | null,
-  initialSection?: string
+  onNavigate: (view: string) => void 
 }) => {
-  const [activeSection, setActiveSection] = useState(initialSection);
+  const [activeSection, setActiveSection] = useState('PROFILE');
   const [isBusinessMode, setIsBusinessMode] = useState(true);
   const [theme, setTheme] = useState('light');
-
-  useEffect(() => {
-    setActiveSection(initialSection);
-  }, [initialSection]);
   
   const checklistItems = [
     { id: 1, label: 'Verify Email', completed: true, cta: 'Done', action: null },
-    { id: 2, label: 'Link a Bank Account', completed: true, cta: 'Manage', action: () => setActiveSection('BANKING') },
+    { id: 2, label: 'Link a Bank Account', completed: true, cta: 'Manage', action: () => onNavigate('ADD_BANK') },
     { id: 3, label: 'Set Base Currency', completed: true, cta: 'Change', action: () => setActiveSection('PREFERENCES') },
     { id: 4, label: 'Define Fiscal Residence', completed: false, cta: 'Set Now', action: () => onNavigate('EDIT_PROFILE') },
     { id: 5, label: 'Customize Notifications', completed: false, cta: 'Configure', action: () => onNavigate('NOTIFICATIONS') },
@@ -4711,17 +4525,50 @@ export const SettingsPage = ({
           {/* Section: Open Banking */}
           {activeSection === 'BANKING' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <AddBankPage
-                embeddedInSettings
-                onNavigate={onNavigate}
-                onBankSelect={onBankSelect}
-                onConnectionSelect={onConnectionSelect}
-                bankAccounts={bankAccounts}
-                taxBufferProviders={taxBufferProviders}
-                onCreateOpenBankConnection={onCreateOpenBankConnection}
-                isConnectingOpenBank={isConnectingOpenBank}
-                openBankErrorMessage={openBankErrorMessage}
-              />
+              <Card title="Linked Institutions" action={<Button size="sm" icon={Plus} onClick={() => onNavigate('ADD_BANK')}>Add Bank</Button>}>
+                <div className="space-y-5">
+                  {[
+                    { name: 'Bunq Bank', type: 'Personal Savings', status: 'Active', expiry: '82 days', lastSync: '14 min ago', icon: 'B', color: 'bg-opex-teal' },
+                    { name: 'Rabobank', type: 'Business Account', status: 'Near Expiry', expiry: '4 days', lastSync: '2 hours ago', icon: 'R', color: 'bg-orange-600' },
+                    { name: 'Revolut Business', type: 'Mastercard Crypto', status: 'Sync Error', expiry: '65 days', lastSync: 'Yesterday 23:10', icon: 'Rv', color: 'bg-red-500' },
+                    { name: 'Cash Account', type: 'Manual (EUR)', status: 'Static', expiry: 'Unlimited', lastSync: 'N/A', icon: '€', color: 'bg-gray-400' }
+                  ].map((bank, i) => (
+                    <div key={i} className="p-6 bg-gray-50 rounded-[2.5rem] border border-gray-100 group hover:border-opex-teal/30 transition-all">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="flex items-center gap-5">
+                          <div className={`w-14 h-14 rounded-2xl ${bank.color} text-white flex items-center justify-center font-black text-2xl shadow-xl group-hover:scale-105 transition-transform`}>
+                            {bank.icon}
+                          </div>
+                          <div>
+                            <p className="font-black text-gray-900 text-lg leading-tight">{bank.name}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{bank.type}</p>
+                               <span className="text-gray-300">•</span>
+                               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">PSD2 Consent</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-8">
+                          <div className="text-right hidden sm:block">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Consent End</p>
+                            <p className={`text-xs font-black ${bank.status === 'Near Expiry' ? 'text-orange-600' : 'text-gray-900'}`}>{bank.expiry}</p>
+                          </div>
+                          <Badge variant={bank.status === 'Active' ? 'success' : bank.status === 'Near Expiry' ? 'warning' : bank.status === 'Sync Error' ? 'danger' : 'neutral'}>
+                            {bank.status}
+                          </Badge>
+                          <div className="flex gap-2">
+                             {bank.status === 'Near Expiry' && (
+                               <Button size="sm" variant="secondary" icon={RefreshCw} onClick={() => onNavigate('RENEW_CONSENT')}>Renew</Button>
+                             )}
+                             <button title="Options" className="p-3 bg-white hover:bg-gray-100 rounded-2xl transition-colors text-gray-400 hover:text-opex-teal shadow-sm"><MoreVertical size={18} /></button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
             </div>
           )}
 

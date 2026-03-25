@@ -303,59 +303,6 @@ const toStringValue = (value: unknown, fallback = ''): string =>
 const toStringOrNull = (value: unknown): string | null =>
   typeof value === 'string' && value.trim().length > 0 ? value : null;
 
-const toBooleanValue = (value: unknown, fallback = false): boolean => {
-  if (typeof value === 'boolean') {
-    return value;
-  }
-  if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase();
-    if (normalized === 'true') {
-      return true;
-    }
-    if (normalized === 'false') {
-      return false;
-    }
-  }
-  return fallback;
-};
-
-const normalizeBankAccount = (payload: unknown): BankAccountRecord | null => {
-  if (!payload || typeof payload !== 'object') {
-    return null;
-  }
-
-  const item = payload as Record<string, unknown>;
-  const saltedgeAccountId = findStringCandidate(item, ['saltedge_account_id', 'saltedgeAccountId']);
-  const accountId = findStringCandidate(item, ['accountId', 'bankAccountId']) ?? saltedgeAccountId ?? findStringCandidate(item, ['id']);
-  const id = findStringCandidate(item, ['id', 'name', 'accountName']) ?? accountId ?? saltedgeAccountId ?? 'Unknown Account';
-  const institutionName = findStringCandidate(item, ['institutionName', 'institution_name', 'providerName', 'provider_name']) ?? 'Unknown Provider';
-
-  return {
-    id,
-    accountId,
-    saltedgeAccountId,
-    saltedge_account_id: saltedgeAccountId,
-    institutionName,
-    currency: findStringCandidate(item, ['currency']) ?? 'EUR',
-    balance: findNumberCandidate(item, ['balance', 'currentBalance', 'amount']),
-    isForTax: toBooleanValue(item.isForTax ?? item.is_for_tax),
-    nature: findStringCandidate(item, ['nature', 'accountCategory', 'account_category']) ?? undefined,
-    isSaltedge: toBooleanValue(item.isSaltedge ?? item.is_saltedge, Boolean(saltedgeAccountId)),
-    connectionId: findStringCandidate(item, ['connectionId', 'connection_id']),
-    country: findStringCandidate(item, ['country', 'countryCode', 'country_code'])
-  };
-};
-
-const normalizeBankAccountsPage = (payload: unknown): PaginatedResponse<BankAccountRecord> => {
-  const page = normalizePage<unknown>(payload);
-  return {
-    ...page,
-    content: page.content
-      .map((item) => normalizeBankAccount(item))
-      .filter((item): item is BankAccountRecord => item !== null)
-  };
-};
-
 const normalizeTaxBufferProviders = (payload: unknown): TaxBufferProviderItem[] => {
   if (!Array.isArray(payload)) {
     return [];
@@ -547,7 +494,7 @@ export const opexApi = {
   deleteUserProfile: () => request<void>('/api/users/profile', { method: 'DELETE' }),
 
   getMyBankAccounts: async (page = 0, size = 20) =>
-    normalizeBankAccountsPage(
+    normalizePage<BankAccountRecord>(
       await request<unknown>(`/api/bank-accounts/my-accounts${buildQuery({ page, size })}`)
     ),
 
