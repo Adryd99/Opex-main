@@ -1,6 +1,7 @@
 package com.opex.backend.controller;
 
 import com.opex.backend.dto.AggregatedBalanceResponse;
+import com.opex.backend.dto.ForecastResponse;
 import com.opex.backend.dto.TimeAggregatedResponse;
 import com.opex.backend.dto.TransactionRequest;
 import com.opex.backend.model.Transaction;
@@ -47,6 +48,15 @@ public class TransactionController {
             @AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getClaimAsString("sub");
         return ResponseEntity.ok(transactionService.getTimeAggregatedTransactions(userId));
+    }
+
+    // 4. Forecasting: proiezione entrate/uscite sui prossimi N mesi (default 3)
+    @GetMapping("/forecast")
+    public ResponseEntity<ForecastResponse> getForecast(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "3") int months) {
+        String userId = jwt.getClaimAsString("sub");
+        return ResponseEntity.ok(transactionService.getForecast(userId, months));
     }
 
     // 4. Crea una transazione manuale su un conto locale

@@ -1,7 +1,14 @@
 import {
   AggregatedBalanceRecord,
   BankAccountRecord,
+  ForecastHistoricalPoint,
+  ForecastPoint,
+  ForecastResponse,
+  LegalDocumentRecord,
+  LegalPublicInfoRecord,
+  OpenBankingConsentPayload,
   PaginatedResponse,
+  RequiredLegalConsentPayload,
   TaxRecord,
   TaxBufferActivityItem,
   TaxBufferDashboardResponse,
@@ -13,6 +20,10 @@ import {
   TransactionRecord,
   UserProfile
 } from '../models/types';
+import {
+  DEFAULT_LEGAL_PUBLIC_INFO,
+  persistRequiredLegalConsentsLocally
+} from '../legal/defaultLegalContent';
 
 const runtimeEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
 const API_BASE_URL = runtimeEnv?.VITE_API_BASE_URL ?? '';
@@ -22,6 +33,12 @@ interface UserProfilePatchPayload {
   email: string;
   firstName: string;
   lastName: string;
+  residence: string;
+  vatFrequency: string;
+  gdprAccepted: boolean;
+  fiscalResidence: string | null;
+  taxRegime: string | null;
+  activityType: string | null;
   customerId: string | null;
   connectionId: string | null;
   dob: string | null;
@@ -30,6 +47,7 @@ interface UserProfilePatchPayload {
   answer3: string | null;
   answer4: string | null;
   answer5: string | null;
+  profilePicture: string | null;
 }
 
 interface LocalBankAccountPayload {
@@ -44,6 +62,12 @@ interface LocalBankAccountUpdatePayload extends Partial<LocalBankAccountPayload>
   connectionId?: string | null;
   country?: string | null;
   isSaltedge?: boolean;
+}
+
+interface SaltedgeBankAccountUpdatePayload {
+  institutionName?: string;
+  isForTax?: boolean;
+  nature?: string;
 }
 
 interface LocalTransactionPayload {
@@ -79,6 +103,23 @@ type AggregatedBalanceResponse = {
   totalExpenses?: number | string | null;
 };
 
+type TransactionResponse = {
+  id?: unknown;
+  bankAccountId?: unknown;
+  bank_account_id?: unknown;
+  connectionId?: unknown;
+  connection_id?: unknown;
+  amount?: unknown;
+  bookingDate?: unknown;
+  booking_date?: unknown;
+  category?: unknown;
+  description?: unknown;
+  merchantName?: unknown;
+  merchant_name?: unknown;
+  status?: unknown;
+  type?: unknown;
+};
+
 type TimeAggregatedResponse = {
   byMonth?: unknown;
   byQuarter?: unknown;
@@ -110,6 +151,59 @@ type BankIntegrationResponse = {
   };
   [key: string]: unknown;
 } | string;
+
+type BackendUserProfileResponse = {
+  email?: unknown;
+  firstName?: unknown;
+  lastName?: unknown;
+  customerId?: unknown;
+  dob?: unknown;
+  residence?: unknown;
+  vatFrequency?: unknown;
+  gdprAccepted?: unknown;
+  fiscalResidence?: unknown;
+  taxRegime?: unknown;
+  activityType?: unknown;
+  answer1?: unknown;
+  answer2?: unknown;
+  answer3?: unknown;
+  answer4?: unknown;
+  answer5?: unknown;
+  privacyPolicyVersion?: unknown;
+  privacyAcceptedAt?: unknown;
+  termsOfServiceVersion?: unknown;
+  termsAcceptedAt?: unknown;
+  cookiePolicyVersion?: unknown;
+  cookiePolicyAcknowledgedAt?: unknown;
+  openBankingNoticeVersion?: unknown;
+  openBankingNoticeAcceptedAt?: unknown;
+  openBankingConsentScopes?: unknown;
+  profilePicture?: unknown;
+};
+
+type LegalSectionRaw = {
+  title?: unknown;
+  bullets?: unknown;
+};
+
+type LegalDocumentRaw = {
+  slug?: unknown;
+  title?: unknown;
+  version?: unknown;
+  lastUpdated?: unknown;
+  summary?: unknown;
+  sections?: unknown;
+};
+
+type LegalPublicInfoRaw = {
+  controller?: Record<string, unknown>;
+  processors?: unknown;
+  storageTechnologies?: unknown;
+  privacyPolicy?: unknown;
+  termsOfService?: unknown;
+  cookiePolicy?: unknown;
+  openBankingNotice?: unknown;
+};
 
 const getStoredToken = (): string | null => {
   if (typeof window === 'undefined') {
@@ -297,11 +391,109 @@ const normalizeTimeAggregatedBalances = (payload: unknown): TimeAggregatedRecord
   };
 };
 
+const normalizeForecast = (payload: unknown): ForecastResponse => {
+  const raw = (payload && typeof payload === 'object' ? payload : {}) as Record<string, unknown>;
+
+  const toNum = (v: unknown) => (typeof v === 'number' ? v : parseFloat(String(v ?? '0')) || 0);
+
+  const historical: ForecastHistoricalPoint[] = Array.isArray(raw.historical)
+    ? raw.historical.map((h: unknown) => {
+        const item = (h && typeof h === 'object' ? h : {}) as Record<string, unknown>;
+        return {
+          key: String(item.key ?? ''),
+          label: String(item.label ?? ''),
+          income: toNum(item.income),
+          expenses: toNum(item.expenses),
+          net: toNum(item.net)
+        };
+      })
+    : [];
+
+  const forecast: ForecastPoint[] = Array.isArray(raw.forecast)
+    ? raw.forecast.map((f: unknown) => {
+        const item = (f && typeof f === 'object' ? f : {}) as Record<string, unknown>;
+        return {
+          key: String(item.key ?? ''),
+          label: String(item.label ?? ''),
+          predictedIncome: toNum(item.predictedIncome),
+          predictedExpenses: toNum(item.predictedExpenses),
+          predictedNet: toNum(item.predictedNet)
+        };
+      })
+    : [];
+
+  const trendRaw = String(raw.trend ?? 'STABLE');
+  const trend = (['GROWING', 'DECLINING', 'STABLE'] as const).find(t => t === trendRaw) ?? 'STABLE';
+
+  return { historical, forecast, trend, monthsOfData: toNum(raw.monthsOfData) };
+};
+
 const toStringValue = (value: unknown, fallback = ''): string =>
   typeof value === 'string' ? value : fallback;
 
 const toStringOrNull = (value: unknown): string | null =>
   typeof value === 'string' && value.trim().length > 0 ? value : null;
+
+const toStringList = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+  }
+
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+  }
+
+  return [];
+};
+
+const normalizeUserProfile = (payload: unknown, fallback?: Partial<UserProfile>): UserProfile => {
+  const item = (payload && typeof payload === 'object' ? payload : {}) as BackendUserProfileResponse;
+  const email = toStringValue(item.email, fallback?.email ?? '');
+  const firstName = toStringOrNull(item.firstName) ?? fallback?.firstName ?? null;
+  const lastName = toStringOrNull(item.lastName) ?? fallback?.lastName ?? null;
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+  const fallbackName = (fallback?.name ?? '').trim();
+  const inferredName = email.includes('@') ? email.split('@')[0] : 'Opex User';
+
+  return {
+    name: fullName || fallbackName || inferredName,
+    email,
+    residence: toStringValue(item.residence, fallback?.residence ?? 'Netherlands (NL)'),
+    vatFrequency: toStringValue(item.vatFrequency, fallback?.vatFrequency ?? 'Quarterly'),
+    logo: toStringOrNull(item.profilePicture) ?? fallback?.logo ?? null,
+    gdprAccepted: toBooleanValue(item.gdprAccepted, fallback?.gdprAccepted ?? false),
+    fiscalResidence: toStringOrNull(item.fiscalResidence) ?? fallback?.fiscalResidence ?? null,
+    taxRegime: toStringOrNull(item.taxRegime) ?? fallback?.taxRegime ?? null,
+    activityType: toStringOrNull(item.activityType) ?? fallback?.activityType ?? null,
+    firstName: firstName ?? undefined,
+    lastName: lastName ?? undefined,
+    customerId: toStringOrNull(item.customerId) ?? fallback?.customerId ?? null,
+    connectionId: fallback?.connectionId ?? null,
+    dob: toStringOrNull(item.dob) ?? fallback?.dob ?? null,
+    answer1: toStringOrNull(item.answer1) ?? fallback?.answer1 ?? null,
+    answer2: toStringOrNull(item.answer2) ?? fallback?.answer2 ?? null,
+    answer3: toStringOrNull(item.answer3) ?? fallback?.answer3 ?? null,
+    answer4: toStringOrNull(item.answer4) ?? fallback?.answer4 ?? null,
+    answer5: toStringOrNull(item.answer5) ?? fallback?.answer5 ?? null,
+    privacyPolicyVersion: toStringOrNull(item.privacyPolicyVersion) ?? fallback?.privacyPolicyVersion ?? null,
+    privacyAcceptedAt: toStringOrNull(item.privacyAcceptedAt) ?? fallback?.privacyAcceptedAt ?? null,
+    termsOfServiceVersion: toStringOrNull(item.termsOfServiceVersion) ?? fallback?.termsOfServiceVersion ?? null,
+    termsAcceptedAt: toStringOrNull(item.termsAcceptedAt) ?? fallback?.termsAcceptedAt ?? null,
+    cookiePolicyVersion: toStringOrNull(item.cookiePolicyVersion) ?? fallback?.cookiePolicyVersion ?? null,
+    cookiePolicyAcknowledgedAt: toStringOrNull(item.cookiePolicyAcknowledgedAt) ?? fallback?.cookiePolicyAcknowledgedAt ?? null,
+    openBankingNoticeVersion: toStringOrNull(item.openBankingNoticeVersion) ?? fallback?.openBankingNoticeVersion ?? null,
+    openBankingNoticeAcceptedAt: toStringOrNull(item.openBankingNoticeAcceptedAt) ?? fallback?.openBankingNoticeAcceptedAt ?? null,
+    openBankingConsentScopes: toStringList(item.openBankingConsentScopes).length > 0
+      ? toStringList(item.openBankingConsentScopes)
+      : fallback?.openBankingConsentScopes ?? []
+  };
+};
 
 const toBooleanValue = (value: unknown, fallback = false): boolean => {
   if (typeof value === 'boolean') {
@@ -356,6 +548,37 @@ const normalizeBankAccountsPage = (payload: unknown): PaginatedResponse<BankAcco
   };
 };
 
+const normalizeTransaction = (payload: unknown): TransactionRecord | null => {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  const item = payload as TransactionResponse;
+
+  return {
+    id: toStringValue(item.id),
+    bankAccountId: firstNonEmptyString(item.bankAccountId, item.bank_account_id) ?? undefined,
+    connectionId: toStringOrNull(firstNonEmptyString(item.connectionId, item.connection_id)),
+    amount: toNumber(item.amount as number | string | null | undefined),
+    bookingDate: toStringValue(item.bookingDate ?? item.booking_date),
+    category: toStringValue(item.category),
+    description: toStringValue(item.description),
+    merchantName: toStringValue(item.merchantName ?? item.merchant_name),
+    status: toStringValue(item.status),
+    type: toStringValue(item.type)
+  };
+};
+
+const normalizeTransactionsPage = (payload: unknown): PaginatedResponse<TransactionRecord> => {
+  const page = normalizePage<unknown>(payload);
+  return {
+    ...page,
+    content: page.content
+      .map((item) => normalizeTransaction(item))
+      .filter((item): item is TransactionRecord => item !== null && item.id.length > 0)
+  };
+};
+
 const normalizeTaxBufferProviders = (payload: unknown): TaxBufferProviderItem[] => {
   if (!Array.isArray(payload)) {
     return [];
@@ -399,7 +622,11 @@ const normalizeTaxBufferDeadlines = (payload: unknown): TaxBufferDeadlineItem[] 
       dueDate: toStringValue(item.dueDate),
       status: toStringValue(item.status),
       amount: toNumber(item.amount as number | string | null | undefined),
-      currency: toStringValue(item.currency, 'EUR')
+      currency: toStringValue(item.currency, 'EUR'),
+      category: toStringOrNull(item.category) ?? undefined,
+      periodLabel: toStringOrNull(item.periodLabel),
+      description: toStringOrNull(item.description),
+      systemGenerated: Boolean(item.systemGenerated)
     }))
     .filter((item) => item.id.length > 0 || item.title.length > 0);
 };
@@ -438,6 +665,7 @@ const normalizeTaxBufferDashboard = (payload: unknown): TaxBufferDashboardRespon
       missing: toNumber(summary.missing as number | string | null | undefined),
       completionPercentage: toNumber(summary.completionPercentage as number | string | null | undefined),
       weeklyTarget: toNumber(summary.weeklyTarget as number | string | null | undefined),
+      safeToSpend: toNumber(summary.safeToSpend as number | string | null | undefined),
       targetDate: toStringOrNull(summary.targetDate)
     },
     incomeSocial: {
@@ -449,7 +677,8 @@ const normalizeTaxBufferDashboard = (payload: unknown): TaxBufferDashboardRespon
     vat: {
       regime: toStringValue(vat.regime),
       rate: toNumber(vat.rate as number | string | null | undefined),
-      vatLiability: toNumber(vat.vatLiability as number | string | null | undefined)
+      vatLiability: toNumber(vat.vatLiability as number | string | null | undefined),
+      warningMessage: toStringOrNull(vat.warningMessage)
     },
     liabilitySplit: normalizeTaxBufferLiability(raw.liabilitySplit),
     deadlines: normalizeTaxBufferDeadlines(raw.deadlines),
@@ -496,6 +725,67 @@ const resolveUrlAgainstApiBase = (value: string): string => {
   }
 };
 
+const normalizeLegalDocument = (payload: unknown, fallbackSlug: string, fallbackTitle: string): LegalDocumentRecord => {
+  const item = (payload && typeof payload === 'object' ? payload : {}) as LegalDocumentRaw;
+
+  return {
+    slug: toStringValue(item.slug, fallbackSlug),
+    title: toStringValue(item.title, fallbackTitle),
+    version: toStringValue(item.version),
+    lastUpdated: toStringValue(item.lastUpdated),
+    summary: toStringValue(item.summary),
+    sections: Array.isArray(item.sections)
+      ? item.sections
+        .filter((section): section is LegalSectionRaw => Boolean(section) && typeof section === 'object')
+        .map((section) => ({
+          title: toStringValue(section.title),
+          bullets: toStringList(section.bullets)
+        }))
+      : []
+  };
+};
+
+const normalizeLegalPublicInfo = (payload: unknown): LegalPublicInfoRecord => {
+  const raw = (payload && typeof payload === 'object' ? payload : {}) as LegalPublicInfoRaw;
+  const controller = (raw.controller && typeof raw.controller === 'object' ? raw.controller : {}) as Record<string, unknown>;
+
+  return {
+    controller: {
+      name: toStringValue(controller.name),
+      address: toStringValue(controller.address),
+      privacyEmail: toStringValue(controller.privacyEmail),
+      dpoEmail: toStringValue(controller.dpoEmail),
+      supportEmail: toStringValue(controller.supportEmail),
+      supervisoryAuthority: toStringValue(controller.supervisoryAuthority)
+    },
+    processors: Array.isArray(raw.processors)
+      ? raw.processors
+        .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+        .map((item) => ({
+          name: toStringValue(item.name),
+          purpose: toStringValue(item.purpose),
+          dataCategories: toStringValue(item.dataCategories),
+          region: toStringValue(item.region)
+        }))
+      : [],
+    storageTechnologies: Array.isArray(raw.storageTechnologies)
+      ? raw.storageTechnologies
+        .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+        .map((item) => ({
+          name: toStringValue(item.name),
+          key: toStringValue(item.key),
+          purpose: toStringValue(item.purpose),
+          duration: toStringValue(item.duration),
+          essential: Boolean(item.essential)
+        }))
+      : [],
+    privacyPolicy: normalizeLegalDocument(raw.privacyPolicy, 'privacy', 'Privacy Notice'),
+    termsOfService: normalizeLegalDocument(raw.termsOfService, 'terms', 'Terms of Service'),
+    cookiePolicy: normalizeLegalDocument(raw.cookiePolicy, 'cookies', 'Cookie And Storage Notice'),
+    openBankingNotice: normalizeLegalDocument(raw.openBankingNotice, 'open-banking', 'Open Banking Data Notice')
+  };
+};
+
 export const extractBankPopupUrl = (payload: BankIntegrationResponse): string | null => {
   const rawUrl = typeof payload === 'string'
     ? payload
@@ -524,6 +814,12 @@ export const toUserProfilePatchPayload = (profile: UserProfile): UserProfilePatc
     email: profile.email,
     firstName,
     lastName,
+    residence: profile.residence,
+    vatFrequency: profile.vatFrequency,
+    gdprAccepted: profile.gdprAccepted ?? false,
+    fiscalResidence: profile.fiscalResidence ?? null,
+    taxRegime: profile.taxRegime ?? null,
+    activityType: profile.activityType ?? null,
     customerId: profile.customerId ?? null,
     connectionId: profile.connectionId ?? null,
     dob: profile.dob ?? null,
@@ -531,20 +827,83 @@ export const toUserProfilePatchPayload = (profile: UserProfile): UserProfilePatc
     answer2: profile.answer2 ?? null,
     answer3: profile.answer3 ?? null,
     answer4: profile.answer4 ?? null,
-    answer5: profile.answer5 ?? null
+    answer5: profile.answer5 ?? null,
+    profilePicture: profile.logo ?? null
   };
 };
 
 export const opexApi = {
-  syncUser: () => request<void>('/api/users/sync', { method: 'POST' }),
+  getLegalPublicInfo: async () => {
+    try {
+      return normalizeLegalPublicInfo(await request<unknown>('/api/legal/public'));
+    } catch {
+      return DEFAULT_LEGAL_PUBLIC_INFO;
+    }
+  },
 
-  patchUserProfile: (payload: UserProfilePatchPayload) =>
-    request<UserProfilePatchPayload>('/api/users/profile', {
+  acceptRequiredConsents: async (payload: RequiredLegalConsentPayload, fallback?: Partial<UserProfile>) => {
+    try {
+      return normalizeUserProfile(await request<unknown>('/api/legal/consents', {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+      }), fallback);
+    } catch (error) {
+      if (fallback) {
+        return persistRequiredLegalConsentsLocally(
+          normalizeUserProfile(fallback, fallback),
+          DEFAULT_LEGAL_PUBLIC_INFO,
+          payload
+        );
+      }
+      throw error;
+    }
+  },
+
+  syncUser: async (fallback?: Partial<UserProfile>) =>
+    normalizeUserProfile(await request<unknown>('/api/users/sync', { method: 'POST' }), fallback),
+
+  patchUserProfile: async (payload: UserProfilePatchPayload, fallback?: Partial<UserProfile>) =>
+    normalizeUserProfile(await request<unknown>('/api/users/profile', {
       method: 'PATCH',
       body: JSON.stringify(payload)
-    }),
+    }), fallback),
 
   deleteUserProfile: () => request<void>('/api/users/profile', { method: 'DELETE' }),
+
+  downloadDataExport: async () => {
+    const headers = new Headers();
+    const token = getStoredToken();
+
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    const requestUrl = toSameOriginIfApiOrigin(joinBaseAndPath(API_BASE_URL, '/api/legal/export'));
+    const response = await fetch(requestUrl, {
+      method: 'GET',
+      headers,
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      const message = await parseMaybeJson<string>(response);
+      throw new Error(typeof message === 'string' ? message : `Request failed with status ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const contentDisposition = response.headers.get('content-disposition') ?? '';
+    const filenameMatch = contentDisposition.match(/filename=\"?([^"]+)\"?/i);
+    const filename = filenameMatch?.[1] ?? 'opex-data-export.json';
+
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  },
 
   getMyBankAccounts: async (page = 0, size = 20) =>
     normalizeBankAccountsPage(
@@ -552,9 +911,30 @@ export const opexApi = {
     ),
 
   getMyTransactions: async (page = 0, size = 50) =>
-    normalizePage<TransactionRecord>(
+    normalizeTransactionsPage(
       await request<unknown>(`/api/transactions/my-transactions${buildQuery({ page, size })}`)
     ),
+
+  getAllMyTransactions: async (size = 250) => {
+    const firstPage = await opexApi.getMyTransactions(0, size);
+    const totalPages = Number(firstPage.totalPages ?? 1);
+
+    if (!Number.isFinite(totalPages) || totalPages <= 1) {
+      return firstPage.content;
+    }
+
+    const remainingPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) => opexApi.getMyTransactions(index + 1, size))
+    );
+
+    const allTransactions = [firstPage, ...remainingPages].flatMap((pageResult) => pageResult.content);
+    const dedupedTransactions = new Map<string, TransactionRecord>();
+    allTransactions.forEach((transaction) => {
+      dedupedTransactions.set(transaction.id, transaction);
+    });
+
+    return Array.from(dedupedTransactions.values());
+  },
 
   getMyTaxes: async (page = 0, size = 20) =>
     normalizePage<TaxRecord>(await request<unknown>(`/api/taxes/my-taxes${buildQuery({ page, size })}`)),
@@ -564,6 +944,9 @@ export const opexApi = {
 
   getTimeAggregatedBalances: async () =>
     normalizeTimeAggregatedBalances(await request<unknown>('/api/transactions/aggregated/time')),
+
+  getForecast: async (months = 3) =>
+    normalizeForecast(await request<unknown>(`/api/transactions/forecast?months=${months}`)),
 
   getTaxBufferProviders: async () =>
     normalizeTaxBufferProviders(await request<unknown>('/api/taxes/buffer/providers')),
@@ -588,6 +971,12 @@ export const opexApi = {
 
   updateLocalBankAccount: (bankAccountId: string, payload: LocalBankAccountUpdatePayload) =>
     request<BankAccountRecord>(`/api/bank-accounts/local/${bankAccountId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload)
+    }),
+
+  updateSaltedgeBankAccount: (bankAccountId: string, payload: SaltedgeBankAccountUpdatePayload) =>
+    request<BankAccountRecord>(`/api/bank-accounts/saltedge/${bankAccountId}`, {
       method: 'PATCH',
       body: JSON.stringify(payload)
     }),
@@ -626,8 +1015,21 @@ export const opexApi = {
       method: 'DELETE'
     }),
 
-  bankIntegrationConnect: () =>
-    request<BankIntegrationResponse>('/api/bank-integration/connect', { method: 'POST' }),
+  bankIntegrationConnect: (payload: OpenBankingConsentPayload) =>
+    request<BankIntegrationResponse>('/api/bank-integration/connect', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+
+  bankIntegrationRefreshConnection: (connectionId: string) =>
+    request<BankIntegrationResponse>(`/api/bank-integration/connections/${encodeURIComponent(connectionId)}/refresh`, {
+      method: 'POST'
+    }),
+
+  bankIntegrationDeleteConnection: (connectionId: string) =>
+    request<void>(`/api/bank-integration/connections/${encodeURIComponent(connectionId)}`, {
+      method: 'DELETE'
+    }),
 
   bankIntegrationSync: () =>
     request<BankIntegrationResponse>('/api/bank-integration/sync', { method: 'POST' })

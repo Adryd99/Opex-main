@@ -10,6 +10,7 @@ import java.util.Optional;
 
 @Repository
 public interface SupplierInvoiceRepository extends JpaRepository<SupplierInvoice, Long> {
+    java.util.List<SupplierInvoice> findByUserId(String userId);
     Page<SupplierInvoice> findByUserId(String userId, Pageable pageable);
     Optional<SupplierInvoice> findByIdAndUserId(Long id, String userId);
 }

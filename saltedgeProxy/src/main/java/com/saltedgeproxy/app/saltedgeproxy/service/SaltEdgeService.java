@@ -4,6 +4,7 @@ import com.saltedgeproxy.app.saltedgeproxy.dto.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
@@ -19,6 +20,9 @@ public class SaltEdgeService {
 
     @Value("${saltedge.secret}")
     private String secret;
+
+    @Value("${saltedge.return-to-url:http://localhost:3000/success}")
+    private String returnToUrl;
 
     private final String BASE_URL = "https://www.saltedge.com/api/v6";
     private final RestTemplate restTemplate = new RestTemplate();
@@ -44,21 +48,37 @@ public class SaltEdgeService {
     public SaltEdgeConnectResponse connectConnection(String customerId, Map<String, Object> connectParams) {
         System.out.println("Connecting connection");
         SaltEdgeConsentRequest consentRequest = new SaltEdgeConsentRequest();
-        List<String> scopes = new ArrayList<>();
-        scopes.add("accounts");
-        scopes.add("transactions");
-        consentRequest.setScopes(scopes);
+        consentRequest.setScopes(getDefaultConsentScopes());
         Map<String, Object> data = new HashMap<>();
         data.put("customer_id", customerId);
         data.put("consent", consentRequest);
         Map<String, Object> attempt = new HashMap<>();
-        attempt.put("return_to", "http://localhost:3000/success");
+        attempt.put("return_to", returnToUrl);
         data.put("attempt", attempt);
         Map<String, Object> body = new HashMap<>();
         body.put("data", data);
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, getHeaders());
         return restTemplate.postForObject(BASE_URL + "/connections/connect", entity, SaltEdgeConnectResponse.class);
+    }
+
+    public SaltEdgeConnectResponse refreshConnection(String connectionId) {
+        Map<String, Object> attempt = new HashMap<>();
+        attempt.put("fetch_scopes", getDefaultConsentScopes());
+        attempt.put("return_to", returnToUrl);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("return_connection_id", true);
+        data.put("return_error_class", false);
+        data.put("automatic_refresh", true);
+        data.put("show_widget", false);
+        data.put("attempt", attempt);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("data", data);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, getHeaders());
+        return restTemplate.postForObject(BASE_URL + "/connections/" + connectionId + "/refresh", entity, SaltEdgeConnectResponse.class);
     }
 
     public SaltEdgeAccountResponse getAccounts(String connectionId) {
@@ -88,12 +108,23 @@ public class SaltEdgeService {
     public void removeConnection(String connectionId) {
         String url = BASE_URL + "/connections/" + connectionId;
         HttpEntity<Void> entity = new HttpEntity<>(getHeaders());
-        restTemplate.exchange(url, HttpMethod.DELETE, entity, Void.class);
+        try {
+            restTemplate.exchange(url, HttpMethod.DELETE, entity, Void.class);
+        } catch (HttpClientErrorException.NotFound exception) {
+            System.out.println("Salt Edge connection already missing remotely: " + connectionId);
+        }
     }
 
     public void removeCustomer(String customerId) {
         String url = BASE_URL + "/customers/" + customerId;
         HttpEntity<Void> entity = new HttpEntity<>(getHeaders());
         restTemplate.exchange(url, HttpMethod.DELETE, entity, Void.class);
+    }
+
+    private List<String> getDefaultConsentScopes() {
+        List<String> scopes = new ArrayList<>();
+        scopes.add("accounts");
+        scopes.add("transactions");
+        return scopes;
     }
 }

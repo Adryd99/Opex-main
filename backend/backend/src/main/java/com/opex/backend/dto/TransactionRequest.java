@@ -6,7 +6,8 @@ import java.time.LocalDate;
 
 @Data
 public class TransactionRequest {
-    private String connectionId; // Obbligatorio per la POST, opzionale per la PATCH
+    private String bankAccountId; // Obbligatorio per la POST locale, opzionale per la PATCH
+    private String connectionId; // Legacy: non necessario per le transazioni locali
     private BigDecimal amount;
     private LocalDate bookingDate;
     private String category;

@@ -15,8 +15,15 @@ import java.util.Optional;
 @Repository
 public interface BankAccountRepository extends JpaRepository<BankAccount, String> {
 
+    List<BankAccount> findByUserId(String userId);
+
+    List<BankAccount> findByUserIdAndConnectionId(String userId, String connectionId);
+
     // Trova tutti i conti dell'utente
     Page<BankAccount> findByUserId(String userId, Pageable pageable);
+
+    // Trova i conti taggati come tax buffer per un utente
+    List<BankAccount> findByUserIdAndIsForTax(String userId, Boolean isForTax);
 
     // Trova un conto specifico controllando anche il proprietario (previene accessi illeciti)
     Optional<BankAccount> findBySaltedgeAccountIdAndUserId(String saltedgeAccountId, String userId);

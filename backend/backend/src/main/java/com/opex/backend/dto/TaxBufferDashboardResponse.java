@@ -34,6 +34,7 @@ public class TaxBufferDashboardResponse {
         private BigDecimal missing;
         private BigDecimal completionPercentage;
         private BigDecimal weeklyTarget;
+        private BigDecimal safeToSpend;
         private LocalDate targetDate;
     }
 
@@ -54,6 +55,7 @@ public class TaxBufferDashboardResponse {
         private String regime;
         private BigDecimal rate;
         private BigDecimal vatLiability;
+        private String warningMessage;
     }
 
     @Data
@@ -75,6 +77,10 @@ public class TaxBufferDashboardResponse {
         private String status;
         private BigDecimal amount;
         private String currency;
+        private String category;
+        private String periodLabel;
+        private String description;
+        private Boolean systemGenerated;
     }
 
     @Data

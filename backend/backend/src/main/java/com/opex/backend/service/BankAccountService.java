@@ -100,20 +100,40 @@ public class BankAccountService {
     // --- AGGIORNA UN CONTO LOCALE ---
     @Transactional
     public BankAccount updateLocalAccount(String userId, String accountId, BankAccountRequest request) {
-        BankAccount account = bankAccountRepository.findBySaltedgeAccountIdAndUserId(accountId, userId)
-                .orElseThrow(() -> new RuntimeException("Conto non trovato o non autorizzato"));
+        BankAccount account = getOwnedAccount(userId, accountId);
 
         if (Boolean.TRUE.equals(account.getIsSaltedge())) {
-            throw new RuntimeException("Operazione negata. Non puoi modificare manualmente i conti di SaltEdge.");
+            throw new RuntimeException("Operazione negata. Usa l'endpoint SaltEdge per modificare questo conto.");
         }
 
         if (request.getBalance() != null) account.setBalance(request.getBalance());
-        if (request.getInstitutionName() != null) account.setInstitutionName(request.getInstitutionName());
         if (request.getCountry() != null) account.setCountry(request.getCountry());
         if (request.getCurrency() != null) account.setCurrency(request.getCurrency());
+
+        if (request.getInstitutionName() != null) account.setInstitutionName(request.getInstitutionName());
         if (request.getIsForTax() != null) account.setIsForTax(request.getIsForTax());
         if (request.getNature() != null) account.setNature(request.getNature());
 
         return bankAccountRepository.save(account);
+    }
+
+    @Transactional
+    public BankAccount updateSaltedgeAccount(String userId, String accountId, SaltedgeBankAccountUpdateRequest request) {
+        BankAccount account = getOwnedAccount(userId, accountId);
+
+        if (!Boolean.TRUE.equals(account.getIsSaltedge())) {
+            throw new RuntimeException("Operazione negata. Questo endpoint supporta solo conti SaltEdge.");
+        }
+
+        if (request.getInstitutionName() != null) account.setInstitutionName(request.getInstitutionName());
+        if (request.getIsForTax() != null) account.setIsForTax(request.getIsForTax());
+        if (request.getNature() != null) account.setNature(request.getNature());
+
+        return bankAccountRepository.save(account);
+    }
+
+    private BankAccount getOwnedAccount(String userId, String accountId) {
+        return bankAccountRepository.findBySaltedgeAccountIdAndUserId(accountId, userId)
+                .orElseThrow(() -> new RuntimeException("Conto non trovato o non autorizzato"));
     }
 }

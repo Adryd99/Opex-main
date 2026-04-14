@@ -27,6 +27,9 @@ public class Transaction {
     @Column(name = "connection_id")
     private String connectionId; // Collegamento alla connessione bancaria
 
+    @Column(name = "bank_account_id")
+    private String bankAccountId; // Collegamento al conto locale selezionato
+
     private BigDecimal amount;
 
     @Column(name = "booking_date")

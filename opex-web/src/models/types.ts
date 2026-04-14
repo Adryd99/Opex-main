@@ -25,7 +25,12 @@ export interface UserProfile {
   name: string;
   email: string;
   residence: string;
+  vatFrequency: string;
   logo: string | null;
+  gdprAccepted: boolean;
+  fiscalResidence?: string | null;
+  taxRegime?: string | null;
+  activityType?: string | null;
   firstName?: string;
   lastName?: string;
   customerId?: string | null;
@@ -36,6 +41,78 @@ export interface UserProfile {
   answer3?: string | null;
   answer4?: string | null;
   answer5?: string | null;
+  privacyPolicyVersion?: string | null;
+  privacyAcceptedAt?: string | null;
+  termsOfServiceVersion?: string | null;
+  termsAcceptedAt?: string | null;
+  cookiePolicyVersion?: string | null;
+  cookiePolicyAcknowledgedAt?: string | null;
+  openBankingNoticeVersion?: string | null;
+  openBankingNoticeAcceptedAt?: string | null;
+  openBankingConsentScopes?: string[];
+}
+
+export interface LegalSectionRecord {
+  title: string;
+  bullets: string[];
+}
+
+export interface LegalDocumentRecord {
+  slug: string;
+  title: string;
+  version: string;
+  lastUpdated: string;
+  summary: string;
+  sections: LegalSectionRecord[];
+}
+
+export interface LegalControllerContactRecord {
+  name: string;
+  address: string;
+  privacyEmail: string;
+  dpoEmail: string;
+  supportEmail: string;
+  supervisoryAuthority: string;
+}
+
+export interface LegalProcessorRecord {
+  name: string;
+  purpose: string;
+  dataCategories: string;
+  region: string;
+}
+
+export interface LegalStorageTechnologyRecord {
+  name: string;
+  key: string;
+  purpose: string;
+  duration: string;
+  essential: boolean;
+}
+
+export interface LegalPublicInfoRecord {
+  controller: LegalControllerContactRecord;
+  processors: LegalProcessorRecord[];
+  storageTechnologies: LegalStorageTechnologyRecord[];
+  privacyPolicy: LegalDocumentRecord;
+  termsOfService: LegalDocumentRecord;
+  cookiePolicy: LegalDocumentRecord;
+  openBankingNotice: LegalDocumentRecord;
+}
+
+export interface RequiredLegalConsentPayload {
+  acceptPrivacyPolicy: boolean;
+  privacyPolicyVersion: string;
+  acceptTermsOfService: boolean;
+  termsOfServiceVersion: string;
+  acknowledgeCookiePolicy: boolean;
+  cookiePolicyVersion: string;
+}
+
+export interface OpenBankingConsentPayload {
+  acceptOpenBankingNotice: boolean;
+  openBankingNoticeVersion: string;
+  scopes: string[];
 }
 
 export interface BankAccountRecord {
@@ -96,6 +173,29 @@ export interface TimeAggregatedRecord {
   byYear: TimeAggregatedPoint[];
 }
 
+export interface ForecastHistoricalPoint {
+  key: string;
+  label: string;
+  income: number;
+  expenses: number; // always positive
+  net: number;
+}
+
+export interface ForecastPoint {
+  key: string;
+  label: string;
+  predictedIncome: number;
+  predictedExpenses: number; // always positive
+  predictedNet: number;
+}
+
+export interface ForecastResponse {
+  historical: ForecastHistoricalPoint[];
+  forecast: ForecastPoint[];
+  trend: 'GROWING' | 'DECLINING' | 'STABLE';
+  monthsOfData: number;
+}
+
 export interface TaxBufferProviderItem {
   connectionId: string;
   providerName: string;
@@ -108,6 +208,7 @@ export interface TaxBufferSummary {
   missing: number;
   completionPercentage: number;
   weeklyTarget: number;
+  safeToSpend: number;
   targetDate: string | null;
 }
 
@@ -122,6 +223,7 @@ export interface TaxBufferVatBreakdown {
   regime: string;
   rate: number;
   vatLiability: number;
+  warningMessage?: string | null;
 }
 
 export interface TaxBufferLiabilityItem {
@@ -137,6 +239,10 @@ export interface TaxBufferDeadlineItem {
   status: string;
   amount: number;
   currency: string;
+  category?: string;
+  periodLabel?: string | null;
+  description?: string | null;
+  systemGenerated?: boolean;
 }
 
 export interface TaxBufferActivityItem {

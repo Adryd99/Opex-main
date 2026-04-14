@@ -10,4 +10,5 @@ import java.util.List;
 public interface BankAccountRepository extends JpaRepository<BankAccount, String> {
     List<BankAccount> findByConnectionId(String connectionId);
     List<BankAccount> findByUserId(String userId);
+    void deleteByConnectionId(String connectionId);
 }

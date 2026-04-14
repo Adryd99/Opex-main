@@ -2,6 +2,7 @@ package com.opex.backend.controller;
 
 import com.opex.backend.dto.AggregatedBalanceResponse;
 import com.opex.backend.dto.BankAccountRequest;
+import com.opex.backend.dto.SaltedgeBankAccountUpdateRequest;
 import com.opex.backend.dto.TimeAggregatedResponse;
 import com.opex.backend.model.BankAccount;
 import com.opex.backend.service.BankAccountService;
@@ -66,5 +67,14 @@ public class BankAccountController {
             @RequestBody BankAccountRequest request) {
         String userId = jwt.getClaimAsString("sub");
         return ResponseEntity.ok(bankAccountService.updateLocalAccount(userId, accountId, request));
+    }
+
+    @PatchMapping("/saltedge/{accountId}")
+    public ResponseEntity<BankAccount> updateSaltedgeAccount(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String accountId,
+            @RequestBody SaltedgeBankAccountUpdateRequest request) {
+        String userId = jwt.getClaimAsString("sub");
+        return ResponseEntity.ok(bankAccountService.updateSaltedgeAccount(userId, accountId, request));
     }
 }

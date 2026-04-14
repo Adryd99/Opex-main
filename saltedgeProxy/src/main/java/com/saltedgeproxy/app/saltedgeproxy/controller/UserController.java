@@ -6,6 +6,9 @@ import com.saltedgeproxy.app.saltedgeproxy.model.BankConnection;
 import com.saltedgeproxy.app.saltedgeproxy.model.Transaction;
 import com.saltedgeproxy.app.saltedgeproxy.model.User;
 import com.saltedgeproxy.app.saltedgeproxy.repository.*;
+import com.saltedgeproxy.app.saltedgeproxy.service.GdprPolicyVersionService;
+import com.saltedgeproxy.app.saltedgeproxy.service.InvalidPolicyVersionException;
+import com.saltedgeproxy.app.saltedgeproxy.service.ConnectionLifecycleService;
 import com.saltedgeproxy.app.saltedgeproxy.service.SaltEdgeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -34,9 +37,23 @@ public class UserController {
     @Autowired
     private BankConnectionRepository bankConnectionRepository;
 
+    @Autowired
+    private GdprPolicyVersionService gdprPolicyVersionService;
+
+    @Autowired
+    private ConnectionLifecycleService connectionLifecycleService;
+
     @PostMapping("/{id}")
-    public ResponseEntity<String> createUser(@PathVariable String id) {
+    public ResponseEntity<String> createUser(
+            @PathVariable String id,
+            @RequestBody(required = false) SaltEdgeConsentRequest consentRequest) {
         System.out.println("Creating user: " + id);
+        try {
+            gdprPolicyVersionService.validateCurrentVersion(consentRequest != null ? consentRequest.getPolicyVersion() : null);
+        } catch (InvalidPolicyVersionException | IllegalStateException exception) {
+            return ResponseEntity.badRequest().body(exception.getMessage());
+        }
+
         // Recupero l'utente dal database (precedentemente inserito via Keycloak o altro processo)
         Optional<User> userOpt = userRepository.findById(id);
 
@@ -71,6 +88,29 @@ public class UserController {
         upsertConnections(savedUser, connectionsResponse);
 
         return ResponseEntity.ok(connectResponse.getData().getConnectUrl());
+    }
+
+    @PostMapping("/{id}/connections/{connectionId}/refresh")
+    public ResponseEntity<String> refreshConnection(
+            @PathVariable String id,
+            @PathVariable String connectionId) {
+        try {
+            return ResponseEntity.ok(connectionLifecycleService.refreshConnection(id, connectionId));
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            return ResponseEntity.badRequest().body(exception.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}/connections/{connectionId}")
+    public ResponseEntity<?> deleteConnection(
+            @PathVariable String id,
+            @PathVariable String connectionId) {
+        try {
+            connectionLifecycleService.removeConnection(id, connectionId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            return ResponseEntity.badRequest().body(exception.getMessage());
+        }
     }
 
     @DeleteMapping("/{id}")
@@ -125,16 +165,25 @@ public class UserController {
         SaltEdgeAccountResponse accountsResponse = saltEdgeService.getAccounts(connection.getId());
         if (accountsResponse != null && accountsResponse.getData() != null) {
             for (SaltEdgeAccountResponse.AccountItem item : accountsResponse.getData()) {
-                BankAccount account = bankAccountRepository.findById(item.getId()).orElse(new BankAccount());
+                BankAccount account = bankAccountRepository.findById(item.getId()).orElseGet(BankAccount::new);
                 account.setSaltedgeAccountId(item.getId());
                 account.setUserId(user.getId());
                 account.setConnectionId(connection.getId());
                 account.setBalance(item.getBalance());
-                account.setInstitutionName(connection.getProviderName()); // Usiamo il nome della banca dalla connessione
                 account.setCurrency(item.getCurrencyCode());
-                account.setNature(item.getNature());
                 account.setIsSaltedge(true);
-                if (account.getIsForTax() == null) account.setIsForTax(false);
+
+                // Questi campi diventano "owned locally" dopo la prima importazione:
+                // non devono essere sovrascritti da una sync successiva con Salt Edge.
+                if (!hasText(account.getInstitutionName())) {
+                    account.setInstitutionName(connection.getProviderName());
+                }
+                if (!hasText(account.getNature())) {
+                    account.setNature(item.getNature());
+                }
+                if (account.getIsForTax() == null) {
+                    account.setIsForTax(false);
+                }
 
                 bankAccountRepository.save(account);
 
@@ -163,5 +212,9 @@ public class UserController {
                 }
             }
         }
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }

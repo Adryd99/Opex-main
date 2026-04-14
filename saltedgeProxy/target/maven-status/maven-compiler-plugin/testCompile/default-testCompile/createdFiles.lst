@@ -1,3 +1,4 @@
-com/saltedgeproxy/app/saltedgeproxy/SaltedgeproxyApplicationTests.class
-com/saltedgeproxy/app/saltedgeproxy/config/GdprPolicyPropertiesTest.class
-com/saltedgeproxy/app/saltedgeproxy/service/GdprPolicyVersionServiceTest.class
+com\saltedgeproxy\app\saltedgeproxy\controller\UserControllerTest.class
+com\saltedgeproxy\app\saltedgeproxy\SaltedgeproxyApplicationTests.class
+com\saltedgeproxy\app\saltedgeproxy\service\GdprPolicyVersionServiceTest.class
+com\saltedgeproxy\app\saltedgeproxy\config\GdprPolicyPropertiesTest.class

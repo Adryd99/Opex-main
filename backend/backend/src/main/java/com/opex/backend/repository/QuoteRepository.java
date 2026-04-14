@@ -10,6 +10,7 @@ import java.util.Optional;
 
 @Repository
 public interface QuoteRepository extends JpaRepository<Quote, Long> {
+    java.util.List<Quote> findByUserId(String userId);
     Page<Quote> findByUserId(String userId, Pageable pageable);
     Optional<Quote> findByIdAndUserId(Long id, String userId);
 }

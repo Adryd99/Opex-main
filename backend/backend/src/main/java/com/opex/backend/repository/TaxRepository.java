@@ -12,6 +12,8 @@ import java.util.Optional;
 @Repository
 public interface TaxRepository extends JpaRepository<Tax, String> {
 
+    List<Tax> findByUserId(String userId);
+
     // Lista paginata di tutte le tasse dell'utente (esterne e locali mischiate)
     Page<Tax> findByUserId(String userId, Pageable pageable);
 

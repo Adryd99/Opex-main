@@ -8,7 +8,9 @@ import {
 } from 'lucide-react';
 
 import { Sidebar, TopBar } from './views/components';
-import { TaxesPage, InsightsDetail, BreakdownLayout, TransactionsPage, AddTransactionPage, AddInvoicePage, BankRedirectionPage, AccountSetupPage, InvoicingPage, DashboardPage, BudgetPage, EditProfilePage, RenewConsentPage, ChangePasswordPage, CategoriesPage, NotificationDetailsPage, SupportPage, RecurringPage, SettingsPage } from './views/pages';
+import { TaxesPage, InsightsDetail, BreakdownLayout, TransactionsPage, AddTransactionPage, AddInvoicePage, BankRedirectionPage, AccountSetupPage, InvoicingPage, DashboardPage, BudgetPage, EditProfilePage, RenewConsentPage, ChangePasswordPage, CategoriesPage, NotificationDetailsPage, SupportPage, RecurringPage, SettingsPage, OnboardingPage } from './views/pages';
+import { LegalDocumentPage, resolveLegalDocumentSlug } from './views/legal';
+import { DEFAULT_LEGAL_PUBLIC_INFO } from './legal/defaultLegalContent';
 
 
 
@@ -31,12 +33,12 @@ export const App = () => {
     selectedBank,
     selectedBankAccount,
     selectedBankAccountId,
-    connectionSetupAccounts,
     userProfile,
     setUserProfile,
     bankAccounts,
     transactions,
     selectedProviderName,
+    legalPublicInfo,
     aggregatedSummary,
     timeAggregatedSummary,
     taxBufferProviders,
@@ -53,19 +55,32 @@ export const App = () => {
     handleNavigate,
     startBankFlow,
     startConnectionSetup,
-    selectConnectionAccountForSetup,
     refreshDashboardData,
     syncExternalBankAndNavigate,
+    deleteExternalBankConnection,
     syncAfterSuccessRedirect,
     completeManualBankSetup,
     completeConnectionSetup,
     createLocalTransaction,
-    saveUserProfile
+    saveUserProfile,
+    completeOnboarding,
+    downloadDataExport,
+    deleteAccount,
+    forecastData
   } = useAppController(isAuthenticated);
 
   const successSyncRequestedRef = useRef(false);
   const isSuccessRoute = window.location.pathname === '/success';
+  const legalDocumentSlug = resolveLegalDocumentSlug(window.location.pathname);
   const isEmbeddedWindow = window.self !== window.top;
+  const activeLegalPublicInfo = legalPublicInfo ?? DEFAULT_LEGAL_PUBLIC_INFO;
+  const needsMandatoryLegalAcceptance = Boolean(
+    activeLegalPublicInfo && (
+      !userProfile.gdprAccepted ||
+      userProfile.privacyPolicyVersion !== activeLegalPublicInfo.privacyPolicy.version ||
+      userProfile.termsOfServiceVersion !== activeLegalPublicInfo.termsOfService.version
+    )
+  );
 
   useEffect(() => {
     if (!isAuthenticated || !isSuccessRoute || successSyncRequestedRef.current || isEmbeddedWindow) {
@@ -77,6 +92,10 @@ export const App = () => {
       successSyncRequestedRef.current = false;
     });
   }, [isAuthenticated, isSuccessRoute, isEmbeddedWindow, syncAfterSuccessRedirect]);
+
+  if (legalDocumentSlug) {
+    return <LegalDocumentPage slug={legalDocumentSlug} />;
+  }
 
   if (!isAuthenticated) {
     return (
@@ -137,6 +156,30 @@ export const App = () => {
     );
   }
 
+  if (isInitialSyncLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white border border-gray-100 rounded-3xl p-8 max-w-md w-full text-center shadow-sm space-y-4">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-opex-teal/10 text-opex-teal flex items-center justify-center">
+            <Loader2 size={28} className="animate-spin" />
+          </div>
+          <h1 className="text-xl font-black text-gray-900">Preparing your workspace</h1>
+          <p className="text-sm text-gray-500">We are syncing your profile and loading the latest data.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (needsMandatoryLegalAcceptance) {
+    return (
+      <OnboardingPage
+        userProfile={userProfile}
+        legalPublicInfo={activeLegalPublicInfo}
+        onComplete={completeOnboarding}
+      />
+    );
+  }
+
   const renderContent = () => {
     switch (activeTab) {
       case 'DASHBOARD':
@@ -158,6 +201,7 @@ export const App = () => {
             selectedProviderName={selectedProviderName}
             aggregatedSummary={aggregatedSummary}
             timeAggregatedSummary={timeAggregatedSummary}
+            forecastData={forecastData}
           />
         );
       case 'TAXES':
@@ -165,9 +209,10 @@ export const App = () => {
           <TaxesPage
             onNavigate={handleNavigate}
             selectedProviderName={selectedProviderName}
-            taxBufferProviders={taxBufferProviders}
+            userProfile={userProfile}
             taxBufferDashboard={taxBufferDashboard}
             isLoading={isTaxBufferLoading}
+            onSaveTaxSetup={saveUserProfile}
           />
         );
       case 'INVOICING':
@@ -189,11 +234,18 @@ export const App = () => {
             setUserProfile={setUserProfile}
             bankAccounts={bankAccounts}
             taxBufferProviders={taxBufferProviders}
+            legalPublicInfo={activeLegalPublicInfo}
             onBankSelect={startBankFlow}
             onConnectionSelect={startConnectionSetup}
             onCreateOpenBankConnection={syncExternalBankAndNavigate}
+            onRemoveOpenBankConnection={deleteExternalBankConnection}
             isConnectingOpenBank={isBankSyncInProgress}
             openBankErrorMessage={appErrorMessage}
+            onDownloadDataExport={downloadDataExport}
+            onDeleteAccount={async () => {
+              await deleteAccount();
+              logout();
+            }}
             initialSection="PROFILE"
             onNavigate={(v) => {
               // If it's a global quick action, don't prefix with SETTINGS_
@@ -228,7 +280,7 @@ export const App = () => {
           />
         );
       case 'QUICK_INVOICE':
-        return <AddInvoicePage onBack={() => setActiveTab(lastMainTab)} userProfile={userProfile} />;
+        return <AddInvoicePage onBack={() => setActiveTab(lastMainTab)} userProfile={userProfile} bankAccounts={bankAccounts} />;
 
       // Settings Subpages
       case 'SETTINGS_EDIT_PROFILE':
@@ -248,11 +300,18 @@ export const App = () => {
             setUserProfile={setUserProfile}
             bankAccounts={bankAccounts}
             taxBufferProviders={taxBufferProviders}
+            legalPublicInfo={activeLegalPublicInfo}
             onBankSelect={startBankFlow}
             onConnectionSelect={startConnectionSetup}
             onCreateOpenBankConnection={syncExternalBankAndNavigate}
+            onRemoveOpenBankConnection={deleteExternalBankConnection}
             isConnectingOpenBank={isBankSyncInProgress}
             openBankErrorMessage={appErrorMessage}
+            onDownloadDataExport={downloadDataExport}
+            onDeleteAccount={async () => {
+              await deleteAccount();
+              logout();
+            }}
             initialSection="BANKING"
             onNavigate={(v) => {
               if (v.startsWith('QUICK_') || v === 'ADD_BANK' || v === 'OPEN_BANKING' || v === 'SETTINGS_OPEN_BANKING') {
@@ -291,8 +350,6 @@ export const App = () => {
             isSaving={isManualBankSaving}
             isManual={Boolean(selectedBank.isManual)}
             presetAccount={selectedBankAccount}
-            connectionAccounts={connectionSetupAccounts}
-            onSelectConnectionAccount={selectConnectionAccountForSetup}
           />
         ) : null;
       case 'SETTINGS_RENEW_CONSENT':
@@ -314,11 +371,18 @@ export const App = () => {
             setUserProfile={setUserProfile}
             bankAccounts={bankAccounts}
             taxBufferProviders={taxBufferProviders}
+            legalPublicInfo={activeLegalPublicInfo}
             onBankSelect={startBankFlow}
             onConnectionSelect={startConnectionSetup}
             onCreateOpenBankConnection={syncExternalBankAndNavigate}
+            onRemoveOpenBankConnection={deleteExternalBankConnection}
             isConnectingOpenBank={isBankSyncInProgress}
             openBankErrorMessage={appErrorMessage}
+            onDownloadDataExport={downloadDataExport}
+            onDeleteAccount={async () => {
+              await deleteAccount();
+              logout();
+            }}
             initialSection="BANKING"
             onNavigate={(v) => {
               if (v.startsWith('QUICK_') || v === 'ADD_BANK' || v === 'OPEN_BANKING' || v === 'SETTINGS_OPEN_BANKING') {
@@ -367,7 +431,7 @@ export const App = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex text-gray-900">
-      <Sidebar activeTab={activeTab} setActiveTab={handleNavigate} onLogout={logout} />
+      <Sidebar activeTab={activeTab} setActiveTab={handleNavigate} onLogout={logout} userProfile={userProfile} />
       <main className="flex-1 md:ml-64 min-w-0 relative">
          {!isSubpage && <TopBar title={getPageTitle()} />}
          {appErrorMessage && (

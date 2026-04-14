@@ -10,4 +10,5 @@ import java.util.List;
 public interface TransactionRepository extends JpaRepository<Transaction, String> {
     List<Transaction> findByConnectionId(String connectionId);
     List<Transaction> findByUserId(String userId);
+    void deleteByConnectionId(String connectionId);
 }

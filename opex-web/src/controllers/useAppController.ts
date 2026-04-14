@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  AggregatedBalanceRecord,
   BankAccountRecord,
   BankOption,
   CreateLocalTransactionInput,
+  ForecastResponse,
+  LegalPublicInfoRecord,
   ManualBankSetupInput,
+  OpenBankingConsentPayload,
   TaxRecord,
   TaxBufferDashboardResponse,
   TaxBufferProviderItem,
@@ -12,13 +14,25 @@ import {
   TransactionRecord,
   UserProfile
 } from '../models/types';
+import {
+  clearStoredLegalConsents,
+  DEFAULT_LEGAL_PUBLIC_INFO,
+  mergeStoredLegalConsents,
+  persistOpenBankingConsentLocally
+} from '../legal/defaultLegalContent';
 import { extractBankPopupUrl, opexApi, toUserProfilePatchPayload } from '../services/opexApi';
 
 const DEFAULT_USER_PROFILE: UserProfile = {
   name: 'Post Malone',
   email: 'malone@opex.com',
-  residence: 'Italy (IT)',
-  logo: null
+  residence: 'Netherlands (NL)',
+  vatFrequency: 'Quarterly',
+  logo: null,
+  gdprAccepted: false,
+  fiscalResidence: null,
+  taxRegime: null,
+  activityType: null,
+  openBankingConsentScopes: []
 };
 
 const toErrorMessage = (error: unknown): string =>
@@ -151,6 +165,27 @@ const resolveSelectedConnectionId = (
   return providerConnectionId && providerConnectionId.trim().length > 0 ? providerConnectionId : undefined;
 };
 
+const formatPeriodLabel = (date: Date, period: 'month' | 'quarter' | 'year'): string => {
+  if (period === 'month') {
+    return new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date);
+  }
+  if (period === 'quarter') {
+    return `Q${Math.floor(date.getMonth() / 3) + 1}`;
+  }
+  return String(date.getFullYear());
+};
+
+const buildPeriodKey = (date: Date, period: 'month' | 'quarter' | 'year'): string => {
+  const year = date.getFullYear();
+  if (period === 'month') {
+    return `${year}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }
+  if (period === 'quarter') {
+    return `${year}-Q${Math.floor(date.getMonth() / 3) + 1}`;
+  }
+  return String(year);
+};
+
 export const useAppController = (isAuthenticated: boolean) => {
   const [activeTab, setActiveTab] = useState('DASHBOARD');
   const [lastMainTab, setLastMainTab] = useState('DASHBOARD');
@@ -163,17 +198,13 @@ export const useAppController = (isAuthenticated: boolean) => {
   const [bankAccounts, setBankAccounts] = useState<BankAccountRecord[]>([]);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [taxes, setTaxes] = useState<TaxRecord[]>([]);
-  const [aggregatedBalances, setAggregatedBalances] = useState<AggregatedBalanceRecord[]>([]);
-  const [timeAggregatedBalances, setTimeAggregatedBalances] = useState<TimeAggregatedRecord>({
-    byMonth: [],
-    byQuarter: [],
-    byYear: []
-  });
   const [selectedProviderName, setSelectedProviderName] = useState<string | null>(
     typeof window === 'undefined' ? null : getSelectedProviderFromStorage()
   );
   const [taxBufferProviders, setTaxBufferProviders] = useState<TaxBufferProviderItem[]>([]);
   const [taxBufferDashboard, setTaxBufferDashboard] = useState<TaxBufferDashboardResponse | null>(null);
+  const [forecastData, setForecastData] = useState<ForecastResponse | null>(null);
+  const [legalPublicInfo, setLegalPublicInfo] = useState<LegalPublicInfoRecord | null>(null);
   const [isTaxBufferLoading, setIsTaxBufferLoading] = useState(false);
 
   const [isInitialSyncLoading, setIsInitialSyncLoading] = useState(true);
@@ -193,12 +224,13 @@ export const useAppController = (isAuthenticated: boolean) => {
     try {
       const [accountsResult, transactionsResult, taxesResult] = await Promise.all([
         opexApi.getMyBankAccounts(0, 50),
-        opexApi.getMyTransactions(0, 100),
+        opexApi.getAllMyTransactions(),
         opexApi.getMyTaxes(0, 50)
       ]);
-      const [aggregatedResult, timeAggregatedResult] = await Promise.all([
+      const [aggregatedResult, timeAggregatedResult, forecastResult] = await Promise.all([
         opexApi.getAggregatedBalances(),
-        opexApi.getTimeAggregatedBalances()
+        opexApi.getTimeAggregatedBalances(),
+        opexApi.getForecast(3)
       ]);
       const activeProviderName = typeof window === 'undefined' ? null : getSelectedProviderFromStorage();
       const taxProvidersResult = await opexApi.getTaxBufferProviders();
@@ -207,15 +239,18 @@ export const useAppController = (isAuthenticated: boolean) => {
         accountsResult.content,
         taxProvidersResult
       );
-      const taxDashboardResult = await opexApi.getTaxBufferDashboard({ connectionId: dashboardConnectionId });
+      const taxDashboardResult = await opexApi.getTaxBufferDashboard({
+        connectionId: dashboardConnectionId,
+        deadlinesLimit: 20,
+        activityLimit: 8
+      });
 
       setBankAccounts(accountsResult.content);
-      setTransactions(transactionsResult.content);
+      setTransactions(transactionsResult);
       setTaxes(taxesResult.content);
-      setAggregatedBalances(aggregatedResult);
-      setTimeAggregatedBalances(timeAggregatedResult);
       setTaxBufferProviders(taxProvidersResult);
       setTaxBufferDashboard(taxDashboardResult);
+      setForecastData(forecastResult);
 
       return {
         accountsResult,
@@ -223,6 +258,7 @@ export const useAppController = (isAuthenticated: boolean) => {
         taxesResult,
         aggregatedResult,
         timeAggregatedResult,
+        forecastResult,
         taxProvidersResult,
         taxDashboardResult
       };
@@ -237,6 +273,7 @@ export const useAppController = (isAuthenticated: boolean) => {
 
   useEffect(() => {
     if (!isAuthenticated) {
+      setLegalPublicInfo(DEFAULT_LEGAL_PUBLIC_INFO);
       setIsInitialSyncLoading(false);
       return;
     }
@@ -244,10 +281,20 @@ export const useAppController = (isAuthenticated: boolean) => {
     const bootstrap = async () => {
       setIsInitialSyncLoading(true);
       try {
-        await opexApi.syncUser();
+        const [syncedProfile, nextLegalPublicInfo] = await Promise.all([
+          opexApi.syncUser(DEFAULT_USER_PROFILE),
+          opexApi.getLegalPublicInfo()
+        ]);
+        setLegalPublicInfo(nextLegalPublicInfo);
+        setUserProfile((current) => mergeStoredLegalConsents({
+          ...current,
+          ...syncedProfile,
+          logo: syncedProfile.logo ?? current.logo
+        }, nextLegalPublicInfo));
         await refreshDashboardData();
       } catch (error) {
         setErrorMessage(toErrorMessage(error));
+        setLegalPublicInfo(DEFAULT_LEGAL_PUBLIC_INFO);
       } finally {
         setIsInitialSyncLoading(false);
       }
@@ -326,7 +373,11 @@ export const useAppController = (isAuthenticated: boolean) => {
     setErrorMessage(null);
 
     void opexApi
-      .getTaxBufferDashboard({ connectionId })
+      .getTaxBufferDashboard({
+        connectionId,
+        deadlinesLimit: 20,
+        activityLimit: 8
+      })
       .then((dashboard) => {
         setTaxBufferDashboard(dashboard);
       })
@@ -337,44 +388,6 @@ export const useAppController = (isAuthenticated: boolean) => {
         setIsTaxBufferLoading(false);
       });
   }, [bankAccounts, isAuthenticated, selectedProviderName, taxBufferProviders]);
-
-  const aggregatedSummary = (() => {
-    if (aggregatedBalances.length === 0) {
-      return {
-        totalBalance: 0,
-        totalIncome: 0,
-        totalExpenses: 0
-      };
-    }
-
-    let allowedConnectionIds: Set<string> | null = null;
-    if (selectedProviderName) {
-      allowedConnectionIds = new Set(
-        bankAccounts
-          .filter((account) => doesAccountMatchSelectedProvider(account, selectedProviderName))
-          .map((account) => account.connectionId ?? '')
-          .filter((connectionId) => connectionId.length > 0)
-      );
-    }
-
-    return aggregatedBalances.reduce(
-      (accumulator, item) => {
-        if (allowedConnectionIds && !allowedConnectionIds.has(item.connectionId)) {
-          return accumulator;
-        }
-
-        accumulator.totalBalance += Number(item.totalBalance || 0);
-        accumulator.totalIncome += Number(item.totalIncome || 0);
-        accumulator.totalExpenses += Number(item.totalExpenses || 0);
-        return accumulator;
-      },
-      {
-        totalBalance: 0,
-        totalIncome: 0,
-        totalExpenses: 0
-      }
-    );
-  })();
 
   const allowedConnectionIdsForSelectedProvider = useMemo(() => {
     if (!selectedProviderName) {
@@ -394,7 +407,15 @@ export const useAppController = (isAuthenticated: boolean) => {
       return transactions;
     }
 
-    const accountsById = new Map(bankAccounts.map((account) => [account.id, account]));
+    const accountsById = new Map(
+      bankAccounts.flatMap((account) => {
+        const resolvedId = resolveBankAccountId(account);
+        if (!resolvedId) {
+          return [];
+        }
+        return [[resolvedId, account] as const];
+      })
+    );
     const allowedConnections = allowedConnectionIdsForSelectedProvider ?? new Set<string>();
 
     return transactions.filter((transaction) => {
@@ -412,45 +433,66 @@ export const useAppController = (isAuthenticated: boolean) => {
     });
   }, [allowedConnectionIdsForSelectedProvider, bankAccounts, doesAccountMatchSelectedProvider, selectedProviderName, transactions]);
 
+  const aggregatedSummary = useMemo(() => {
+    const visibleBankAccounts = selectedProviderName
+      ? bankAccounts.filter((account) => doesAccountMatchSelectedProvider(account, selectedProviderName))
+      : bankAccounts;
+
+    return {
+      totalBalance: visibleBankAccounts.reduce((sum, account) => sum + Number(account.balance || 0), 0),
+      totalIncome: visibleTransactions.reduce((sum, transaction) => {
+        const amount = Number(transaction.amount || 0);
+        return amount > 0 ? sum + amount : sum;
+      }, 0),
+      totalExpenses: visibleTransactions.reduce((sum, transaction) => {
+        const amount = Number(transaction.amount || 0);
+        return amount < 0 ? sum + amount : sum;
+      }, 0)
+    };
+  }, [bankAccounts, doesAccountMatchSelectedProvider, selectedProviderName, visibleTransactions]);
+
   const timeAggregatedSummary = useMemo(() => {
-    const aggregateByPeriod = (items: TimeAggregatedRecord['byMonth']) => {
+    const aggregateByPeriod = (period: 'month' | 'quarter' | 'year') => {
       const grouped = new Map<string, TimeAggregatedRecord['byMonth'][number]>();
 
-      items.forEach((item) => {
-        const connectionId = (item.connectionId ?? '').trim();
-        if (allowedConnectionIdsForSelectedProvider && connectionId.length > 0 && !allowedConnectionIdsForSelectedProvider.has(connectionId)) {
-          return;
-        }
-        if (allowedConnectionIdsForSelectedProvider && connectionId.length === 0) {
+      visibleTransactions.forEach((transaction) => {
+        const date = new Date(transaction.bookingDate);
+        if (Number.isNaN(date.getTime())) {
           return;
         }
 
-        const bucketKey = item.key || item.label;
-        const existing = grouped.get(bucketKey);
+        const amount = Number(transaction.amount || 0);
+        const key = buildPeriodKey(date, period);
+        const existing = grouped.get(key);
         if (existing) {
-          existing.income += Number(item.income || 0);
-          existing.expenses += Number(item.expenses || 0);
+          if (amount > 0) {
+            existing.income += amount;
+          } else if (amount < 0) {
+            existing.expenses += amount;
+          }
           return;
         }
 
-        grouped.set(bucketKey, {
-          key: item.key,
-          label: item.label,
-          income: Number(item.income || 0),
-          expenses: Number(item.expenses || 0),
+        grouped.set(key, {
+          key,
+          label: formatPeriodLabel(date, period),
+          income: amount > 0 ? amount : 0,
+          expenses: amount < 0 ? amount : 0,
           connectionId: null
         });
       });
 
-      return Array.from(grouped.values());
+      return Array.from(grouped.entries())
+        .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+        .map(([, value]) => value);
     };
 
     return {
-      byMonth: aggregateByPeriod(timeAggregatedBalances.byMonth),
-      byQuarter: aggregateByPeriod(timeAggregatedBalances.byQuarter),
-      byYear: aggregateByPeriod(timeAggregatedBalances.byYear)
+      byMonth: aggregateByPeriod('month'),
+      byQuarter: aggregateByPeriod('quarter'),
+      byYear: aggregateByPeriod('year')
     };
-  }, [allowedConnectionIdsForSelectedProvider, timeAggregatedBalances]);
+  }, [visibleTransactions]);
 
   const handleNavigate = (tab: string) => {
     if (['DASHBOARD', 'BUDGET', 'TAXES', 'SETTINGS'].includes(tab)) {
@@ -510,14 +552,17 @@ export const useAppController = (isAuthenticated: boolean) => {
     setActiveTab('SETTINGS_BANK_SETUP');
   };
 
-  const syncExternalBankAndNavigate = useCallback(async () => {
+  const syncExternalBankAndNavigate = useCallback(async (consent: OpenBankingConsentPayload) => {
     setIsBankSyncInProgress(true);
     setErrorMessage(null);
     setBankSyncStage('opening_widget');
     setBankPopupUrl(null);
 
     try {
-      const connectPayload = await opexApi.bankIntegrationConnect();
+      if (legalPublicInfo) {
+        setUserProfile((current) => persistOpenBankingConsentLocally(current, legalPublicInfo, consent));
+      }
+      const connectPayload = await opexApi.bankIntegrationConnect(consent);
       const connectUrl = extractBankPopupUrl(connectPayload);
 
       if (!connectUrl) {
@@ -539,7 +584,71 @@ export const useAppController = (isAuthenticated: boolean) => {
     } finally {
       setIsBankSyncInProgress(false);
     }
+  }, [legalPublicInfo]);
+
+  const refreshExternalBankConnection = useCallback(async (connectionId: string) => {
+    const normalizedConnectionId = normalizeText(connectionId);
+    if (normalizedConnectionId.length === 0) {
+      throw new Error('Missing Salt Edge connection identifier.');
+    }
+
+    setIsBankSyncInProgress(true);
+    setErrorMessage(null);
+    setBankSyncStage('opening_widget');
+    setBankPopupUrl(null);
+
+    try {
+      const connectPayload = await opexApi.bankIntegrationRefreshConnection(normalizedConnectionId);
+      const connectUrl = extractBankPopupUrl(connectPayload);
+
+      if (!connectUrl) {
+        throw new Error('Connection refresh did not return a valid Salt Edge URL.');
+      }
+
+      setBankPopupUrl(connectUrl);
+      const popup = window.open(connectUrl, '_blank', 'noopener,noreferrer');
+      if (!popup) {
+        throw new Error('Unable to open Salt Edge refresh page. Please allow popups and retry.');
+      }
+
+      popup.focus();
+      setBankSyncStage('waiting_success_redirect');
+    } catch (error) {
+      setErrorMessage(toErrorMessage(error));
+      setBankSyncStage('idle');
+      throw error;
+    } finally {
+      setIsBankSyncInProgress(false);
+    }
   }, []);
+
+  const deleteExternalBankConnection = useCallback(async (connectionId: string) => {
+    const normalizedConnectionId = normalizeText(connectionId);
+    if (normalizedConnectionId.length === 0) {
+      throw new Error('Missing Salt Edge connection identifier.');
+    }
+
+    setErrorMessage(null);
+
+    try {
+      await opexApi.bankIntegrationDeleteConnection(normalizedConnectionId);
+
+      if (normalizeText(selectedBankAccount?.connectionId) === normalizedConnectionId) {
+        setSelectedBank(null);
+        setSelectedBankAccount(null);
+        setSelectedBankAccountId(null);
+        setConnectionSetupAccounts([]);
+        if (activeTab === 'SETTINGS_BANK_SETUP') {
+          setActiveTab('SETTINGS_OPEN_BANKING');
+        }
+      }
+
+      await refreshDashboardData();
+    } catch (error) {
+      setErrorMessage(toErrorMessage(error));
+      throw error;
+    }
+  }, [activeTab, refreshDashboardData, selectedBankAccount?.connectionId]);
 
   const syncAfterSuccessRedirect = useCallback(async () => {
     setIsBankSyncInProgress(true);
@@ -635,11 +744,19 @@ export const useAppController = (isAuthenticated: boolean) => {
       setErrorMessage(null);
 
       try {
-        await opexApi.updateLocalBankAccount(bankAccountId, {
-          institutionName: payload.institutionName,
-          nature: payload.nature,
-          isForTax: payload.isForTax
-        });
+        if (selectedBankAccount?.isSaltedge) {
+          await opexApi.updateSaltedgeBankAccount(bankAccountId, {
+            institutionName: payload.institutionName,
+            nature: payload.nature,
+            isForTax: payload.isForTax
+          });
+        } else {
+          await opexApi.updateLocalBankAccount(bankAccountId, {
+            institutionName: payload.institutionName,
+            nature: payload.nature,
+            isForTax: payload.isForTax
+          });
+        }
         await refreshDashboardData();
         setActiveTab('SETTINGS_OPEN_BANKING');
       } catch (error) {
@@ -649,7 +766,7 @@ export const useAppController = (isAuthenticated: boolean) => {
         setIsManualBankSaving(false);
       }
     },
-    [refreshDashboardData]
+    [refreshDashboardData, selectedBankAccount?.isSaltedge]
   );
 
   const createLocalTransaction = useCallback(
@@ -658,6 +775,19 @@ export const useAppController = (isAuthenticated: boolean) => {
       setErrorMessage(null);
 
       try {
+        const selectedAccount = bankAccounts.find((account) => {
+          const accountId = resolveBankAccountId(account);
+          return accountId === input.bankAccountId || normalizeText(account.id) === normalizeText(input.bankAccountId);
+        });
+
+        if (!selectedAccount) {
+          throw new Error('Selected local account not found.');
+        }
+
+        if (selectedAccount.isSaltedge) {
+          throw new Error('Transactions can be created only on local accounts.');
+        }
+
         const signedAmount = input.type === 'EXPENSE' ? -Math.abs(input.amount) : Math.abs(input.amount);
         await opexApi.createLocalTransaction({
           bankAccountId: input.bankAccountId,
@@ -678,14 +808,93 @@ export const useAppController = (isAuthenticated: boolean) => {
         setIsTransactionSaving(false);
       }
     },
-    [refreshDashboardData]
+    [bankAccounts, refreshDashboardData]
   );
 
   const saveUserProfile = useCallback(async (profile: UserProfile) => {
     setErrorMessage(null);
-    setUserProfile(profile);
-    await opexApi.patchUserProfile(toUserProfilePatchPayload(profile));
-  }, []);
+    const savedProfile = await opexApi.patchUserProfile(toUserProfilePatchPayload(profile), profile);
+    setUserProfile((current) => mergeStoredLegalConsents({
+      ...current,
+      ...savedProfile,
+      logo: savedProfile.logo ?? current.logo
+    }, legalPublicInfo ?? DEFAULT_LEGAL_PUBLIC_INFO));
+    await refreshDashboardData();
+  }, [legalPublicInfo, refreshDashboardData]);
+
+  const completeOnboarding = useCallback(async (profile: UserProfile) => {
+    const resolvedLegalPublicInfo = legalPublicInfo ?? DEFAULT_LEGAL_PUBLIC_INFO;
+
+    setErrorMessage(null);
+
+    const savedProfile = await opexApi.patchUserProfile(toUserProfilePatchPayload(profile), profile);
+    setUserProfile((current) => mergeStoredLegalConsents({
+      ...current,
+      ...savedProfile,
+      logo: savedProfile.logo ?? current.logo
+    }, resolvedLegalPublicInfo));
+
+    const consentedProfile = await opexApi.acceptRequiredConsents({
+      acceptPrivacyPolicy: true,
+      privacyPolicyVersion: resolvedLegalPublicInfo.privacyPolicy.version,
+      acceptTermsOfService: true,
+      termsOfServiceVersion: resolvedLegalPublicInfo.termsOfService.version,
+      acknowledgeCookiePolicy: true,
+      cookiePolicyVersion: resolvedLegalPublicInfo.cookiePolicy.version
+    }, savedProfile);
+
+    setUserProfile((current) => mergeStoredLegalConsents({
+      ...current,
+      ...consentedProfile,
+      logo: current.logo ?? consentedProfile.logo
+    }, resolvedLegalPublicInfo));
+    await refreshDashboardData();
+  }, [legalPublicInfo, refreshDashboardData]);
+
+  const downloadDataExport = useCallback(async () => {
+    setErrorMessage(null);
+    try {
+      await opexApi.downloadDataExport();
+    } catch (error) {
+      try {
+        const exportPayload = {
+          generatedAt: new Date().toISOString(),
+          source: 'frontend-fallback',
+          legalPublicInfo: legalPublicInfo ?? DEFAULT_LEGAL_PUBLIC_INFO,
+          userProfile,
+          bankAccounts,
+          transactions,
+          taxes,
+          taxBufferProviders,
+          taxBufferDashboard
+        };
+
+        const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `opex-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      } catch {
+        setErrorMessage(toErrorMessage(error));
+        throw error;
+      }
+    }
+  }, [bankAccounts, legalPublicInfo, taxBufferDashboard, taxBufferProviders, taxes, transactions, userProfile]);
+
+  const deleteAccount = useCallback(async () => {
+    setErrorMessage(null);
+    try {
+      await opexApi.deleteUserProfile();
+      clearStoredLegalConsents(userProfile.email);
+    } catch (error) {
+      setErrorMessage(toErrorMessage(error));
+      throw error;
+    }
+  }, [userProfile.email]);
 
   const clearError = () => setErrorMessage(null);
 
@@ -705,11 +914,13 @@ export const useAppController = (isAuthenticated: boolean) => {
     bankAccounts,
     transactions: visibleTransactions,
     taxes,
+    legalPublicInfo,
     selectedProviderName,
     aggregatedSummary,
     timeAggregatedSummary,
     taxBufferProviders,
     taxBufferDashboard,
+    forecastData,
     isTaxBufferLoading,
     isInitialSyncLoading,
     isDataRefreshing,
@@ -726,10 +937,15 @@ export const useAppController = (isAuthenticated: boolean) => {
     selectConnectionAccountForSetup,
     refreshDashboardData,
     syncExternalBankAndNavigate,
+    refreshExternalBankConnection,
+    deleteExternalBankConnection,
     syncAfterSuccessRedirect,
     completeManualBankSetup,
     completeConnectionSetup,
     createLocalTransaction,
-    saveUserProfile
+    saveUserProfile,
+    completeOnboarding,
+    downloadDataExport,
+    deleteAccount
   };
 };

@@ -74,13 +74,17 @@ import {
   BankAccountRecord,
   BankOption,
   CreateLocalTransactionInput,
+  LegalPublicInfoRecord,
   ManualBankSetupInput,
+  OpenBankingConsentPayload,
+  ForecastResponse,
   TaxBufferDashboardResponse,
   TaxBufferProviderItem,
   TimeAggregatedRecord,
   TransactionRecord,
   UserProfile
 } from '../models/types';
+import { MONTHLY_INSIGHT_MESSAGES } from '../data/monthlyInsights';
 import { AccountSelector, Button, Card, Badge, ToggleFilter, RecurringWidget, ClickableStat, QuickActions, EnhancedLineChart, MiniPieChart, ForecastCompactWidget, SubpageShell } from './components';
 
 const formatCurrency = (value: number): string =>
@@ -90,6 +94,206 @@ const formatCurrency = (value: number): string =>
     minimumFractionDigits: 0,
     maximumFractionDigits: 2
   }).format(value);
+
+const MONTHLY_INSIGHT_AREA_CLASS: Record<string, string> = {
+  Tax: 'text-amber-200',
+  VAT: 'text-cyan-200',
+  Cashflow: 'text-emerald-200',
+  Income: 'text-sky-200',
+  Budget: 'text-orange-200',
+  Behaviour: 'text-rose-200',
+  Spending: 'text-fuchsia-200',
+  Risk: 'text-red-200',
+  Subscriptions: 'text-violet-200',
+  Savings: 'text-lime-200',
+  'Tax/Savings': 'text-yellow-200',
+  Efficiency: 'text-teal-200',
+  Safety: 'text-red-200',
+  Insight: 'text-white'
+};
+
+type OnboardingQuestionField = 'fullName' | 'residence' | 'occupation';
+
+type OnboardingQuestionStep = {
+  field: OnboardingQuestionField;
+  step: number;
+  title: string;
+  description: string;
+  fieldLabel: string;
+  placeholder: string;
+  ctaLabel: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+};
+
+type ProviderConnectionCard = {
+  key: string;
+  account: BankAccountRecord;
+  accountCount: number;
+  totalBalance: number;
+  connectionId: string | null;
+  status: string | null;
+  isManagedConnection: boolean;
+};
+
+const ONBOARDING_QUESTION_STEPS: OnboardingQuestionStep[] = [
+  {
+    field: 'fullName',
+    step: 1,
+    title: 'What should we call you?',
+    description: 'Your name helps us personalize your dashboard insights.',
+    fieldLabel: 'Full Name',
+    placeholder: 'Type here...',
+    ctaLabel: 'Next Question',
+    icon: Users
+  },
+  {
+    field: 'residence',
+    step: 2,
+    title: 'Where are you based?',
+    description: 'Tax rules and bank integrations vary by country.',
+    fieldLabel: 'Place of Residence',
+    placeholder: 'Type here...',
+    ctaLabel: 'Next Question',
+    icon: Globe
+  },
+  {
+    field: 'occupation',
+    step: 3,
+    title: "What's your occupation?",
+    description: 'Tell us what you do to refine your expense categories.',
+    fieldLabel: 'Job Title or Industry',
+    placeholder: 'Type here...',
+    ctaLabel: 'Review Privacy',
+    icon: Briefcase
+  }
+];
+
+const toOptionalText = (value: string | null | undefined): string | null => {
+  const trimmedValue = (value ?? '').trim();
+  return trimmedValue.length > 0 ? trimmedValue : null;
+};
+
+const openLegalDocument = (slug: 'privacy' | 'terms' | 'cookies' | 'open-banking') => {
+  window.open(`/legal/${slug}`, '_blank', 'noopener,noreferrer');
+};
+
+const formatConsentTimestamp = (value: string | null | undefined): string => {
+  if (!value) {
+    return 'Not recorded';
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleString('it-IT', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+type TaxSetupOption = {
+  value: string;
+  label: string;
+  description: string;
+  meta?: string;
+};
+
+const TAX_REGIME_OPTIONS: TaxSetupOption[] = [
+  {
+    value: 'Forfettario',
+    label: 'Forfettario',
+    description: 'Flat 5% or 15% tax rate'
+  },
+  {
+    value: 'Ordinario',
+    label: 'Ordinario',
+    description: 'Standard IRPEF brackets'
+  }
+];
+
+const TAX_ACTIVITY_OPTIONS: TaxSetupOption[] = [
+  {
+    value: 'Professional / Consultant',
+    label: 'Professional / Consultant',
+    description: 'Freelancers, digital services',
+    meta: '78%'
+  },
+  {
+    value: 'Retail & E-commerce',
+    label: 'Retail & E-commerce',
+    description: 'Online shops, reselling',
+    meta: '40%'
+  },
+  {
+    value: 'Food & Hospitality',
+    label: 'Food & Hospitality',
+    description: 'Restaurants, bars',
+    meta: '40%'
+  },
+  {
+    value: 'Construction & Real Estate',
+    label: 'Construction & Real Estate',
+    description: 'Renovation, property',
+    meta: '86%'
+  },
+  {
+    value: 'Other Activities',
+    label: 'Other Activities',
+    description: 'Other or unsure',
+    meta: '67%'
+  }
+];
+
+const TAX_RESIDENCE_OPTIONS: TaxSetupOption[] = [
+  {
+    value: 'Italy (IT)',
+    label: 'IT',
+    description: 'Italy'
+  },
+  {
+    value: 'Netherlands (NL)',
+    label: 'NL',
+    description: 'Netherlands'
+  },
+  {
+    value: 'Belgium (BE)',
+    label: 'BE',
+    description: 'Belgium'
+  },
+  {
+    value: 'Germany (DE)',
+    label: 'DE',
+    description: 'Germany'
+  },
+  {
+    value: 'Other',
+    label: 'Other',
+    description: 'Other country'
+  }
+];
+
+const hasTaxProfileConfigured = (profile: UserProfile): boolean =>
+  [
+    profile.fiscalResidence,
+    profile.taxRegime,
+    profile.activityType
+  ].every((value) => (value ?? '').trim().length > 0);
+
+const getInitialFiscalResidence = (profile: UserProfile): string => {
+  const fiscalResidence = (profile.fiscalResidence ?? '').trim();
+  if (fiscalResidence.length > 0) {
+    return fiscalResidence;
+  }
+
+  const residence = (profile.residence ?? '').trim();
+  const matchedResidence = TAX_RESIDENCE_OPTIONS.find((option) => option.value === residence);
+  return matchedResidence?.value ?? '';
+};
 
 const ACCOUNT_CATEGORY_OPTIONS = ['Personal', 'Business', 'Savings'] as const;
 type AccountCategory = (typeof ACCOUNT_CATEGORY_OPTIONS)[number];
@@ -115,16 +319,8 @@ const resolveConnectionAccountName = (
   account: Pick<BankAccountRecord, 'id' | 'institutionName'> | null | undefined,
   providerName?: string
 ): string => {
-  const fallbackName = (account?.id ?? '').trim();
-  const institutionName = (account?.institutionName ?? '').trim();
+  return (account?.institutionName ?? '').trim() || (providerName ?? '').trim();
 
-  if (institutionName.length === 0) {
-    return fallbackName || 'Connection';
-  }
-  if (providerName && institutionName.toLowerCase() === providerName.trim().toLowerCase()) {
-    return fallbackName || institutionName;
-  }
-  return institutionName;
 };
 
 const resolveConnectionRecordId = (account: BankAccountRecord | null | undefined): string => {
@@ -150,27 +346,368 @@ const resolveConnectionRecordId = (account: BankAccountRecord | null | undefined
   return (account.id ?? '').trim();
 };
 
+const ConnectionAccountCard = ({
+  account,
+  providerName,
+  onClick,
+  isSelected = false,
+  index = 0,
+  accountCount = 1,
+  totalBalance,
+  connectionStatus = null,
+  canManageConnection = false,
+  isRemoving = false,
+  onRemove
+}: {
+  account: BankAccountRecord;
+  providerName: string;
+  onClick: () => void;
+  isSelected?: boolean;
+  index?: number;
+  accountCount?: number;
+  totalBalance: number;
+  connectionStatus?: string | null;
+  canManageConnection?: boolean;
+  isRemoving?: boolean;
+  onRemove?: () => void;
+}) => {
+  const connectionRecordId = resolveConnectionRecordId(account) || `${index}`;
+  const accountSubtitle = (account.institutionName ?? '').trim() || 'Unknown Institution';
+  const accountIcon = accountSubtitle.slice(0, 2).toUpperCase();
+  const normalizedStatus = (connectionStatus ?? '').trim();
+  const statusLabel = normalizedStatus.length > 0
+    ? normalizedStatus.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
+    : null;
+  const resolvedTotalBalance = Number.isFinite(totalBalance) ? totalBalance : Number(account.balance ?? 0);
+
+  return (
+    <div
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      className={`text-left p-6 rounded-[2rem] border transition-all ${
+        isSelected
+          ? 'bg-white border-opex-teal/40 shadow-lg shadow-teal-900/10'
+          : 'bg-gray-50 border-gray-100 hover:border-gray-200'
+      } cursor-pointer`}
+      data-connection-record-id={connectionRecordId}
+    >
+      <div className={`w-14 h-14 rounded-2xl ${isSelected ? 'bg-opex-dark' : 'bg-opex-dark/90'} text-white flex items-center justify-center font-black text-xl shadow-md`}>
+        {accountIcon}
+      </div>
+      <p className="mt-5 text-base font-black text-gray-900 leading-tight">
+        {resolveConnectionAccountName(account, providerName)}
+      </p>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+          {accountCount > 1 ? `${accountCount} Accounts` : toAccountCategory(account.nature)} | {account.isSaltedge ? 'Open Banking' : 'Local'}
+        </p>
+        {statusLabel && (
+          <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
+            {statusLabel}
+          </span>
+        )}
+        {account.isForTax && (
+          <span className="inline-flex items-center rounded-full bg-opex-teal/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-opex-teal">
+            Tax Buffer
+          </span>
+        )}
+      </div>
+      <p className="mt-4 text-lg font-black text-gray-900">
+        {new Intl.NumberFormat('it-IT', {
+          style: 'currency',
+          currency: account.currency || 'EUR',
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2
+        }).format(resolvedTotalBalance)}
+      </p>
+      {canManageConnection && (
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onRemove?.();
+            }}
+            className="inline-flex h-10 flex-1 items-center justify-center rounded-[1rem] border border-red-100 bg-red-50 px-3 text-xs font-black text-red-600 transition-colors hover:border-red-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isRemoving}
+          >
+            {isRemoving ? 'Removing...' : 'Remove'}
+          </button>
+        </div>
+      )}
+      {false && (<p className="mt-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+        {toAccountCategory(account.nature)} • {account.isSaltedge ? 'Open Banking' : 'Local'}
+      </p>)}
+    </div>
+  );
+};
+
+const TaxProfileSetupDialog = ({
+  isOpen,
+  isRequired,
+  userProfile,
+  onClose,
+  onSave
+}: {
+  isOpen: boolean;
+  isRequired: boolean;
+  userProfile: UserProfile;
+  onClose: () => void;
+  onSave: (profile: UserProfile) => Promise<void>;
+}) => {
+  const [selectedRegime, setSelectedRegime] = useState<string>((userProfile.taxRegime ?? '').trim());
+  const [selectedActivity, setSelectedActivity] = useState<string>((userProfile.activityType ?? '').trim());
+  const [selectedFiscalResidence, setSelectedFiscalResidence] = useState<string>(getInitialFiscalResidence(userProfile));
+  const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    setSelectedRegime((userProfile.taxRegime ?? '').trim());
+    setSelectedActivity((userProfile.activityType ?? '').trim());
+    setSelectedFiscalResidence(getInitialFiscalResidence(userProfile));
+    setFormError(null);
+  }, [isOpen, userProfile]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const isComplete = selectedRegime.length > 0 && selectedActivity.length > 0 && selectedFiscalResidence.length > 0;
+
+  const handleSave = async () => {
+    if (!isComplete) {
+      setFormError('Select tax regime, activity type, and fiscal residence to continue.');
+      return;
+    }
+
+    const nextProfile: UserProfile = {
+      ...userProfile,
+      fiscalResidence: selectedFiscalResidence,
+      taxRegime: selectedRegime,
+      activityType: selectedActivity
+    };
+
+    setIsSaving(true);
+    setFormError(null);
+
+    try {
+      await onSave(nextProfile);
+      onClose();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Unexpected error while saving tax setup.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/15 px-4 py-8 backdrop-blur-[6px]">
+      <div className="relative w-full max-w-3xl overflow-hidden rounded-[2.5rem] border border-white/60 bg-white/95 p-6 shadow-[0_32px_80px_-32px_rgba(15,23,42,0.45)] md:p-8">
+        {!isRequired && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-opex-dark"
+            disabled={isSaving}
+          >
+            <X size={18} />
+          </button>
+        )}
+
+        <div className="mb-8 flex items-start gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.35rem] bg-opex-dark text-white shadow-lg shadow-slate-900/15">
+            <Calculator size={26} />
+          </div>
+          <div>
+            <h3 className="text-3xl font-black tracking-tight text-gray-900">Set up your tax profile</h3>
+            <p className="mt-1 text-sm font-medium text-slate-500">
+              We need a few details to estimate taxes correctly.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.95fr_1.45fr]">
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Tax Regime</p>
+              </div>
+              <div className="space-y-3">
+                {TAX_REGIME_OPTIONS.map((option) => {
+                  const isSelected = selectedRegime === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setSelectedRegime(option.value);
+                        if (formError) {
+                          setFormError(null);
+                        }
+                      }}
+                      className={`w-full rounded-[1.5rem] border p-4 text-left transition-all ${
+                        isSelected
+                          ? 'border-opex-dark bg-slate-50 shadow-sm'
+                          : 'border-gray-200 bg-white hover:border-slate-300'
+                      }`}
+                      disabled={isSaving}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-base font-black text-gray-900">{option.label}</p>
+                          <p className="mt-1 text-xs font-medium text-slate-500">{option.description}</p>
+                        </div>
+                        <div className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full border ${isSelected ? 'border-opex-dark bg-opex-dark text-white' : 'border-slate-200 text-transparent'}`}>
+                          <Check size={14} />
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Fiscal Residence</p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {TAX_RESIDENCE_OPTIONS.map((option) => {
+                  const isSelected = selectedFiscalResidence === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setSelectedFiscalResidence(option.value);
+                        if (formError) {
+                          setFormError(null);
+                        }
+                      }}
+                      className={`rounded-[1.2rem] border px-4 py-3 text-left transition-all ${
+                        isSelected
+                          ? 'border-opex-dark bg-slate-50 shadow-sm'
+                          : 'border-gray-200 bg-white hover:border-slate-300'
+                      }`}
+                      disabled={isSaving}
+                    >
+                      <p className="text-sm font-black text-gray-900">{option.label}</p>
+                      <p className="mt-1 text-[11px] font-medium text-slate-500">{option.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Activity Type</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300">
+                {selectedRegime ? 'Select your business area' : 'Select a tax regime first.'}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {TAX_ACTIVITY_OPTIONS.map((option) => {
+                const isSelected = selectedActivity === option.value;
+                const isDisabled = selectedRegime.length === 0;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      if (isDisabled) {
+                        return;
+                      }
+                      setSelectedActivity(option.value);
+                      if (formError) {
+                        setFormError(null);
+                      }
+                    }}
+                    className={`rounded-[1.5rem] border p-4 text-left transition-all ${
+                      isDisabled
+                        ? 'cursor-not-allowed border-gray-100 bg-gray-50 text-slate-300'
+                        : isSelected
+                          ? 'border-opex-dark bg-slate-50 shadow-sm'
+                          : 'border-gray-200 bg-white hover:border-slate-300'
+                    }`}
+                    disabled={isSaving || isDisabled}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className={`text-base font-black ${isDisabled ? 'text-slate-300' : 'text-gray-900'}`}>{option.label}</p>
+                        <p className={`mt-1 text-xs font-medium ${isDisabled ? 'text-slate-300' : 'text-slate-500'}`}>{option.description}</p>
+                        {option.meta && (
+                          <p className={`mt-2 text-[11px] font-black uppercase tracking-widest ${isDisabled ? 'text-slate-300' : 'text-slate-400'}`}>
+                            {option.meta}
+                          </p>
+                        )}
+                      </div>
+                      <div className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full border ${isSelected ? 'border-opex-dark bg-opex-dark text-white' : 'border-slate-200 text-transparent'}`}>
+                        <Check size={14} />
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {formError && (
+          <p className="mt-6 text-sm font-bold text-red-600">{formError}</p>
+        )}
+
+        <div className="mt-8">
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            className="flex h-14 w-full items-center justify-center rounded-[1.2rem] bg-opex-dark text-base font-black text-white shadow-[0_20px_40px_-20px_rgba(12,33,49,0.55)] transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!isComplete || isSaving}
+          >
+            {isSaving ? 'Saving...' : 'Save and continue'}
+          </button>
+          <p className="mt-4 text-center text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+            You can update this later in tax settings.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const TaxesPage = ({
   onNavigate,
   selectedProviderName,
-  taxBufferProviders,
+  userProfile,
   taxBufferDashboard,
-  isLoading
+  isLoading,
+  onSaveTaxSetup
 }: {
   onNavigate: (tab: string) => void;
   selectedProviderName: string | null;
-  taxBufferProviders: TaxBufferProviderItem[];
+  userProfile: UserProfile;
   taxBufferDashboard: TaxBufferDashboardResponse | null;
   isLoading: boolean;
+  onSaveTaxSetup: (profile: UserProfile) => Promise<void>;
 }) => {
-  const currency = taxBufferDashboard?.currency || 'EUR';
+  const currency = 'EUR';
   const formatMoney = (value: number) =>
     new Intl.NumberFormat('it-IT', { style: 'currency', currency, maximumFractionDigits: 0 }).format(value);
   const formatDate = (value: string | null | undefined) => {
     if (!value) {
       return '-';
     }
-    return new Date(value).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+    return new Date(`${value}T12:00:00`).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   const summary = taxBufferDashboard?.summary ?? {
@@ -179,6 +716,7 @@ export const TaxesPage = ({
     missing: 0,
     completionPercentage: 0,
     weeklyTarget: 0,
+    safeToSpend: 0,
     targetDate: null
   };
   const incomeSocial = taxBufferDashboard?.incomeSocial ?? {
@@ -192,14 +730,23 @@ export const TaxesPage = ({
     rate: 0,
     vatLiability: 0
   };
-  const safeMode = taxBufferDashboard?.safeMode ?? {
-    compliant: false,
-    message: 'No data',
-    recommendation: ''
-  };
+  const isTaxProfileConfigured = hasTaxProfileConfigured(userProfile);
+  const [isTaxSetupOpen, setIsTaxSetupOpen] = useState(!isTaxProfileConfigured);
   const liabilities = taxBufferDashboard?.liabilitySplit ?? [];
   const deadlines = taxBufferDashboard?.deadlines ?? [];
   const activity = taxBufferDashboard?.activity ?? [];
+  const sortedDeadlines = [...deadlines].sort((left, right) => {
+    const leftTime = left.dueDate ? new Date(`${left.dueDate}T12:00:00`).getTime() : Number.MAX_SAFE_INTEGER;
+    const rightTime = right.dueDate ? new Date(`${right.dueDate}T12:00:00`).getTime() : Number.MAX_SAFE_INTEGER;
+    return leftTime - rightTime;
+  });
+  const nextDeadlines = sortedDeadlines.slice(0, 4);
+
+  useEffect(() => {
+    if (!isTaxProfileConfigured) {
+      setIsTaxSetupOpen(true);
+    }
+  }, [isTaxProfileConfigured]);
 
   return (
     <div className="space-y-8">
@@ -338,47 +885,116 @@ export const TaxesPage = ({
               ))}
             </div>
           </Card>
+
+          <Card title="2026 Compliance Calendar">
+            <div className="space-y-4">
+              {sortedDeadlines.length === 0 && (
+                <p className="text-sm text-gray-500 font-medium">No tax deadlines configured yet.</p>
+              )}
+              {sortedDeadlines.map((item) => {
+                const isOverdue = item.status.toLowerCase().includes('overdue');
+                const isDone = item.status.toLowerCase().includes('paid') || item.status.toLowerCase().includes('completed');
+                const badgeVariant = isOverdue ? 'danger' : isDone ? 'success' : 'info';
+
+                return (
+                  <div
+                    key={`calendar-${item.id || `${item.title}-${item.dueDate}`}`}
+                    className={`rounded-[1.75rem] border p-5 transition-all ${
+                      isOverdue ? 'border-red-100 bg-red-50/70' : 'border-gray-100 bg-white'
+                    }`}
+                  >
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-base font-black text-gray-900">{item.title}</p>
+                          {item.category && <Badge variant="neutral">{item.category}</Badge>}
+                          {item.systemGenerated && <Badge variant="info">System</Badge>}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                          <span>{item.periodLabel || 'Custom deadline'}</span>
+                          <span>Due {formatDate(item.dueDate)}</span>
+                        </div>
+                        {item.description && (
+                          <p className="text-sm text-gray-500 font-medium leading-relaxed">{item.description}</p>
+                        )}
+                      </div>
+                      <Badge variant={badgeVariant as any}>{item.status}</Badge>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
         </div>
 
         <div className="w-full lg:w-[380px] space-y-6">
-          <Card title="Providers" action={<Building2 size={18} className="text-gray-400" />}>
-            <div className="space-y-3">
-              {taxBufferProviders.length === 0 && (
-                <p className="text-sm text-gray-500 font-medium">No providers found.</p>
-              )}
-              {taxBufferProviders.map((provider) => (
-                <div key={provider.connectionId} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">{provider.providerName}</p>
-                    <p className="text-[10px] text-gray-400">{provider.connectionId}</p>
-                  </div>
-                  <Badge variant={provider.status.toLowerCase().includes('active') ? 'success' : 'neutral'}>
-                    {provider.status}
-                  </Badge>
+          <Card title="Tax Setup" action={<Globe size={18} className="text-gray-400" />}>
+            <div className="space-y-4">
+              <div className="rounded-[1.5rem] bg-gray-50 p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Fiscal Residence</span>
+                  <span className="text-sm font-black text-gray-900">{userProfile.fiscalResidence || 'Not configured'}</span>
                 </div>
-              ))}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Tax Regime</span>
+                  <span className="text-sm font-black text-gray-900">{userProfile.taxRegime || 'Not configured'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Activity Type</span>
+                  <span className="text-sm font-black text-gray-900 text-right">{userProfile.activityType || 'Not configured'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-black text-gray-400 uppercase tracking-widest">VAT Filing</span>
+                  <span className="text-sm font-black text-gray-900">{userProfile.vatFrequency}</span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                These values drive tax estimates, compliance suggestions, and country-specific guidance.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                fullWidth
+                icon={Edit2}
+                onClick={() => setIsTaxSetupOpen(true)}
+              >
+                {isTaxProfileConfigured ? 'Update Tax Setup' : 'Complete Tax Setup'}
+              </Button>
             </div>
           </Card>
 
           <Card title="Tax Deadlines" action={<Calendar size={18} className="text-gray-400" />}>
             <div className="space-y-5">
-              {deadlines.length === 0 && (
+              {nextDeadlines.length === 0 && (
                 <p className="text-sm text-gray-500 font-medium">No upcoming deadlines.</p>
               )}
-              {deadlines.map((item) => (
-                <div key={item.id || `${item.title}-${item.dueDate}`} className="flex items-start justify-between">
+              {nextDeadlines.map((item) => {
+                const status = item.status.toLowerCase();
+                const badgeVariant = status.includes('overdue')
+                  ? 'danger'
+                  : status.includes('paid') || status.includes('completed')
+                    ? 'success'
+                    : 'info';
+
+                return (
+                  <div key={item.id || `${item.title}-${item.dueDate}`} className="flex items-start justify-between">
                   <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-50 text-blue-600">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      status.includes('overdue') ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                    }`}>
                       <Clock size={16} />
                     </div>
                     <div>
                       <p className="text-sm font-bold text-gray-900 leading-none mb-1">{item.title}</p>
-                      <p className="text-xs text-gray-400 font-medium">{formatDate(item.dueDate)}</p>
+                      <p className="text-xs text-gray-400 font-medium">
+                        {item.periodLabel ? `${item.periodLabel} • ` : ''}{formatDate(item.dueDate)}
+                      </p>
                     </div>
                   </div>
-                  <Badge variant={item.status.toLowerCase().includes('upcoming') ? 'info' : 'success'}>{item.status}</Badge>
-                </div>
-              ))}
+                  <Badge variant={badgeVariant as any}>{item.status}</Badge>
+                  </div>
+                );
+              })}
             </div>
           </Card>
 
@@ -408,17 +1024,15 @@ export const TaxesPage = ({
               })}
             </div>
           </Card>
-
-          <div className={`p-8 rounded-3xl text-white space-y-4 shadow-xl relative overflow-hidden ${safeMode.compliant ? 'bg-opex-teal shadow-teal-900/20' : 'bg-slate-700 shadow-slate-900/20'}`}>
-            <div className="p-3 bg-white/10 rounded-2xl w-fit"><ShieldCheck size={28} /></div>
-            <h4 className="text-2xl font-black tracking-tight">Safe Mode</h4>
-            <p className="text-sm leading-relaxed font-medium text-white/90">{safeMode.message || 'No recommendation available.'}</p>
-            {safeMode.recommendation && (
-              <p className="text-xs text-white/80">{safeMode.recommendation}</p>
-            )}
-          </div>
         </div>
       </div>
+      <TaxProfileSetupDialog
+        isOpen={isTaxSetupOpen}
+        isRequired={!isTaxProfileConfigured}
+        userProfile={userProfile}
+        onClose={() => setIsTaxSetupOpen(false)}
+        onSave={onSaveTaxSetup}
+      />
     </div>
   );
 };
@@ -834,17 +1448,31 @@ export const AddTransactionPage = ({
   isSaving: boolean;
 }) => {
   const isIncome = type === 'INCOME';
+  const localAccounts = useMemo(
+    () => bankAccounts.filter((account) => !account.isSaltedge),
+    [bankAccounts]
+  );
+  const resolveSelectableAccountId = (account: BankAccountRecord): string =>
+    account.accountId ?? account.saltedgeAccountId ?? account.saltedge_account_id ?? account.id;
   const [amount, setAmount] = useState('0.00');
   const [selectedCat, setSelectedCat] = useState('General');
   const [note, setNote] = useState('');
-  const [selectedAccountId, setSelectedAccountId] = useState(bankAccounts[0]?.id ?? '');
+  const [selectedAccountId, setSelectedAccountId] = useState(localAccounts[0] ? resolveSelectableAccountId(localAccounts[0]) : '');
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!selectedAccountId && bankAccounts[0]?.id) {
-      setSelectedAccountId(bankAccounts[0].id);
+    if (localAccounts.length === 0) {
+      if (selectedAccountId) {
+        setSelectedAccountId('');
+      }
+      return;
     }
-  }, [bankAccounts, selectedAccountId]);
+
+    const hasSelectedAccount = localAccounts.some((account) => resolveSelectableAccountId(account) === selectedAccountId);
+    if (!hasSelectedAccount) {
+      setSelectedAccountId(resolveSelectableAccountId(localAccounts[0]));
+    }
+  }, [localAccounts, selectedAccountId]);
 
   const categories = isIncome 
     ? [
@@ -909,29 +1537,51 @@ export const AddTransactionPage = ({
                 </div>
              </div>
              <div className="flex justify-center">
-                <div className="bg-gray-100 p-1.5 rounded-full flex gap-1">
-                   {bankAccounts.length > 0 ? (
-                     bankAccounts.map((account) => (
-                       <button
-                         key={account.id}
-                         onClick={() => setSelectedAccountId(account.id)}
-                         className={`px-4 py-2 rounded-full text-xs font-bold transition-all shadow-sm ${
-                           selectedAccountId === account.id
-                             ? 'bg-white text-opex-teal'
-                             : 'text-gray-500 hover:text-gray-900 hover:bg-white'
-                         }`}
-                       >
-                         {account.institutionName}
-                       </button>
-                     ))
-                   ) : (
-                     <span className="px-4 py-2 rounded-full text-xs font-bold text-gray-400 bg-white">
-                       No linked account
-                     </span>
-                   )}
-                </div>
-             </div>
-          </div>
+                 <div className="w-full max-w-2xl space-y-3">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center">Local Account</p>
+                    {localAccounts.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {localAccounts.map((account) => {
+                          const accountId = resolveSelectableAccountId(account);
+                          const isSelected = selectedAccountId === accountId;
+
+                          return (
+                            <button
+                              key={accountId}
+                              onClick={() => setSelectedAccountId(accountId)}
+                              className={`text-left rounded-[1.75rem] border p-4 transition-all ${
+                                isSelected
+                                  ? 'bg-white border-opex-teal/40 shadow-lg shadow-teal-900/10'
+                                  : 'bg-gray-50 border-gray-100 hover:border-gray-200'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-black text-gray-900">{account.institutionName}</p>
+                                  <p className="mt-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Local Account</p>
+                                </div>
+                                <p className="text-sm font-bold text-gray-700">
+                                  {new Intl.NumberFormat('it-IT', {
+                                    style: 'currency',
+                                    currency: account.currency || 'EUR',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 2
+                                  }).format(account.balance ?? 0)}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="rounded-[1.75rem] border border-gray-100 bg-gray-50 px-5 py-4 text-center">
+                        <p className="text-sm font-bold text-gray-500">No local account available.</p>
+                        <p className="mt-1 text-xs text-gray-400">Create a manual account before adding income or expenses.</p>
+                      </div>
+                    )}
+                 </div>
+              </div>
+           </div>
 
           <div className="space-y-4">
              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Select Category</h3>
@@ -977,9 +1627,9 @@ export const AddTransactionPage = ({
           </div>
 
           <div className="pt-6">
-             <Button fullWidth size="lg" icon={Check} onClick={() => void handleConfirm()} disabled={isSaving || bankAccounts.length === 0}>
-               {isSaving ? 'Saving...' : 'Confirm Transaction'}
-             </Button>
+             <Button fullWidth size="lg" icon={Check} onClick={() => void handleConfirm()} disabled={isSaving || localAccounts.length === 0}>
+                {isSaving ? 'Saving...' : 'Confirm Transaction'}
+              </Button>
              {submitError && <p className="text-sm text-red-600 font-medium mt-3">{submitError}</p>}
           </div>
        </div>
@@ -987,9 +1637,38 @@ export const AddTransactionPage = ({
   );
 };
 
-export const AddInvoicePage = ({ onBack, userProfile }: { onBack: () => void, userProfile: any }) => {
+export const AddInvoicePage = ({
+  onBack,
+  userProfile,
+  bankAccounts
+}: {
+  onBack: () => void,
+  userProfile: any,
+  bankAccounts: BankAccountRecord[]
+}) => {
   const [client, setClient] = useState('');
   const [amount, setAmount] = useState('');
+  const localAccounts = useMemo(
+    () => bankAccounts.filter((account) => !account.isSaltedge),
+    [bankAccounts]
+  );
+  const resolveSelectableAccountId = (account: BankAccountRecord): string =>
+    account.accountId ?? account.saltedgeAccountId ?? account.saltedge_account_id ?? account.id;
+  const [selectedAccountId, setSelectedAccountId] = useState(localAccounts[0] ? resolveSelectableAccountId(localAccounts[0]) : '');
+
+  useEffect(() => {
+    if (localAccounts.length === 0) {
+      if (selectedAccountId) {
+        setSelectedAccountId('');
+      }
+      return;
+    }
+
+    const hasSelectedAccount = localAccounts.some((account) => resolveSelectableAccountId(account) === selectedAccountId);
+    if (!hasSelectedAccount) {
+      setSelectedAccountId(resolveSelectableAccountId(localAccounts[0]));
+    }
+  }, [localAccounts, selectedAccountId]);
 
   return (
     <SubpageShell onBack={onBack} title="New Invoice">
@@ -1041,9 +1720,9 @@ export const AddInvoicePage = ({ onBack, userProfile }: { onBack: () => void, us
                       </div>
                    </div>
                 </div>
-                <div className="space-y-2">
-                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount (excl. VAT)</label>
-                   <div className="relative">
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount (excl. VAT)</label>
+                    <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">€</span>
                       <input 
                         type="number"
@@ -1051,11 +1730,55 @@ export const AddInvoicePage = ({ onBack, userProfile }: { onBack: () => void, us
                         value={amount}
                         onChange={e => setAmount(e.target.value)}
                         className="w-full pl-10 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-xl font-black text-opex-dark focus:ring-2 focus:ring-opex-teal/10 outline-none"
-                      />
-                   </div>
-                </div>
-             </div>
-          </Card>
+                       />
+                    </div>
+                 </div>
+                 <div className="space-y-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Local Account</label>
+                    {localAccounts.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {localAccounts.map((account) => {
+                          const accountId = resolveSelectableAccountId(account);
+                          const isSelected = selectedAccountId === accountId;
+
+                          return (
+                            <button
+                              key={accountId}
+                              type="button"
+                              onClick={() => setSelectedAccountId(accountId)}
+                              className={`text-left rounded-[1.75rem] border p-4 transition-all ${
+                                isSelected
+                                  ? 'bg-white border-opex-teal/40 shadow-lg shadow-teal-900/10'
+                                  : 'bg-gray-50 border-gray-100 hover:border-gray-200'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-black text-gray-900">{account.institutionName}</p>
+                                  <p className="mt-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Local Account</p>
+                                </div>
+                                <p className="text-sm font-bold text-gray-700">
+                                  {new Intl.NumberFormat('it-IT', {
+                                    style: 'currency',
+                                    currency: account.currency || 'EUR',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 2
+                                  }).format(account.balance ?? 0)}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="rounded-[1.75rem] border border-gray-100 bg-gray-50 px-5 py-4 text-center">
+                        <p className="text-sm font-bold text-gray-500">No local account available.</p>
+                        <p className="mt-1 text-xs text-gray-400">Create a manual account before assigning invoice proceeds.</p>
+                      </div>
+                    )}
+                 </div>
+              </div>
+           </Card>
 
           <Card title="Attachment (Optional)">
              <div className="border-2 border-dashed border-gray-100 rounded-[2rem] p-10 text-center space-y-4 hover:border-opex-teal transition-all cursor-pointer bg-gray-50/30 group">
@@ -1069,10 +1792,10 @@ export const AddInvoicePage = ({ onBack, userProfile }: { onBack: () => void, us
              </div>
           </Card>
 
-          <div className="flex flex-col sm:flex-row gap-4 pt-4">
-             <Button variant="outline" className="flex-1 py-5 rounded-[2rem]" icon={Eye}>Preview</Button>
-             <Button variant="primary" className="flex-1 py-5 rounded-[2rem]" icon={FilePlus} onClick={onBack}>Create Invoice</Button>
-          </div>
+           <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <Button variant="outline" className="flex-1 py-5 rounded-[2rem]" icon={Eye}>Preview</Button>
+              <Button variant="primary" className="flex-1 py-5 rounded-[2rem]" icon={FilePlus} onClick={onBack} disabled={localAccounts.length === 0}>Create Invoice</Button>
+           </div>
        </div>
     </SubpageShell>
   );
@@ -1153,9 +1876,7 @@ export const AccountSetupPage = ({
   onComplete,
   isSaving = false,
   isManual = false,
-  presetAccount = null,
-  connectionAccounts = [],
-  onSelectConnectionAccount
+  presetAccount = null
 }: {
   bank: BankOption;
   onBack: () => void;
@@ -1163,11 +1884,8 @@ export const AccountSetupPage = ({
   isSaving?: boolean;
   isManual?: boolean;
   presetAccount?: BankAccountRecord | null;
-  connectionAccounts?: BankAccountRecord[];
-  onSelectConnectionAccount?: (account: BankAccountRecord) => void;
 }) => {
   const isConnectionEdit = !isManual && Boolean(presetAccount);
-  const selectedConnectionRecordId = resolveConnectionRecordId(presetAccount);
   const [accountType, setAccountType] = useState<AccountCategory>(toAccountCategory(presetAccount?.nature));
   const [isTaxBuffer, setIsTaxBuffer] = useState(Boolean(presetAccount?.isForTax));
   const [institutionName, setInstitutionName] = useState(
@@ -1236,38 +1954,6 @@ export const AccountSetupPage = ({
                 </div>
              </div>
           </Card>
-
-          {isConnectionEdit && connectionAccounts.length > 0 && (
-            <Card title="Connection Accounts">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {connectionAccounts.map((account, index) => {
-                  const connectionRecordId = resolveConnectionRecordId(account) || `${index}`;
-                  const isSelected = connectionRecordId === selectedConnectionRecordId;
-                  const accountLabel = resolveConnectionAccountName(account, bank.name);
-                  const accountSubtitle = (account.institutionName ?? '').trim() || 'Unknown Institution';
-                  const accountIcon = accountSubtitle.slice(0, 2).toUpperCase();
-
-                  return (
-                    <button
-                      key={`${connectionRecordId}-${index}`}
-                      onClick={() => onSelectConnectionAccount?.(account)}
-                      className={`text-left p-6 rounded-[2rem] border transition-all ${
-                        isSelected
-                          ? 'bg-white border-opex-teal/40 shadow-lg shadow-teal-900/10'
-                          : 'bg-gray-50 border-gray-100 hover:border-gray-200'
-                      }`}
-                    >
-                      <div className={`w-14 h-14 rounded-2xl ${isSelected ? 'bg-opex-dark' : 'bg-opex-dark/90'} text-white flex items-center justify-center font-black text-xl shadow-md`}>
-                        {accountIcon}
-                      </div>
-                      <p className="mt-5 text-base font-black text-gray-900 leading-tight">{accountLabel}</p>
-                      <p className="mt-1 text-xs font-medium text-gray-500">{accountSubtitle}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            </Card>
-          )}
 
           {(isManual || isConnectionEdit) && (
             <Card title={isConnectionEdit ? 'Connection Details' : 'Manual Account Details'}>
@@ -1364,6 +2050,8 @@ export const AddBankPage = ({
   bankAccounts,
   taxBufferProviders = [],
   onCreateOpenBankConnection,
+  onRemoveOpenBankConnection,
+  openBankingNoticeVersion = null,
   isConnectingOpenBank = false,
   openBankErrorMessage = null,
   embeddedInSettings = false
@@ -1373,7 +2061,9 @@ export const AddBankPage = ({
   onConnectionSelect: (account: BankAccountRecord, providerName: string) => void;
   bankAccounts: BankAccountRecord[];
   taxBufferProviders?: TaxBufferProviderItem[];
-  onCreateOpenBankConnection: () => Promise<void>;
+  onCreateOpenBankConnection: (consent: OpenBankingConsentPayload) => Promise<void>;
+  onRemoveOpenBankConnection: (connectionId: string) => Promise<void>;
+  openBankingNoticeVersion?: string | null;
   isConnectingOpenBank?: boolean;
   openBankErrorMessage?: string | null;
   embeddedInSettings?: boolean;
@@ -1390,8 +2080,20 @@ export const AddBankPage = ({
     return providerMap;
   }, [taxBufferProviders]);
 
+  const providerStatusByConnectionId = useMemo(() => {
+    const statusMap = new Map<string, string>();
+    taxBufferProviders.forEach((provider) => {
+      const connectionId = (provider.connectionId ?? '').trim();
+      const status = (provider.status ?? '').trim();
+      if (connectionId.length > 0 && status.length > 0) {
+        statusMap.set(connectionId, status);
+      }
+    });
+    return statusMap;
+  }, [taxBufferProviders]);
+
   const groupedByProvider = useMemo(() => {
-    const groups = new Map<string, BankAccountRecord[]>();
+    const groups = new Map<string, Map<string, BankAccountRecord[]>>();
 
     bankAccounts.forEach((account) => {
       const connectionId = (account.connectionId ?? '').trim();
@@ -1400,23 +2102,58 @@ export const AddBankPage = ({
         || (account.institutionName ?? '').trim()
         || 'Unknown Provider'
       );
+
+      const groupKey = connectionId.length > 0
+        ? `connection:${connectionId}`
+        : `local:${resolveConnectionRecordId(account) || account.id || providerName}`;
+
       if (!groups.has(providerName)) {
-        groups.set(providerName, []);
+        groups.set(providerName, new Map<string, BankAccountRecord[]>());
       }
-      groups.get(providerName)?.push(account);
+      const providerGroups = groups.get(providerName);
+      if (!providerGroups?.has(groupKey)) {
+        providerGroups?.set(groupKey, []);
+      }
+      providerGroups?.get(groupKey)?.push(account);
     });
 
     return Array.from(groups.entries())
-      .map(([providerName, connections]) => ({
+      .map(([providerName, connectionGroups]) => ({
         providerName,
-        connections: [...connections].sort((left, right) =>
-          resolveConnectionAccountName(left, providerName).localeCompare(
-            resolveConnectionAccountName(right, providerName)
+        connections: Array.from(connectionGroups.entries())
+          .map<ProviderConnectionCard | null>(([groupKey, accounts]) => {
+            const sortedAccounts = [...accounts].sort((left, right) =>
+              resolveConnectionAccountName(left, providerName).localeCompare(
+                resolveConnectionAccountName(right, providerName)
+              )
+            );
+            const representativeAccount = sortedAccounts[0];
+            if (!representativeAccount) {
+              return null;
+            }
+            const normalizedConnectionId = (representativeAccount?.connectionId ?? '').trim();
+
+            return {
+              key: groupKey,
+              account: representativeAccount,
+              accountCount: sortedAccounts.length,
+              totalBalance: sortedAccounts.reduce((sum, item) => sum + Number(item.balance ?? 0), 0),
+              connectionId: normalizedConnectionId.length > 0 ? normalizedConnectionId : null,
+              status: normalizedConnectionId.length > 0
+                ? (providerStatusByConnectionId.get(normalizedConnectionId) ?? null)
+                : null,
+              isManagedConnection: normalizedConnectionId.length > 0 && sortedAccounts.some((item) => item.isSaltedge)
+            };
+          })
+          .filter((item): item is ProviderConnectionCard => item !== null)
+          .sort((left, right) =>
+            resolveConnectionAccountName(left.account, providerName).localeCompare(
+              resolveConnectionAccountName(right.account, providerName)
+            )
           )
-        )
       }))
       .sort((left, right) => left.providerName.localeCompare(right.providerName));
-  }, [bankAccounts, providerByConnectionId]);
+  }, [bankAccounts, providerByConnectionId, providerStatusByConnectionId]);
   const [expandedProviders, setExpandedProviders] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -1438,6 +2175,13 @@ export const AddBankPage = ({
       return next;
     });
   }, [groupedByProvider]);
+  const [isOpenBankingConsentModalOpen, setIsOpenBankingConsentModalOpen] = useState(false);
+  const [acceptOpenBankingNotice, setAcceptOpenBankingNotice] = useState(false);
+  const [acceptSaltEdgeTransfer, setAcceptSaltEdgeTransfer] = useState(false);
+  const [openBankingConsentError, setOpenBankingConsentError] = useState<string | null>(null);
+  const [isSubmittingOpenBankingConsent, setIsSubmittingOpenBankingConsent] = useState(false);
+  const [activeRemoveConnectionId, setActiveRemoveConnectionId] = useState<string | null>(null);
+  const [connectionActionError, setConnectionActionError] = useState<string | null>(null);
 
   const toggleProvider = (providerName: string) => {
     setExpandedProviders((previous) => ({
@@ -1446,9 +2190,57 @@ export const AddBankPage = ({
     }));
   };
 
+  const handleRemoveConnection = async (connectionId: string, providerName: string) => {
+    const confirmed = window.confirm(
+      `Remove the ${providerName} connection? Imported accounts and transactions linked to this Salt Edge connection will be deleted from Opex.`
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setConnectionActionError(null);
+    setActiveRemoveConnectionId(connectionId);
+
+    try {
+      await onRemoveOpenBankConnection(connectionId);
+    } catch (error) {
+      setConnectionActionError(error instanceof Error ? error.message : 'Unable to remove this Salt Edge connection.');
+    } finally {
+      setActiveRemoveConnectionId(null);
+    }
+  };
+
+  const handleOpenBankingStart = async () => {
+    if (!openBankingNoticeVersion) {
+      setOpenBankingConsentError('Open banking notice version is not available yet. Reload and retry.');
+      return;
+    }
+
+    if (!acceptOpenBankingNotice || !acceptSaltEdgeTransfer) {
+      setOpenBankingConsentError('You must confirm the data notice and Salt Edge processing before connecting a bank.');
+      return;
+    }
+
+    setOpenBankingConsentError(null);
+    setIsSubmittingOpenBankingConsent(true);
+
+    try {
+      await onCreateOpenBankConnection({
+        acceptOpenBankingNotice: true,
+        openBankingNoticeVersion,
+        scopes: ['account_details', 'balances', 'transactions']
+      });
+      setIsOpenBankingConsentModalOpen(false);
+    } catch (error) {
+      setOpenBankingConsentError(error instanceof Error ? error.message : 'Unable to start open banking connection.');
+    } finally {
+      setIsSubmittingOpenBankingConsent(false);
+    }
+  };
+
   const pageContent = (
-    <div className="max-w-4xl mx-auto space-y-8">
-        <Card title="Connections By Provider">
+    <div className={`max-w-4xl mx-auto ${embeddedInSettings ? 'flex flex-col gap-8' : 'space-y-8'}`}>
+        <Card title="Connections By Provider" className={embeddedInSettings ? 'order-2' : ''}>
           {groupedByProvider.length === 0 ? (
             <p className="text-sm text-gray-500 font-medium">No connections available yet.</p>
           ) : (
@@ -1476,8 +2268,33 @@ export const AddBankPage = ({
 
                     {isExpanded && (
                       <div className="border-t border-gray-100 bg-white/80 p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {connections.map((account, index) => (
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                          {connections.map((connection, index) => (
+                            <React.Fragment key={connection.key}>
+                              <ConnectionAccountCard
+                                account={connection.account}
+                                providerName={providerName}
+                                index={index}
+                                accountCount={connection.accountCount}
+                                totalBalance={connection.totalBalance}
+                                connectionStatus={connection.status}
+                                canManageConnection={connection.isManagedConnection && Boolean(connection.connectionId)}
+                                isRemoving={connection.connectionId === activeRemoveConnectionId}
+                                onRemove={connection.connectionId ? () => void handleRemoveConnection(connection.connectionId, providerName) : undefined}
+                                onClick={() => onConnectionSelect(connection.account, providerName)}
+                              />
+                            </React.Fragment>
+                          ))}
+                          {false && connections.map(({ account }: ProviderConnectionCard, index) => (
+                            <React.Fragment key={`${providerName}-${account.connectionId ?? 'no-connection'}-${account.id ?? account.institutionName ?? 'account'}-${index}`}>
+                              <ConnectionAccountCard
+                                account={account}
+                                providerName={providerName}
+                                index={index}
+                                totalBalance={Number(account.balance ?? 0)}
+                                onClick={() => onConnectionSelect(account, providerName)}
+                              />
+                              {false && (
                             <button
                               key={`${providerName}-${account.connectionId ?? 'no-connection'}-${account.id ?? account.institutionName ?? 'account'}-${index}`}
                               onClick={() => onConnectionSelect(account, providerName)}
@@ -1508,6 +2325,8 @@ export const AddBankPage = ({
                                 )}
                               </div>
                             </button>
+                              )}
+                            </React.Fragment>
                           ))}
                         </div>
                       </div>
@@ -1519,9 +2338,18 @@ export const AddBankPage = ({
           )}
         </Card>
 
-        <Card title="Add New Connection">
+        {connectionActionError && (
+          <p className="text-sm font-medium text-red-600">{connectionActionError}</p>
+        )}
+
+        <Card title="Add New Connection" className={embeddedInSettings ? 'order-1' : ''}>
           <button
-            onClick={() => void onCreateOpenBankConnection().catch(() => undefined)}
+            onClick={() => {
+              setAcceptOpenBankingNotice(false);
+              setAcceptSaltEdgeTransfer(false);
+              setOpenBankingConsentError(null);
+              setIsOpenBankingConsentModalOpen(true);
+            }}
             className="w-full bg-opex-teal/5 p-6 rounded-[2rem] border border-opex-teal/20 flex items-center justify-between gap-4 hover:bg-opex-teal/10 transition-all group"
             disabled={isConnectingOpenBank}
           >
@@ -1549,6 +2377,143 @@ export const AddBankPage = ({
             <p className="text-xs text-gray-500 font-medium mt-1">Create a local account without Open Banking authorization.</p>
           </button>
         </Card>
+
+        {isOpenBankingConsentModalOpen && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/20 px-4 py-8 backdrop-blur-[6px]">
+            <div className="w-full max-w-2xl rounded-[2.25rem] border border-white/70 bg-white/95 p-6 shadow-[0_32px_80px_-32px_rgba(15,23,42,0.45)] md:p-8">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Open Banking Notice</p>
+                  <h3 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Review the banking data notice</h3>
+                  <p className="mt-3 text-sm font-medium leading-relaxed text-slate-500">
+                    Before Opex redirects you to Salt Edge, confirm that you understand what banking data will be imported and why.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsOpenBankingConsentModalOpen(false)}
+                  className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-opex-dark"
+                  disabled={isSubmittingOpenBankingConsent}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="mt-8 grid gap-4 md:grid-cols-2">
+                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                  <p className="text-sm font-black text-slate-900">Data imported</p>
+                  <p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">
+                    Opex may import account identifiers, provider metadata, balances and transactions for the connected bank.
+                  </p>
+                </div>
+                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                  <p className="text-sm font-black text-slate-900">Third-party processing</p>
+                  <p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">
+                    Salt Edge handles the authorization redirect and connection workflow with your bank.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-4 rounded-[1.75rem] border border-slate-200 bg-white p-5">
+                <label className="flex items-start gap-4">
+                  <input
+                    type="checkbox"
+                    checked={acceptOpenBankingNotice}
+                    onChange={(event) => {
+                      setAcceptOpenBankingNotice(event.target.checked);
+                      if (openBankingConsentError) {
+                        setOpenBankingConsentError(null);
+                      }
+                    }}
+                    className="mt-1 h-5 w-5 rounded border-slate-300 text-opex-dark focus:ring-opex-dark"
+                    disabled={isSubmittingOpenBankingConsent}
+                  />
+                  <span>
+                    <span className="block text-base font-black text-slate-900">
+                      I accept the Open Banking Notice v{openBankingNoticeVersion || 'current'}.
+                    </span>
+                    <span className="mt-1 block text-sm font-medium leading-relaxed text-slate-500">
+                      I understand how Opex will use connected banking data inside the product.
+                    </span>
+                  </span>
+                </label>
+
+                <label className="flex items-start gap-4">
+                  <input
+                    type="checkbox"
+                    checked={acceptSaltEdgeTransfer}
+                    onChange={(event) => {
+                      setAcceptSaltEdgeTransfer(event.target.checked);
+                      if (openBankingConsentError) {
+                        setOpenBankingConsentError(null);
+                      }
+                    }}
+                    className="mt-1 h-5 w-5 rounded border-slate-300 text-opex-dark focus:ring-opex-dark"
+                    disabled={isSubmittingOpenBankingConsent}
+                  />
+                  <span>
+                    <span className="block text-base font-black text-slate-900">
+                      I authorize the redirect to Salt Edge for bank connection setup.
+                    </span>
+                    <span className="mt-1 block text-sm font-medium leading-relaxed text-slate-500">
+                      This specific flow is optional. You can keep using manual accounts if you prefer not to connect a bank.
+                    </span>
+                  </span>
+                </label>
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={() => openLegalDocument('open-banking')}
+                  className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
+                  disabled={isSubmittingOpenBankingConsent}
+                >
+                  Open Banking Notice
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openLegalDocument('privacy')}
+                  className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
+                  disabled={isSubmittingOpenBankingConsent}
+                >
+                  Privacy Notice
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openLegalDocument('terms')}
+                  className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
+                  disabled={isSubmittingOpenBankingConsent}
+                >
+                  Terms
+                </button>
+              </div>
+
+              {openBankingConsentError && (
+                <p className="mt-5 text-sm font-bold text-red-600">{openBankingConsentError}</p>
+              )}
+
+              <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsOpenBankingConsentModalOpen(false)}
+                  className="inline-flex h-12 items-center justify-center rounded-[1rem] border border-slate-200 bg-white px-5 text-sm font-black text-slate-500 transition-colors hover:border-slate-300 hover:text-opex-dark"
+                  disabled={isSubmittingOpenBankingConsent}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleOpenBankingStart()}
+                  className="inline-flex h-12 items-center justify-center rounded-[1rem] bg-opex-dark px-5 text-sm font-black text-white"
+                  disabled={isSubmittingOpenBankingConsent}
+                >
+                  {isSubmittingOpenBankingConsent ? 'Opening...' : 'Continue to Salt Edge'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 
@@ -3136,7 +4101,21 @@ export const InvoicingPage = ({ userProfile }: { userProfile: any }) => {
   }, [processedInvoices]);
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="relative">
+      {/* Coming Soon overlay */}
+      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm rounded-3xl pointer-events-auto select-none">
+        <div className="flex flex-col items-center gap-4 text-center px-6">
+          <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
+            <Lock size={28} className="text-gray-400" />
+          </div>
+          <div>
+            <p className="text-lg font-black text-gray-700 tracking-tight">Coming Soon</p>
+            <p className="text-sm text-gray-400 font-medium mt-1 max-w-xs">The invoicing module is under development and will be available in a future update.</p>
+          </div>
+        </div>
+      </div>
+
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500 pointer-events-none select-none" style={{ filter: 'blur(3px)', opacity: 0.45 }}>
       {/* Page Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 relative z-20">
         <div>
@@ -3440,10 +4419,317 @@ export const InvoicingPage = ({ userProfile }: { userProfile: any }) => {
         </div>
       )}
     </div>
+    </div>
   );
 };
 
 
+
+export const OnboardingPage = ({
+  userProfile,
+  legalPublicInfo,
+  onComplete
+}: {
+  userProfile: UserProfile;
+  legalPublicInfo: LegalPublicInfoRecord | null;
+  onComplete: (profile: UserProfile) => Promise<void>;
+}) => {
+  const requiresRenewedConsent = Boolean(
+    legalPublicInfo && userProfile.gdprAccepted && (
+      userProfile.privacyPolicyVersion !== legalPublicInfo.privacyPolicy.version ||
+      userProfile.termsOfServiceVersion !== legalPublicInfo.termsOfService.version
+    )
+  );
+  const [stepIndex, setStepIndex] = useState(requiresRenewedConsent ? ONBOARDING_QUESTION_STEPS.length : 0);
+  const [lastQuestionStepIndex, setLastQuestionStepIndex] = useState(0);
+  const [fullName, setFullName] = useState(userProfile.name ?? '');
+  const [residence, setResidence] = useState(userProfile.residence ?? '');
+  const [occupation, setOccupation] = useState(userProfile.answer3 ?? '');
+  const [privacyAccepted, setPrivacyAccepted] = useState(
+    Boolean(legalPublicInfo) && userProfile.privacyPolicyVersion === legalPublicInfo?.privacyPolicy.version
+  );
+  const [termsAccepted, setTermsAccepted] = useState(
+    Boolean(legalPublicInfo) && userProfile.termsOfServiceVersion === legalPublicInfo?.termsOfService.version
+  );
+  const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const isPrivacyStep = stepIndex >= ONBOARDING_QUESTION_STEPS.length;
+  const currentQuestion = ONBOARDING_QUESTION_STEPS[Math.min(stepIndex, ONBOARDING_QUESTION_STEPS.length - 1)];
+  const progressValue = isPrivacyStep
+    ? 100
+    : Math.min(100, (currentQuestion.step / ONBOARDING_QUESTION_STEPS.length) * 100);
+  const CurrentIcon = isPrivacyStep ? ShieldCheck : currentQuestion.icon;
+
+  const currentValue = currentQuestion.field === 'fullName'
+    ? fullName
+    : currentQuestion.field === 'residence'
+      ? residence
+      : occupation;
+
+  useEffect(() => {
+    if (!requiresRenewedConsent) {
+      return;
+    }
+
+    setStepIndex(ONBOARDING_QUESTION_STEPS.length);
+  }, [requiresRenewedConsent]);
+
+  useEffect(() => {
+    setPrivacyAccepted(Boolean(legalPublicInfo) && userProfile.privacyPolicyVersion === legalPublicInfo?.privacyPolicy.version);
+    setTermsAccepted(Boolean(legalPublicInfo) && userProfile.termsOfServiceVersion === legalPublicInfo?.termsOfService.version);
+  }, [legalPublicInfo, userProfile.privacyPolicyVersion, userProfile.termsOfServiceVersion]);
+
+  const setCurrentValue = (value: string) => {
+    if (currentQuestion.field === 'fullName') {
+      setFullName(value);
+      return;
+    }
+    if (currentQuestion.field === 'residence') {
+      setResidence(value);
+      return;
+    }
+    setOccupation(value);
+  };
+
+  const handleNext = () => {
+    setFormError(null);
+    setLastQuestionStepIndex(Math.min(stepIndex, ONBOARDING_QUESTION_STEPS.length - 1));
+    setStepIndex((currentStep) => Math.min(currentStep + 1, ONBOARDING_QUESTION_STEPS.length));
+  };
+
+  const handleBack = () => {
+    setFormError(null);
+    if (isPrivacyStep) {
+      setStepIndex(lastQuestionStepIndex);
+      return;
+    }
+    setStepIndex((currentStep) => Math.max(currentStep - 1, 0));
+  };
+
+  const handleSkip = () => {
+    setFormError(null);
+    setLastQuestionStepIndex(stepIndex);
+    setStepIndex(ONBOARDING_QUESTION_STEPS.length);
+  };
+
+  const handleComplete = async () => {
+    if (!legalPublicInfo) {
+      setFormError('Legal documents are still loading. Retry in a moment.');
+      return;
+    }
+
+    if (!privacyAccepted || !termsAccepted) {
+      setFormError('You must accept the privacy notice and terms of service before continuing.');
+      return;
+    }
+
+    const nextName = toOptionalText(fullName) ?? userProfile.name;
+    const nextResidence = toOptionalText(residence) ?? userProfile.residence;
+    const nextProfile: UserProfile = {
+      ...userProfile,
+      name: nextName,
+      residence: nextResidence,
+      gdprAccepted: true,
+      answer1: toOptionalText(fullName) ?? userProfile.answer1 ?? null,
+      answer2: toOptionalText(residence) ?? userProfile.answer2 ?? null,
+      answer3: toOptionalText(occupation) ?? userProfile.answer3 ?? null
+    };
+
+    setIsSaving(true);
+    setFormError(null);
+
+    try {
+      await onComplete(nextProfile);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Unexpected error while saving onboarding details.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f7f7f3] px-6 py-8 md:px-10 md:py-12 text-gray-900">
+      <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-4xl flex-col justify-center">
+        <div className="mb-12 flex items-center justify-between gap-4">
+          <div className="w-full">
+            <div className="mb-3 flex items-center justify-between text-[11px] font-black uppercase tracking-[0.24em] text-opex-dark/80">
+              <span>{isPrivacyStep ? 'Final Step' : `Step ${currentQuestion.step} of 3`}</span>
+              {!isPrivacyStep && (
+                <button
+                  type="button"
+                  onClick={handleSkip}
+                  className="text-gray-400 transition-colors hover:text-opex-dark"
+                  disabled={isSaving}
+                >
+                  Skip
+                </button>
+              )}
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-slate-200/80">
+              <div
+                className="h-full rounded-full bg-opex-dark transition-all duration-300"
+                style={{ width: `${progressValue}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-3xl">
+          <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-[1.35rem] bg-slate-200/70 text-opex-dark shadow-sm">
+            <CurrentIcon size={30} />
+          </div>
+
+          {isPrivacyStep ? (
+            <>
+              <h1 className="max-w-2xl text-4xl font-black tracking-tight text-opex-dark md:text-5xl">
+                {requiresRenewedConsent ? 'We updated our legal terms.' : 'Before you continue, review the legal terms.'}
+              </h1>
+              <p className="mt-4 max-w-2xl text-lg font-medium leading-relaxed text-slate-500 md:text-xl">
+                {requiresRenewedConsent
+                  ? 'Your account already exists, but you need to accept the latest legal versions before continuing.'
+                  : 'We need your acceptance of the privacy notice and service terms before activating your workspace. Manual accounts remain available even if you never connect a bank.'}
+              </p>
+
+              <div className="mt-12 space-y-4 rounded-[2rem] border border-slate-200 bg-white/80 p-6 shadow-sm md:p-8">
+                <label className="flex cursor-pointer items-start gap-4">
+                  <input
+                    type="checkbox"
+                    checked={privacyAccepted}
+                    onChange={(event) => {
+                      setPrivacyAccepted(event.target.checked);
+                      if (formError) {
+                        setFormError(null);
+                      }
+                    }}
+                    className="mt-1 h-5 w-5 rounded border-slate-300 text-opex-dark focus:ring-opex-dark"
+                    disabled={isSaving}
+                  />
+                  <span className="space-y-1">
+                    <span className="block text-base font-black text-gray-900">
+                      I accept the Privacy Notice v{legalPublicInfo?.privacyPolicy.version || 'current'}.
+                    </span>
+                    <span className="block text-sm font-medium leading-relaxed text-slate-500">
+                      This covers how Opex processes profile, workspace and optional financial data for the service.
+                    </span>
+                  </span>
+                </label>
+
+                <label className="flex cursor-pointer items-start gap-4">
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(event) => {
+                      setTermsAccepted(event.target.checked);
+                      if (formError) {
+                        setFormError(null);
+                      }
+                    }}
+                    className="mt-1 h-5 w-5 rounded border-slate-300 text-opex-dark focus:ring-opex-dark"
+                    disabled={isSaving}
+                  />
+                  <span className="space-y-1">
+                    <span className="block text-base font-black text-gray-900">
+                      I accept the Terms of Service v{legalPublicInfo?.termsOfService.version || 'current'}.
+                    </span>
+                    <span className="block text-sm font-medium leading-relaxed text-slate-500">
+                      This includes the core rules for using Opex, optional third-party integrations and account termination.
+                    </span>
+                  </span>
+                </label>
+
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() => openLegalDocument('privacy')}
+                    className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
+                    disabled={isSaving}
+                  >
+                    Open Privacy Notice
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openLegalDocument('terms')}
+                    className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
+                    disabled={isSaving}
+                  >
+                    Open Terms
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openLegalDocument('cookies')}
+                    className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
+                    disabled={isSaving}
+                  >
+                    Open Cookie Notice
+                  </button>
+                </div>
+
+                <div className="rounded-[1.5rem] bg-slate-50 px-5 py-4 text-sm font-medium leading-relaxed text-slate-500">
+                  You can review policy versions, export your data or close the account later in <span className="font-black text-opex-dark">Settings &gt; Data &amp; Privacy</span>.
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 className="max-w-2xl text-4xl font-black tracking-tight text-opex-dark md:text-5xl">
+                {currentQuestion.title}
+              </h1>
+              <p className="mt-4 max-w-2xl text-lg font-medium leading-relaxed text-slate-500 md:text-xl">
+                {currentQuestion.description}
+              </p>
+
+              <div className="mt-14 max-w-3xl">
+                <label className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">
+                  {currentQuestion.fieldLabel}
+                </label>
+                <input
+                  type="text"
+                  value={currentValue}
+                  onChange={(event) => {
+                    setCurrentValue(event.target.value);
+                    if (formError) {
+                      setFormError(null);
+                    }
+                  }}
+                  placeholder={currentQuestion.placeholder}
+                  className="mt-4 w-full border-0 border-b-2 border-slate-200 bg-transparent px-0 pb-5 text-3xl font-black text-opex-dark placeholder:text-slate-300 focus:border-opex-dark focus:outline-none focus:ring-0"
+                  disabled={isSaving}
+                />
+              </div>
+            </>
+          )}
+
+          {formError && (
+            <p className="mt-8 text-sm font-bold text-red-600">{formError}</p>
+          )}
+
+          <div className="mt-12 flex flex-col-reverse gap-4 sm:flex-row sm:items-center">
+            {!requiresRenewedConsent && (stepIndex > 0 || isPrivacyStep) && (
+              <button
+                type="button"
+                onClick={handleBack}
+                className="inline-flex h-14 items-center justify-center rounded-[1.3rem] border border-slate-200 bg-white px-6 text-sm font-black text-slate-500 transition-colors hover:border-slate-300 hover:text-opex-dark disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isSaving}
+              >
+                Back
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={isPrivacyStep ? () => void handleComplete() : handleNext}
+              className="inline-flex h-16 flex-1 items-center justify-center rounded-[1.3rem] bg-opex-dark px-8 text-base font-black text-white shadow-[0_20px_40px_-20px_rgba(12,33,49,0.55)] transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSaving}
+            >
+              {isSaving ? 'Saving...' : isPrivacyStep ? (requiresRenewedConsent ? 'Accept and Continue' : 'Enter Opex') : currentQuestion.ctaLabel}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const DashboardPage = ({
   onNavigate,
@@ -3467,6 +4753,7 @@ export const DashboardPage = ({
   onRefresh: () => Promise<void>;
 }) => {
   const [spendingFilter, setSpendingFilter] = useState('Week');
+  const [monthlyInsightIndex, setMonthlyInsightIndex] = useState(0);
 
   const getChartData = (filter: string) => {
     switch (filter) {
@@ -3484,6 +4771,23 @@ export const DashboardPage = ({
   const totalBalance = Number(aggregatedSummary.totalBalance || 0);
   const totalIncome = Number(aggregatedSummary.totalIncome || 0);
   const totalExpenses = Number(aggregatedSummary.totalExpenses || 0);
+  const monthlyInsightSeed = useMemo(() => {
+    if (MONTHLY_INSIGHT_MESSAGES.length === 0) {
+      return 0;
+    }
+
+    const today = new Date();
+    const dateSeed = Number(
+      `${today.getUTCFullYear()}${String(today.getUTCMonth() + 1).padStart(2, '0')}${String(today.getUTCDate()).padStart(2, '0')}`
+    );
+    const metricSeed =
+      transactions.length
+      + Math.round(totalBalance)
+      + Math.round(totalIncome)
+      + Math.round(Math.abs(totalExpenses));
+
+    return Math.abs(dateSeed + metricSeed) % MONTHLY_INSIGHT_MESSAGES.length;
+  }, [transactions.length, totalBalance, totalIncome, totalExpenses]);
 
   const recentTransactions = useMemo(
     () =>
@@ -3505,6 +4809,25 @@ export const DashboardPage = ({
         .slice(0, 8),
     [transactions]
   );
+
+  useEffect(() => {
+    setMonthlyInsightIndex(monthlyInsightSeed);
+  }, [monthlyInsightSeed]);
+
+  useEffect(() => {
+    if (isLoading || MONTHLY_INSIGHT_MESSAGES.length <= 1) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setMonthlyInsightIndex((currentIndex) => (currentIndex + 1) % MONTHLY_INSIGHT_MESSAGES.length);
+    }, 8000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isLoading]);
+
+  const activeMonthlyInsight = MONTHLY_INSIGHT_MESSAGES[monthlyInsightIndex] ?? MONTHLY_INSIGHT_MESSAGES[0];
+  const monthlyInsightAreaClass = MONTHLY_INSIGHT_AREA_CLASS[activeMonthlyInsight?.area ?? 'Insight'] ?? 'text-white';
 
   return (
     <div className="space-y-6">
@@ -3529,21 +4852,34 @@ export const DashboardPage = ({
       <div className="bg-gradient-to-br from-opex-dark to-slate-800 rounded-[2.5rem] p-8 md:p-10 text-white relative overflow-hidden shadow-xl">
         <div className="absolute top-0 right-0 p-32 bg-white/5 rounded-full translate-x-10 -translate-y-10 blur-3xl"></div>
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          <div>
+          <div className="relative">
+            {/* Coming Soon overlay for Monthly Insight */}
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl pointer-events-auto select-none">
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full">
+                <Lock size={13} className="text-white/70" />
+                <span className="text-xs font-black text-white/80 uppercase tracking-widest">Coming Soon</span>
+              </div>
+            </div>
+            <div className="pointer-events-none select-none" style={{ filter: 'blur(4px)', opacity: 0.35 }}>
             <div className="flex items-center gap-2 mb-4">
               <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium">Monthly Insight</span>
-              <span className="text-green-300 text-xs font-medium flex items-center gap-1"><TrendingUp size={14} /> Synced</span>
+              {!isLoading && activeMonthlyInsight && (
+                <span className={`bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${monthlyInsightAreaClass}`}>
+                  <Sparkles size={14} /> {activeMonthlyInsight.area}
+                </span>
+              )}
             </div>
             <h2 className="text-2xl md:text-3xl font-bold leading-tight max-w-lg mb-4">
               {isLoading
                 ? 'Waiting for backend synchronization...'
-                : `You have ${transactions.length.toLocaleString('it-IT')} synchronized movements.`}
+                : activeMonthlyInsight?.name ?? 'Monthly insight unavailable.'}
             </h2>
             <p className="text-gray-400 text-sm max-w-sm">
-              {transactions.length === 0
-                ? 'Add and sync accounts to start filling your dashboard automatically.'
-                : 'Data includes local entries and connected banking providers.'}
+              {isLoading
+                ? 'The dashboard is waiting for the latest backend data before generating an insight.'
+                : activeMonthlyInsight?.description ?? 'No insight available right now.'}
             </p>
+            </div>
           </div>
           <div className="lg:text-right bg-white/10 backdrop-blur-md p-6 md:p-8 rounded-3xl border border-white/5 flex flex-col items-start lg:items-end justify-center">
             <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-2 flex items-center gap-2">
@@ -3670,7 +5006,8 @@ export const BudgetPage = ({
   onNavigate,
   selectedProviderName,
   aggregatedSummary,
-  timeAggregatedSummary
+  timeAggregatedSummary,
+  forecastData
 }: {
   onNavigate: (tab: string) => void;
   selectedProviderName: string | null;
@@ -3680,6 +5017,7 @@ export const BudgetPage = ({
     totalExpenses: number;
   };
   timeAggregatedSummary: TimeAggregatedRecord;
+  forecastData?: ForecastResponse | null;
 }) => {
   const clientConcentration = 62; // Example value for conditional rendering
   const totalBalance = Number(aggregatedSummary.totalBalance || 0);
@@ -3804,13 +5142,43 @@ export const BudgetPage = ({
 
       {/* Row 3: SUSTAINABILITY FORECAST - Full width */}
       <div className="scale-[0.99] origin-top">
-        <ForecastCompactWidget timeAggregatedSummary={timeAggregatedSummary} />
+        <ForecastCompactWidget timeAggregatedSummary={timeAggregatedSummary} forecastData={forecastData} />
       </div>
     </div>
   );
 };
 
 
+
+const resizeImageToBase64 = (file: File, maxPx = 512, quality = 0.82): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('FileReader failed'));
+    reader.onload = () => {
+      const src = reader.result as string;
+      const img = new window.Image();
+      img.onerror = () => reject(new Error('Image failed to load'));
+      img.onload = () => {
+        try {
+          const longest = Math.max(img.width, img.height, 1);
+          const scale = Math.min(1, maxPx / longest);
+          const w = Math.max(1, Math.round(img.width * scale));
+          const h = Math.max(1, Math.round(img.height * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { reject(new Error('Canvas unavailable')); return; }
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.src = src;
+    };
+    reader.readAsDataURL(file);
+  });
 
 export const EditProfilePage = ({
   userProfile,
@@ -3826,12 +5194,29 @@ export const EditProfilePage = ({
   const [name, setName] = useState(userProfile.name);
   const [email, setEmail] = useState(userProfile.email);
   const [residence, setResidence] = useState(userProfile.residence);
+  const [vatFrequency, setVatFrequency] = useState(userProfile.vatFrequency);
+  const [logo, setLogo] = useState<string | null>(userProfile.logo ?? null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const avatarInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const base64 = await resizeImageToBase64(file);
+      setLogo(base64);
+      setSaveError(null);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Could not process the image. Try a different file.');
+    }
+    // reset so the same file can be re-selected
+    e.target.value = '';
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
-    const nextProfile: UserProfile = { ...userProfile, name, email, residence };
+    const nextProfile: UserProfile = { ...userProfile, name, email, residence, vatFrequency, logo };
     setSaveError(null);
 
     try {
@@ -3845,6 +5230,8 @@ export const EditProfilePage = ({
     }
   };
 
+  const initials = name.trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase() || '?';
+
   return (
     <SubpageShell onBack={onBack} title="Edit Profile">
       <div className="max-w-2xl mx-auto space-y-8">
@@ -3852,12 +5239,36 @@ export const EditProfilePage = ({
           <div className="space-y-6">
             <div className="flex justify-center mb-6">
               <div className="relative">
-                <div className="w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl">
-                  <img src="https://i.pravatar.cc/300?img=12" alt="Avatar" className="w-full h-full object-cover" />
+                <div className="w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-opex-teal/10 flex items-center justify-center">
+                  {logo
+                    ? <img src={logo} alt="Avatar" className="w-full h-full object-cover" />
+                    : <span className="text-3xl font-black text-opex-teal select-none">{initials}</span>
+                  }
                 </div>
-                <button className="absolute -bottom-2 -right-2 bg-opex-teal text-white p-3 rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="absolute -bottom-2 -right-2 bg-opex-teal text-white p-3 rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all"
+                >
                   <Camera size={20} />
                 </button>
+                {logo && (
+                  <button
+                    type="button"
+                    onClick={() => setLogo(null)}
+                    className="absolute -top-2 -right-2 bg-white border border-gray-200 text-gray-400 hover:text-red-500 p-1.5 rounded-xl shadow-md hover:scale-110 active:scale-95 transition-all"
+                    title="Remove photo"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => void handleAvatarChange(e)}
+                />
               </div>
             </div>
             <div className="grid grid-cols-1 gap-6">
@@ -3872,10 +5283,23 @@ export const EditProfilePage = ({
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Legal Residence</label>
                 <select value={residence} onChange={e => setResidence(e.target.value)} className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none appearance-none">
-                  <option>Italy (IT)</option>
                   <option>Netherlands (NL)</option>
+                  <option>Italy (IT)</option>
                   <option>Germany (DE)</option>
                 </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">VAT Return Frequency</label>
+                <select
+                  value={vatFrequency}
+                  onChange={e => setVatFrequency(e.target.value)}
+                  className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none appearance-none"
+                >
+                  <option>Monthly</option>
+                  <option>Quarterly</option>
+                  <option>Yearly</option>
+                </select>
+                <p className="text-xs text-gray-400 font-medium">Used to generate Dutch VAT deadlines in Taxes.</p>
               </div>
             </div>
             <div className="pt-4">
@@ -4449,9 +5873,13 @@ export const SettingsPage = ({
   onNavigate,
   bankAccounts,
   taxBufferProviders,
+  legalPublicInfo,
   onBankSelect,
   onConnectionSelect,
   onCreateOpenBankConnection,
+  onRemoveOpenBankConnection,
+  onDownloadDataExport,
+  onDeleteAccount,
   isConnectingOpenBank = false,
   openBankErrorMessage = null,
   initialSection = 'PROFILE'
@@ -4461,9 +5889,13 @@ export const SettingsPage = ({
   onNavigate: (view: string) => void,
   bankAccounts: BankAccountRecord[],
   taxBufferProviders: TaxBufferProviderItem[],
+  legalPublicInfo: LegalPublicInfoRecord | null,
   onBankSelect: (bank: BankOption) => void,
   onConnectionSelect: (account: BankAccountRecord, providerName: string) => void,
-  onCreateOpenBankConnection: () => Promise<void>,
+  onCreateOpenBankConnection: (consent: OpenBankingConsentPayload) => Promise<void>,
+  onRemoveOpenBankConnection: (connectionId: string) => Promise<void>,
+  onDownloadDataExport: () => Promise<void>,
+  onDeleteAccount: () => Promise<void>,
   isConnectingOpenBank?: boolean,
   openBankErrorMessage?: string | null,
   initialSection?: string
@@ -4471,6 +5903,34 @@ export const SettingsPage = ({
   const [activeSection, setActiveSection] = useState(initialSection);
   const [isBusinessMode, setIsBusinessMode] = useState(true);
   const [theme, setTheme] = useState('light');
+  const [isExportingData, setIsExportingData] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const hasTaxProfile = Boolean((userProfile.residence ?? '').trim()) && Boolean((userProfile.vatFrequency ?? '').trim());
+  const privacyPolicyCurrent = Boolean(legalPublicInfo?.privacyPolicy.version) && userProfile.privacyPolicyVersion === legalPublicInfo?.privacyPolicy.version;
+  const termsCurrent = Boolean(legalPublicInfo?.termsOfService.version) && userProfile.termsOfServiceVersion === legalPublicInfo?.termsOfService.version;
+  const hasCurrentRequiredConsents = Boolean(userProfile.gdprAccepted && privacyPolicyCurrent && termsCurrent);
+  const consentAuditItems = [
+    {
+      label: 'Privacy Notice',
+      version: userProfile.privacyPolicyVersion ?? 'Not accepted',
+      acceptedAt: formatConsentTimestamp(userProfile.privacyAcceptedAt)
+    },
+    {
+      label: 'Terms of Service',
+      version: userProfile.termsOfServiceVersion ?? 'Not accepted',
+      acceptedAt: formatConsentTimestamp(userProfile.termsAcceptedAt)
+    },
+    {
+      label: 'Cookie Notice',
+      version: userProfile.cookiePolicyVersion ?? 'Not acknowledged',
+      acceptedAt: formatConsentTimestamp(userProfile.cookiePolicyAcknowledgedAt)
+    },
+    {
+      label: 'Open Banking Notice',
+      version: userProfile.openBankingNoticeVersion ?? 'Not accepted',
+      acceptedAt: formatConsentTimestamp(userProfile.openBankingNoticeAcceptedAt)
+    }
+  ];
 
   useEffect(() => {
     setActiveSection(initialSection);
@@ -4480,7 +5940,7 @@ export const SettingsPage = ({
     { id: 1, label: 'Verify Email', completed: true, cta: 'Done', action: null },
     { id: 2, label: 'Link a Bank Account', completed: true, cta: 'Manage', action: () => setActiveSection('BANKING') },
     { id: 3, label: 'Set Base Currency', completed: true, cta: 'Change', action: () => setActiveSection('PREFERENCES') },
-    { id: 4, label: 'Define Fiscal Residence', completed: false, cta: 'Set Now', action: () => onNavigate('EDIT_PROFILE') },
+    { id: 4, label: 'Define Tax Profile', completed: hasTaxProfile, cta: hasTaxProfile ? 'Done' : 'Set Now', action: hasTaxProfile ? null : () => onNavigate('EDIT_PROFILE') },
     { id: 5, label: 'Customize Notifications', completed: false, cta: 'Configure', action: () => onNavigate('NOTIFICATIONS') },
   ];
   
@@ -4524,22 +5984,6 @@ export const SettingsPage = ({
           <AccountSelector />
           <QuickActions onNavigate={onNavigate} />
         </div>
-      </div>
-
-      {/* Consent Expiry Alert Banner */}
-      <div className="bg-orange-50 border border-orange-100 p-4 md:p-6 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-orange-500 shadow-sm border border-orange-100">
-            <AlertTriangle size={24} />
-          </div>
-          <div className="text-center md:text-left">
-            <p className="text-sm font-bold text-orange-900">Open Banking Consent Expiring</p>
-            <p className="text-xs text-orange-700 font-medium">The connection with Rabobank will expire in 4 days. Renew it to avoid data loss.</p>
-          </div>
-        </div>
-        <Button variant="secondary" size="sm" className="bg-orange-500 hover:bg-orange-600 text-white border-none shadow-orange-200" icon={RefreshCw} onClick={() => onNavigate('RENEW_CONSENT')}>
-          Renew Consent
-        </Button>
       </div>
 
       {/* Interactive Scrollable Nav Bar */}
@@ -4602,8 +6046,13 @@ export const SettingsPage = ({
                 <div className="flex flex-col md:flex-row gap-10">
                   <div className="flex flex-col items-center gap-4">
                     <div className="relative group">
-                      <div className="w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl transition-transform group-hover:scale-[1.02] cursor-pointer" onClick={() => onNavigate('EDIT_PROFILE')}>
-                        <img src="https://i.pravatar.cc/300?img=12" alt="Avatar" className="w-full h-full object-cover" />
+                      <div className="w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl transition-transform group-hover:scale-[1.02] cursor-pointer bg-opex-teal/10 flex items-center justify-center" onClick={() => onNavigate('EDIT_PROFILE')}>
+                        {userProfile.logo
+                          ? <img src={userProfile.logo} alt="Avatar" className="w-full h-full object-cover" />
+                          : <span className="text-3xl font-black text-opex-teal select-none">
+                              {userProfile.name.trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase() || '?'}
+                            </span>
+                        }
                       </div>
                       <button className="absolute -bottom-2 -right-2 bg-opex-dark text-white p-3 rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all" onClick={() => onNavigate('EDIT_PROFILE')}>
                         <Camera size={16} />
@@ -4625,6 +6074,10 @@ export const SettingsPage = ({
                       <p className="font-bold text-gray-700 flex items-center gap-2"><Globe size={14} /> {userProfile.residence}</p>
                     </div>
                     <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">VAT Filing</label>
+                      <p className="font-bold text-gray-700 flex items-center gap-2"><Receipt size={14} /> {userProfile.vatFrequency}</p>
+                    </div>
+                    <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Time Zone</label>
                       <p className="font-bold text-gray-700">Europe/Rome (GMT+1)</p>
                     </div>
@@ -4640,7 +6093,20 @@ export const SettingsPage = ({
 
           {/* Section: Branding */}
           {activeSection === 'BRANDING' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="relative animate-in fade-in slide-in-from-bottom-4 duration-300">
+              {/* Coming Soon overlay */}
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm rounded-3xl pointer-events-auto select-none">
+                <div className="flex flex-col items-center gap-4 text-center px-6">
+                  <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center">
+                    <Lock size={24} className="text-gray-400" />
+                  </div>
+                  <div>
+                    <p className="text-base font-black text-gray-700 tracking-tight">Coming Soon</p>
+                    <p className="text-sm text-gray-400 font-medium mt-1 max-w-xs">Custom branding will be available in a future update.</p>
+                  </div>
+                </div>
+              </div>
+            <div className="space-y-8 pointer-events-none select-none" style={{ filter: 'blur(3px)', opacity: 0.45 }}>
               <Card title="Invoice Branding" description="Upload your company logo to be displayed on all your invoices and quotes.">
                 <div className="space-y-8 py-4">
                   <div className="flex flex-col md:flex-row items-center gap-10">
@@ -4706,6 +6172,7 @@ export const SettingsPage = ({
                 </div>
               </Card>
             </div>
+            </div>
           )}
 
           {/* Section: Open Banking */}
@@ -4719,6 +6186,8 @@ export const SettingsPage = ({
                 bankAccounts={bankAccounts}
                 taxBufferProviders={taxBufferProviders}
                 onCreateOpenBankConnection={onCreateOpenBankConnection}
+                onRemoveOpenBankConnection={onRemoveOpenBankConnection}
+                openBankingNoticeVersion={legalPublicInfo?.openBankingNotice.version ?? null}
                 isConnectingOpenBank={isConnectingOpenBank}
                 openBankErrorMessage={openBankErrorMessage}
               />
@@ -4808,9 +6277,160 @@ export const SettingsPage = ({
           {activeSection === 'PRIVACY' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
                <Card title="GDPR & Data">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                     <Button fullWidth variant="outline" icon={Download} className="py-6 rounded-[2.5rem]" onClick={() => onNavigate('SUPPORT')}>Request Data Export</Button>
-                     <Button fullWidth variant="outline" icon={ShieldCheck} className="py-6 rounded-[2.5rem]" onClick={() => onNavigate('SUPPORT')}>Consent Audit</Button>
+                  <div className="space-y-6">
+                     <div className="rounded-[2rem] border border-gray-100 bg-gray-50 p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div className="flex items-start gap-4">
+                           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm border ${hasCurrentRequiredConsents ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
+                              <ShieldCheck size={22} />
+                           </div>
+                           <div>
+                              <p className="text-base font-black text-gray-900">Consent Status</p>
+                              <p className="text-xs text-gray-500 font-medium">
+                                {hasCurrentRequiredConsents
+                                  ? 'Current privacy notice and service terms are accepted for this account.'
+                                  : 'One or more required legal documents still need acceptance or renewal.'}
+                              </p>
+                           </div>
+                        </div>
+                        <Badge variant={hasCurrentRequiredConsents ? 'success' : 'warning'}>
+                          {hasCurrentRequiredConsents ? 'Current' : 'Update Required'}
+                        </Badge>
+                     </div>
+
+                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                       <button
+                         type="button"
+                         onClick={() => openLegalDocument('privacy')}
+                         className="rounded-[1.75rem] border border-gray-100 bg-white px-5 py-5 text-left transition-all hover:border-opex-teal/20 hover:shadow-sm"
+                       >
+                         <p className="text-sm font-black text-gray-900">Privacy Notice</p>
+                         <p className="mt-2 text-xs font-medium leading-relaxed text-gray-500">
+                           v{legalPublicInfo?.privacyPolicy.version || 'n/a'} · Open the current notice in a new tab.
+                         </p>
+                       </button>
+                       <button
+                         type="button"
+                         onClick={() => openLegalDocument('terms')}
+                         className="rounded-[1.75rem] border border-gray-100 bg-white px-5 py-5 text-left transition-all hover:border-opex-teal/20 hover:shadow-sm"
+                       >
+                         <p className="text-sm font-black text-gray-900">Terms Of Service</p>
+                         <p className="mt-2 text-xs font-medium leading-relaxed text-gray-500">
+                           v{legalPublicInfo?.termsOfService.version || 'n/a'} · Review the contractual rules for the app.
+                         </p>
+                       </button>
+                       <button
+                         type="button"
+                         onClick={() => openLegalDocument('cookies')}
+                         className="rounded-[1.75rem] border border-gray-100 bg-white px-5 py-5 text-left transition-all hover:border-opex-teal/20 hover:shadow-sm"
+                       >
+                         <p className="text-sm font-black text-gray-900">Cookie Notice</p>
+                         <p className="mt-2 text-xs font-medium leading-relaxed text-gray-500">
+                           v{legalPublicInfo?.cookiePolicy.version || 'n/a'} · See which browser storage keys are used.
+                         </p>
+                       </button>
+                       <button
+                         type="button"
+                         onClick={() => openLegalDocument('open-banking')}
+                         className="rounded-[1.75rem] border border-gray-100 bg-white px-5 py-5 text-left transition-all hover:border-opex-teal/20 hover:shadow-sm"
+                       >
+                         <p className="text-sm font-black text-gray-900">Open Banking Notice</p>
+                         <p className="mt-2 text-xs font-medium leading-relaxed text-gray-500">
+                           v{legalPublicInfo?.openBankingNotice.version || 'n/a'} · Review banking-specific processing terms.
+                         </p>
+                       </button>
+                     </div>
+
+                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+                       <div className="rounded-[2rem] border border-gray-100 bg-white p-6">
+                         <div className="flex items-center justify-between gap-4">
+                           <div>
+                             <p className="text-base font-black text-gray-900">Consent Audit</p>
+                             <p className="mt-1 text-xs font-medium text-gray-500">Recorded versions and timestamps currently stored for your account.</p>
+                           </div>
+                           <Badge variant="info">{consentAuditItems.length} Entries</Badge>
+                         </div>
+                         <div className="mt-5 space-y-3">
+                           {consentAuditItems.map((item) => (
+                             <div key={item.label} className="rounded-[1.4rem] border border-gray-100 bg-gray-50 px-4 py-4">
+                               <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                                 <p className="text-sm font-black text-gray-900">{item.label}</p>
+                                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">{item.version}</p>
+                               </div>
+                               <p className="mt-2 text-xs font-medium text-gray-500">{item.acceptedAt}</p>
+                             </div>
+                           ))}
+                         </div>
+                       </div>
+
+                       <div className="rounded-[2rem] border border-gray-100 bg-white p-6">
+                         <p className="text-base font-black text-gray-900">Data Rights</p>
+                         <p className="mt-1 text-xs font-medium text-gray-500">
+                           Export your data, review the processor setup or close the account from here.
+                         </p>
+
+                         <div className="mt-5 space-y-3">
+                           <Button
+                             fullWidth
+                             variant="outline"
+                             icon={Download}
+                             className="py-5 rounded-[1.5rem]"
+                             disabled={isExportingData}
+                             onClick={() => {
+                               setIsExportingData(true);
+                               void onDownloadDataExport()
+                                 .catch(() => undefined)
+                                 .finally(() => setIsExportingData(false));
+                             }}
+                           >
+                             {isExportingData ? 'Preparing Export...' : 'Download My Data'}
+                           </Button>
+                           <Button
+                             fullWidth
+                             variant="outline"
+                             icon={Mail}
+                             className="py-5 rounded-[1.5rem]"
+                             onClick={() => {
+                               const privacyEmail = legalPublicInfo?.controller.privacyEmail;
+                               if (!privacyEmail) {
+                                 return;
+                               }
+                               window.location.href = `mailto:${privacyEmail}`;
+                             }}
+                           >
+                             Contact Privacy Team
+                           </Button>
+                           <Button
+                             fullWidth
+                             variant="danger"
+                             icon={Trash2}
+                             className="py-5 rounded-[1.5rem]"
+                             disabled={isDeletingAccount}
+                             onClick={() => {
+                               const confirmed = window.confirm('Delete your Opex account now? This will disable your local profile and log you out.');
+                               if (!confirmed) {
+                                 return;
+                               }
+
+                               setIsDeletingAccount(true);
+                               void onDeleteAccount()
+                                 .catch(() => undefined)
+                                 .finally(() => setIsDeletingAccount(false));
+                             }}
+                           >
+                             {isDeletingAccount ? 'Closing Account...' : 'Delete Account'}
+                           </Button>
+                         </div>
+
+                         <div className="mt-6 rounded-[1.5rem] bg-gray-50 px-4 py-4">
+                           <p className="text-[10px] font-black uppercase tracking-[0.22em] text-gray-400">Open Banking Scopes</p>
+                           <p className="mt-2 text-sm font-medium leading-relaxed text-gray-500">
+                             {(userProfile.openBankingConsentScopes ?? []).length > 0
+                               ? (userProfile.openBankingConsentScopes ?? []).join(', ')
+                               : 'No open-banking scope accepted yet.'}
+                           </p>
+                         </div>
+                       </div>
+                     </div>
                   </div>
                </Card>
             </div>

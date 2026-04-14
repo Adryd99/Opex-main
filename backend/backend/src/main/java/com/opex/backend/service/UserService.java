@@ -17,6 +17,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserService {
 
+    private static final String DEFAULT_RESIDENCE = "Netherlands (NL)";
+    private static final String DEFAULT_VAT_FREQUENCY = "Quarterly";
+
     private final UserRepository userRepository;
 
     // Inietta il client Keycloak che abbiamo configurato prima
@@ -32,7 +35,23 @@ public class UserService {
         Optional<User> existingUser = userRepository.findById(keycloakId);
 
         if (existingUser.isPresent()) {
-            return existingUser.get();
+            User user = existingUser.get();
+            boolean changed = false;
+
+            if (user.getResidence() == null || user.getResidence().isBlank()) {
+                user.setResidence(DEFAULT_RESIDENCE);
+                changed = true;
+            }
+            if (user.getVatFrequency() == null || user.getVatFrequency().isBlank()) {
+                user.setVatFrequency(DEFAULT_VAT_FREQUENCY);
+                changed = true;
+            }
+            if (user.getGdprAccepted() == null) {
+                user.setGdprAccepted(false);
+                changed = true;
+            }
+
+            return changed ? userRepository.save(user) : user;
         }
 
         String email = jwt.getClaimAsString("email");
@@ -40,6 +59,9 @@ public class UserService {
         String lastName = jwt.getClaimAsString("family_name");
 
         User newUser = new User(keycloakId, email, firstName, lastName);
+        newUser.setResidence(DEFAULT_RESIDENCE);
+        newUser.setVatFrequency(DEFAULT_VAT_FREQUENCY);
+        newUser.setGdprAccepted(false);
         System.out.println("Nuovo utente sincronizzato nel DB: " + email);
 
         return userRepository.save(newUser);
@@ -89,11 +111,23 @@ public class UserService {
         // 4. Aggiorno i campi extra (esclusivi del DB PostgreSQL)
         if (request.getCustomerId() != null) user.setCustomerId(request.getCustomerId());
         if (request.getDob() != null) user.setDob(request.getDob());
+        if (request.getResidence() != null) user.setResidence(request.getResidence());
+        if (request.getVatFrequency() != null) user.setVatFrequency(request.getVatFrequency());
+        if (request.getGdprAccepted() != null) user.setGdprAccepted(request.getGdprAccepted());
+        if (request.getFiscalResidence() != null) user.setFiscalResidence(request.getFiscalResidence());
+        if (request.getTaxRegime() != null) user.setTaxRegime(request.getTaxRegime());
+        if (request.getActivityType() != null) user.setActivityType(request.getActivityType());
+        if (request.getVatExempt() != null) user.setVatExempt(request.getVatExempt());
+        if (request.getStartup() != null) user.setStartup(request.getStartup());
+        if (request.getSelfEmployed() != null) user.setSelfEmployed(request.getSelfEmployed());
+        if (request.getMainActivity() != null) user.setMainActivity(request.getMainActivity());
+        if (request.getPublicHealthInsurance() != null) user.setPublicHealthInsurance(request.getPublicHealthInsurance());
         if (request.getAnswer1() != null) user.setAnswer1(request.getAnswer1());
         if (request.getAnswer2() != null) user.setAnswer2(request.getAnswer2());
         if (request.getAnswer3() != null) user.setAnswer3(request.getAnswer3());
         if (request.getAnswer4() != null) user.setAnswer4(request.getAnswer4());
         if (request.getAnswer5() != null) user.setAnswer5(request.getAnswer5());
+        if (request.getProfilePicture() != null) user.setProfilePicture(request.getProfilePicture());
 
         // 5. Salvo tutto sul mio Database PostgreSQL
         return userRepository.save(user);

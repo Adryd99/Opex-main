@@ -13,9 +13,22 @@ public class UserUpdateRequest {
     // --- Campi extra (solo su DB Postgres) ---
     private String customerId;
     private LocalDate dob;
+    private String residence;
+    private String vatFrequency;
+    private Boolean gdprAccepted;
+    private String fiscalResidence;
+    private String taxRegime;
+    private String activityType;
+    private Boolean vatExempt;
+    private Boolean startup;
+    private Boolean selfEmployed;
+    private Boolean mainActivity;
+    private Boolean publicHealthInsurance;
     private String answer1;
     private String answer2;
     private String answer3;
     private String answer4;
     private String answer5;
+
+    private String profilePicture;
 }
