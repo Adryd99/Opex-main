@@ -1,0 +1,62 @@
+VULNERABILITA' ALTE
+
+  ┌─────┬───────────────────────────────────────────────────────────────┬──────────────────────────────┐
+  │  #  │                           Problema                            │             File             │
+  ├─────┼───────────────────────────────────────────────────────────────┼──────────────────────────────┤
+  │ 5   │ SQL logging abilitato in prod (show-sql=true)                 │ application.properties:17    │
+  ├─────┼───────────────────────────────────────────────────────────────┼──────────────────────────────┤
+  │ 6   │ Password default admin/opex come fallback                     │ application.properties:8,28  │
+  ├─────┼───────────────────────────────────────────────────────────────┼──────────────────────────────┤
+  │ 7   │ AWS credentials default test                                  │ application.properties:37-38 │
+  ├─────┼───────────────────────────────────────────────────────────────┼──────────────────────────────┤
+  │ 8   │ Nessun HTTPS/TLS configurato                                  │ Infrastruttura               │
+  ├─────┼───────────────────────────────────────────────────────────────┼──────────────────────────────┤
+  │ 9   │ File upload: solo MIME type verificato (client-controllabile) │ S3Service.java:24            │
+  ├─────┼───────────────────────────────────────────────────────────────┼──────────────────────────────┤
+  │ 10  │ CORS con wildcard su localhost e allowCredentials=true        │ SecurityConfig.java:51       │
+  └─────┴───────────────────────────────────────────────────────────────┴──────────────────────────────┘
+
+  ---
+  VULNERABILITA' MEDIE
+
+  ┌─────┬──────────────────────────────────────────────────────────┬─────────────────────────────┐
+  │  #  │                         Problema                         │            File             │
+  ├─────┼──────────────────────────────────────────────────────────┼─────────────────────────────┤
+  │ 11  │ Token JWT salvati in localStorage (vulnerabile a XSS)    │ keycloakAuth.ts:71-80       │
+  ├─────┼──────────────────────────────────────────────────────────┼─────────────────────────────┤
+  │ 12  │ CSRF disabilitato esplicitamente                         │ SecurityConfig.java:33      │
+  ├─────┼──────────────────────────────────────────────────────────┼─────────────────────────────┤
+  │ 13  │ System.out.println() con email e ID utente               │ UserService.java:65,108,160 │
+  ├─────┼──────────────────────────────────────────────────────────┼─────────────────────────────┤
+  │ 14  │ console.log(requestUrl) in produzione                    │ opexApi.ts:302              │
+  ├─────┼──────────────────────────────────────────────────────────┼─────────────────────────────┤
+  │ 15  │ GEMINI_API_KEY esposta nel bundle client-side            │ vite.config.ts:26-28        │
+  ├─────┼──────────────────────────────────────────────────────────┼─────────────────────────────┤
+  │ 16  │ Nessun rate limiting sugli endpoint API                  │ —                           │
+  ├─────┼──────────────────────────────────────────────────────────┼─────────────────────────────┤
+  │ 17  │ Brute force protection Keycloak disabilitata             │ realm-export.json           │
+  ├─────┼──────────────────────────────────────────────────────────┼─────────────────────────────┤
+  │ 18  │ Nessun security header HTTP (X-Frame-Options, CSP, ecc.) │ —                           │
+  └─────┴──────────────────────────────────────────────────────────┴─────────────────────────────┘
+
+  ---
+  AZIONI IMMEDIATE (entro 24-48 ore)
+
+  1. Ruota tutte le credenziali — Keycloak, PostgreSQL, Salt Edge, AWS
+  2. Aggiungi .env al .gitignore e rimuovi la storia Git con git filter-repo
+  3. Aggiungi @AuthenticationPrincipal e ownership check in SupplierController e NotificationController
+  4. Rimuovi tutti i System.out.println() e il console.log in produzione
+  5. Disabilita show-sql=true in production
+
+  ---
+  AZIONI A BREVE TERMINE (1-2 settimane)
+
+  - Validare file upload con magic bytes (non solo MIME type)
+  - Spostare token JWT da localStorage a cookie httpOnly + Secure + SameSite=Strict
+  - Abilitare brute force protection in Keycloak (bruteForceProtected: true)
+  - Aggiungere security headers in Spring Security
+  - Implementare rate limiting (Bucket4j)
+  - Configurare HTTPS con reverse proxy (Nginx + Let's Encrypt)
+
+  ---
+  Livello di rischio complessivo: ALTO — La presenza di credenziali reali nel repository Git e di IDOR su endpoint critici rende l'app non sicura per la produzione nello stato attuale.
