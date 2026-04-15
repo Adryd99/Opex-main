@@ -792,7 +792,7 @@ export const useAppController = (isAuthenticated: boolean) => {
         await opexApi.createLocalTransaction({
           bankAccountId: input.bankAccountId,
           amount: signedAmount,
-          bookingDate: new Date().toISOString().slice(0, 10),
+          bookingDate: input.bookingDate || new Date().toISOString().slice(0, 10),
           category: input.category,
           description: input.description,
           merchantName: input.description || input.category,
@@ -896,6 +896,28 @@ export const useAppController = (isAuthenticated: boolean) => {
     }
   }, [userProfile.email]);
 
+  const updateBankAccountSettings = useCallback(
+    async (
+      bankAccountId: string,
+      isSaltedge: boolean,
+      payload: { institutionName: string; nature: string; isForTax: boolean }
+    ) => {
+      setErrorMessage(null);
+      try {
+        if (isSaltedge) {
+          await opexApi.updateSaltedgeBankAccount(bankAccountId, payload);
+        } else {
+          await opexApi.updateLocalBankAccount(bankAccountId, payload);
+        }
+        await refreshDashboardData();
+      } catch (error) {
+        setErrorMessage(toErrorMessage(error));
+        throw error;
+      }
+    },
+    [refreshDashboardData]
+  );
+
   const clearError = () => setErrorMessage(null);
 
   return {
@@ -946,6 +968,7 @@ export const useAppController = (isAuthenticated: boolean) => {
     saveUserProfile,
     completeOnboarding,
     downloadDataExport,
-    deleteAccount
+    deleteAccount,
+    updateBankAccountSettings
   };
 };

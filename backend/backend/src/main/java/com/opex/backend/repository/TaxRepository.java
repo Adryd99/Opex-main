@@ -22,4 +22,7 @@ public interface TaxRepository extends JpaRepository<Tax, String> {
 
     // Lista completa ordinata per scadenza (utile per dashboard Tax Buffer)
     List<Tax> findByUserIdOrderByDeadlineAsc(String userId);
+
+    // Trova tutte le tasse con una specifica scadenza e stato (usato per le notifiche)
+    List<Tax> findByDeadlineAndStatus(java.time.LocalDate deadline, String status);
 }

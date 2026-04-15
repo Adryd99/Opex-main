@@ -50,6 +50,14 @@ export interface UserProfile {
   openBankingNoticeVersion?: string | null;
   openBankingNoticeAcceptedAt?: string | null;
   openBankingConsentScopes?: string[];
+  notificationBalanceThreshold?: number;
+  notifyCriticalBalance?: boolean;
+  notifySignificantIncome?: boolean;
+  notifyAbnormalOutflow?: boolean;
+  notifyConsentExpiration?: boolean;
+  notifySyncErrors?: boolean;
+  notifyQuarterlyVat?: boolean;
+  notifyMonthlyAnalysis?: boolean;
 }
 
 export interface LegalSectionRecord {
@@ -295,4 +303,16 @@ export interface CreateLocalTransactionInput {
   category: string;
   description: string;
   type: 'INCOME' | 'EXPENSE';
+  bookingDate?: string;
 }
+
+export type NotificationRecord = {
+  id: string;
+  unread: boolean;
+  type: 'success' | 'warning' | 'info' | 'danger';
+  title: string;
+  description: string;
+  time: string;
+  createdAt: string;
+  icon: string;
+};

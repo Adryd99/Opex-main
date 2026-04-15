@@ -12,15 +12,28 @@ import {
   ArrowUp,
   ArrowRight,
   Building2,
-  Receipt,
   ArrowLeft,
   Calculator,
   FileText,
   Check,
   RefreshCw,
   ChevronDown,
-  Bell
+  Bell,
+  AlertTriangle,
+  CheckCircle2,
+  Sparkles,
+  Lock
 } from 'lucide-react';
+import { NotificationRecord } from '../models/types';
+import { opexApi } from '../services/opexApi';
+
+const ICON_MAP: Record<string, React.FC<any>> = {
+  AlertTriangle,
+  CheckCircle2,
+  FileText,
+  Sparkles,
+  Bell
+};
 import { TimeAggregatedRecord, ForecastResponse, UserProfile } from '../models/types';
 
 const BANK_PROVIDERS_KEY = 'opex_bank_providers';
@@ -200,7 +213,23 @@ export const AccountSelector = ({ compact = false }: { compact?: boolean }) => {
 
 export const NotificationButton = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const fetchNotifications = async () => {
+    try {
+      const data = await opexApi.getNotifications();
+      setNotifications(data);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -212,7 +241,25 @@ export const NotificationButton = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const unreadCount = [].filter(n => n.unread).length;
+  const unreadCount = notifications.filter((n) => n.unread).length;
+
+  const markAsRead = async (id: string) => {
+    try {
+      await opexApi.markNotificationAsRead(id);
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)));
+    } catch (err) {
+      console.error('Error marking as read:', err);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await opexApi.markAllNotificationsAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    } catch (err) {
+      console.error('Error marking all as read:', err);
+    }
+  };
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -230,31 +277,48 @@ export const NotificationButton = () => {
         <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-[2rem] shadow-2xl border border-gray-100 py-4 z-[100] animate-in fade-in zoom-in-95 duration-200 origin-top-right">
           <div className="px-6 py-2 border-b border-gray-50 flex items-center justify-between mb-2">
             <h3 className="font-black text-gray-900 tracking-tight">Notifications</h3>
-            <button className="text-[10px] font-black text-opex-teal uppercase tracking-widest hover:underline">Mark as read</button>
+            {unreadCount > 0 && (
+              <button onClick={markAllAsRead} className="text-[10px] font-black text-opex-teal uppercase tracking-widest hover:underline">
+                Mark as read
+              </button>
+            )}
           </div>
           <div className="max-h-[400px] overflow-y-auto no-scrollbar px-2">
-            {[].map((notif) => (
-              <div key={notif.id} className={`p-4 flex gap-4 rounded-2xl hover:bg-gray-50 transition-colors cursor-pointer group ${notif.unread ? 'bg-opex-teal/[0.02]' : ''}`}>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                  notif.type === 'warning' ? 'bg-orange-100 text-orange-600' :
-                  notif.type === 'danger' ? 'bg-red-100 text-red-600' :
-                  notif.type === 'success' ? 'bg-green-100 text-green-600' :
-                  'bg-blue-100 text-blue-600'
-                }`}>
-                  <notif.icon size={18} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start">
-                    <p className={`text-sm font-bold leading-none mb-1 ${notif.unread ? 'text-gray-900' : 'text-gray-600'}`}>{notif.title}</p>
-                    <span className="text-[10px] text-gray-400 whitespace-nowrap">{notif.time}</span>
+            {notifications.length === 0 ? (
+              <div className="p-8 text-center text-gray-400 text-sm">No notifications</div>
+            ) : (
+              notifications.map((notif) => {
+                const Icon = ICON_MAP[notif.icon] || Bell;
+                return (
+                  <div 
+                    key={notif.id} 
+                    onClick={() => markAsRead(notif.id)}
+                    className={`p-4 flex gap-4 rounded-2xl hover:bg-gray-50 transition-colors cursor-pointer group ${notif.unread ? 'bg-opex-teal/[0.02]' : ''}`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                      notif.type === 'warning' ? 'bg-orange-100 text-orange-600' :
+                      notif.type === 'danger' ? 'bg-red-100 text-red-600' :
+                      notif.type === 'success' ? 'bg-green-100 text-green-600' :
+                      'bg-blue-100 text-blue-600'
+                    }`}>
+                      <Icon size={18} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <p className={`text-sm font-bold leading-none mb-1 ${notif.unread ? 'text-gray-900' : 'text-gray-600'}`}>{notif.title}</p>
+                        <span className="text-[10px] text-gray-400 whitespace-nowrap">{notif.time}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 leading-relaxed truncate-2-lines">{notif.description}</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 leading-relaxed truncate-2-lines">{notif.desc}</p>
-                </div>
-              </div>
-            ))}
+                );
+              })
+            )}
           </div>
           <div className="px-6 pt-4 border-t border-gray-50 mt-2">
-            <button className="w-full py-3 bg-gray-50 rounded-xl text-xs font-black text-gray-400 hover:text-opex-teal transition-colors">View all notifications</button>
+            <button className="w-full py-3 bg-gray-50 rounded-xl text-xs font-black text-gray-400 hover:text-opex-teal transition-colors">
+              View all notifications
+            </button>
           </div>
         </div>
       )}
@@ -291,13 +355,13 @@ export const Button = ({ children, variant = 'primary', className = '', onClick,
 };
 
 export const Card = ({ children, className = "", title, action, noPadding = false, onClick }: any) => (
-  <div 
+  <div
     onClick={onClick}
-    className={`bg-white rounded-2xl border border-gray-100 shadow-sm ${className} overflow-hidden flex flex-col h-full ${onClick ? 'cursor-pointer hover:shadow-md hover:border-gray-200 transition-all active:scale-[0.99]' : ''}`}
+    className={`bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm ${className} overflow-hidden flex flex-col h-full transition-colors duration-200 ${onClick ? 'cursor-pointer hover:shadow-md hover:border-gray-200 dark:hover:border-slate-600 transition-all active:scale-[0.99]' : ''}`}
   >
     {(title || action) && (
-      <div className="flex justify-between items-center px-6 py-2.5 border-b border-gray-50">
-        {title && <h3 className="font-black text-gray-900 text-[10px] uppercase tracking-widest">{title}</h3>}
+      <div className="flex justify-between items-center px-6 py-2.5 border-b border-gray-50 dark:border-slate-700">
+        {title && <h3 className="font-black text-gray-900 dark:text-gray-100 text-[10px] uppercase tracking-widest">{title}</h3>}
         {action}
       </div>
     )}
@@ -341,38 +405,54 @@ export const ToggleFilter = ({ options, active, onChange }: any) => (
 );
 
 export const RecurringWidget = ({ onClick }: { onClick: () => void }) => (
-  <button 
-    onClick={onClick}
-    className="flex flex-col text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-5 overflow-hidden transition-all duration-200 hover:shadow-md hover:border-opex-teal/30 hover:bg-gray-50/30 active:scale-[0.98] group w-full h-full"
-  >
-    <div className="flex justify-between items-start mb-4 w-full">
-      <div className="p-2 bg-gray-50 rounded-xl text-gray-600 group-hover:bg-opex-teal group-hover:text-white transition-colors">
-        <RefreshCw size={18} />
+  <div className="relative w-full h-full">
+    {/* Coming Soon overlay */}
+    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm rounded-2xl pointer-events-auto select-none">
+      <div className="flex flex-col items-center gap-2 text-center px-4">
+        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
+          <Lock size={16} className="text-gray-400" />
+        </div>
+        <div>
+          <p className="text-xs font-black text-gray-700 tracking-tight">Coming Soon</p>
+          <p className="text-[10px] text-gray-400 font-medium mt-0.5">In development</p>
+        </div>
       </div>
     </div>
-    
-    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Recurring</p>
-    
-    <div className="space-y-1 mb-4 w-full">
-      <div className="flex justify-between items-baseline">
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Income</span>
-        <span className="text-sm font-black text-emerald-600">€2,400</span>
+    <button
+      onClick={onClick}
+      className="flex flex-col text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-5 overflow-hidden transition-all duration-200 w-full h-full pointer-events-none select-none"
+      style={{ filter: 'blur(2px)', opacity: 0.5 }}
+      disabled
+    >
+      <div className="flex justify-between items-start mb-4 w-full">
+        <div className="p-2 bg-gray-50 rounded-xl text-gray-600">
+          <RefreshCw size={18} />
+        </div>
       </div>
-      <div className="flex justify-between items-baseline">
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Expenses</span>
-        <span className="text-sm font-bold text-gray-900">€340</span>
-      </div>
-    </div>
 
-    <div className="mt-auto flex items-center justify-between w-full">
-      <p className="text-[9px] font-bold text-gray-400 truncate">
-        Next: <span className="text-gray-900">Figma €15 · 2d</span>
-      </p>
-      <div className="text-opex-teal group-hover:translate-x-1 transition-transform shrink-0">
-        <ArrowRight size={14} />
+      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Recurring</p>
+
+      <div className="space-y-1 mb-4 w-full">
+        <div className="flex justify-between items-baseline">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Income</span>
+          <span className="text-sm font-black text-emerald-600">€2,400</span>
+        </div>
+        <div className="flex justify-between items-baseline">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Expenses</span>
+          <span className="text-sm font-bold text-gray-900">€340</span>
+        </div>
       </div>
-    </div>
-  </button>
+
+      <div className="mt-auto flex items-center justify-between w-full">
+        <p className="text-[9px] font-bold text-gray-400 truncate">
+          Next: <span className="text-gray-900">Figma €15 · 2d</span>
+        </p>
+        <div className="text-opex-teal shrink-0">
+          <ArrowRight size={14} />
+        </div>
+      </div>
+    </button>
+  </div>
 );
 
 export const ClickableStat = ({ title, amount, trend, icon: Icon, trendUp = true, onClick }: any) => (
@@ -415,7 +495,7 @@ export const QuickActions = ({ compact = false, onNavigate }: { compact?: boolea
   const quickActionItems = [
     { label: 'Add Income', icon: ArrowUp, color: 'text-green-500', bg: 'bg-green-50', id: 'QUICK_INCOME' },
     { label: 'Add Expense', icon: ArrowDownRight, color: 'text-red-500', bg: 'bg-red-50', id: 'QUICK_EXPENSE' },
-    { label: 'Add Invoice', icon: Receipt, color: 'text-blue-500', bg: 'bg-blue-50', id: 'QUICK_INVOICE' },
+    // { label: 'Add Invoice', icon: Receipt, color: 'text-blue-500', bg: 'bg-blue-50', id: 'QUICK_INVOICE' },
     { label: 'Open Banking', icon: Building2, color: 'text-purple-500', bg: 'bg-purple-50', id: 'OPEN_BANKING' },
   ];
 
@@ -1097,26 +1177,26 @@ export const Sidebar = ({
   ];
 
   return (
-    <div className="w-64 bg-white border-r border-gray-100 h-screen fixed left-0 top-0 hidden md:flex flex-col z-50">
+    <div className="w-64 bg-white dark:bg-slate-800 border-r border-gray-100 dark:border-slate-700 h-screen fixed left-0 top-0 hidden md:flex flex-col z-50 transition-colors duration-200">
       <div className="p-8 flex items-center gap-2">
         <div className="bg-opex-teal rounded-xl p-2 text-white">
           <Hexagon size={24} fill="currentColor" />
         </div>
-        <span className="text-2xl font-bold text-opex-teal tracking-tight">opex</span>
+        <span className="text-2xl font-bold text-opex-teal dark:text-teal-400 tracking-tight">opex</span>
       </div>
 
       <nav className="flex-1 px-4 space-y-1 mt-2">
         {navItems.map((item) => {
           const isActive = activeTab === item.id || (item.id === 'DASHBOARD' && ['INCOME', 'EXPENSES', '[]', 'QUICK_INCOME', 'QUICK_EXPENSE', 'QUICK_INVOICE'].includes(activeTab)) || (item.id === 'BUDGET' && ['INSIGHTS'].includes(activeTab)) || (item.id === 'SETTINGS' && activeTab.startsWith('SETTINGS_'));
-          
+
           return (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm ${
-                isActive 
-                  ? 'bg-opex-dark text-white shadow-md shadow-blue-900/10' 
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                isActive
+                  ? 'bg-opex-dark dark:bg-teal-600 text-white shadow-md shadow-blue-900/10'
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
             >
               <item.icon size={18} />
@@ -1126,7 +1206,7 @@ export const Sidebar = ({
         })}
       </nav>
 
-      <div className="p-4 border-t border-gray-50">
+      <div className="p-4 border-t border-gray-50 dark:border-slate-700">
          <button
            type="button"
            onClick={onLogout}

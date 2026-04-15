@@ -18,7 +18,14 @@
       "Bash(node_modules/.bin/tsc --noEmit)",
       "Bash(awk -F: '$2 > 3960 && $2 < 4200 {print}')",
       "Bash(awk -F: '$2 > 4100 && $2 < 4200 {print}')",
-      "Bash(awk -F: '$2>4100 && $2<4900{print}')"
+      "Bash(awk -F: '$2>4100 && $2<4900{print}')",
+      "Bash(npx --yes tsc --noEmit)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(where mvn *)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Users/adria/.m2/**)",
+      "Bash('C:\\\\Users\\\\adria\\\\.m2\\\\wrapper\\\\dists\\\\apache-maven-3.9.11\\\\03d7e36a140982eea48e22c1dcac01d8862b2550b2939e09a0809bbc5182a5bc\\\\bin\\\\mvn' compile *)",
+      "Bash(javac -version)"
     ]
   }
 }

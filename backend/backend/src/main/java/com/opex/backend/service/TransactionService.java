@@ -39,6 +39,7 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final BankAccountRepository bankAccountRepository;
     private final BankConnectionRepository bankConnectionRepository;
+    private final NotificationTriggerService notificationTriggerService;
 
     public Page<Transaction> getUserTransactions(String userId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
@@ -110,7 +111,12 @@ public class TransactionService {
         transaction.setStatus(request.getStatus());
         transaction.setType(request.getType());
 
-        return transactionRepository.save(transaction);
+        Transaction saved = transactionRepository.save(transaction);
+
+        // Fire notification checks asynchronously after saving
+        notificationTriggerService.onTransactionCreated(userId, signedAmount);
+
+        return saved;
     }
 
     @Transactional

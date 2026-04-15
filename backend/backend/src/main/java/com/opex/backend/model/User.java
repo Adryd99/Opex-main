@@ -54,6 +54,16 @@ public class User {
 
     @Column(name = "profile_picture", columnDefinition = "TEXT")
     private String profilePicture;
+    
+    // --- Notification Settings ---
+    private Double notificationBalanceThreshold = 500.0;
+    private Boolean notifyCriticalBalance = true;
+    private Boolean notifySignificantIncome = true;
+    private Boolean notifyAbnormalOutflow = true;
+    private Boolean notifyConsentExpiration = true;
+    private Boolean notifySyncErrors = false;
+    private Boolean notifyQuarterlyVat = true;
+    private Boolean notifyMonthlyAnalysis = false;
 
     @Column(columnDefinition = "TEXT")
     private String answer1;

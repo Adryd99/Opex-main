@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 import { Sidebar, TopBar } from './views/components';
-import { TaxesPage, InsightsDetail, BreakdownLayout, TransactionsPage, AddTransactionPage, AddInvoicePage, BankRedirectionPage, AccountSetupPage, InvoicingPage, DashboardPage, BudgetPage, EditProfilePage, RenewConsentPage, ChangePasswordPage, CategoriesPage, NotificationDetailsPage, SupportPage, RecurringPage, SettingsPage, OnboardingPage } from './views/pages';
+import { TaxesPage, InsightsDetail, BreakdownLayout, TransactionsPage, AddTransactionPage, AddInvoicePage, BankRedirectionPage, AccountSetupPage, InvoicingPage, DashboardPage, BudgetPage, EditProfilePage, RenewConsentPage, ChangePasswordPage, CategoriesPage, NotificationDetailsPage, SupportPage, RecurringPage, SettingsPage, OnboardingPage, PostBankConnectionGdprPage } from './views/pages';
 import { LegalDocumentPage, resolveLegalDocumentSlug } from './views/legal';
 import { DEFAULT_LEGAL_PUBLIC_INFO } from './legal/defaultLegalContent';
 
@@ -66,10 +66,12 @@ export const App = () => {
     completeOnboarding,
     downloadDataExport,
     deleteAccount,
+    updateBankAccountSettings,
     forecastData
   } = useAppController(isAuthenticated);
 
   const successSyncRequestedRef = useRef(false);
+  const [postSaltEdgeGdprPending, setPostSaltEdgeGdprPending] = React.useState(false);
   const isSuccessRoute = window.location.pathname === '/success';
   const legalDocumentSlug = resolveLegalDocumentSlug(window.location.pathname);
   const isEmbeddedWindow = window.self !== window.top;
@@ -88,10 +90,8 @@ export const App = () => {
     }
 
     successSyncRequestedRef.current = true;
-    void syncAfterSuccessRedirect().catch(() => {
-      successSyncRequestedRef.current = false;
-    });
-  }, [isAuthenticated, isSuccessRoute, isEmbeddedWindow, syncAfterSuccessRedirect]);
+    setPostSaltEdgeGdprPending(true);
+  }, [isAuthenticated, isSuccessRoute, isEmbeddedWindow]);
 
   if (legalDocumentSlug) {
     return <LegalDocumentPage slug={legalDocumentSlug} />;
@@ -125,6 +125,26 @@ export const App = () => {
   }
 
   if (isSuccessRoute) {
+    if (postSaltEdgeGdprPending && !isBankSyncInProgress) {
+      return (
+        <PostBankConnectionGdprPage
+          legalPublicInfo={activeLegalPublicInfo}
+          isSyncing={isBankSyncInProgress}
+          onConfirm={() => {
+            setPostSaltEdgeGdprPending(false);
+            void syncAfterSuccessRedirect().catch(() => {
+              successSyncRequestedRef.current = false;
+            });
+          }}
+          onCancel={() => {
+            window.history.replaceState({}, document.title, '/');
+            setPostSaltEdgeGdprPending(false);
+            successSyncRequestedRef.current = false;
+          }}
+        />
+      );
+    }
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="bg-white border border-gray-100 rounded-3xl p-8 max-w-md w-full text-center shadow-sm space-y-4">
@@ -223,13 +243,17 @@ export const App = () => {
         return <BreakdownLayout type="INCOME" onBack={() => setActiveTab(lastMainTab)} />;
       case 'EXPENSES':
         return <BreakdownLayout type="EXPENSES" onBack={() => setActiveTab(lastMainTab)} />;
+      case 'TRANSACTIONS_IN':
+        return <TransactionsPage onBack={() => setActiveTab(lastMainTab)} transactions={transactions} initialFilter="In" />;
+      case 'TRANSACTIONS_OUT':
+        return <TransactionsPage onBack={() => setActiveTab(lastMainTab)} transactions={transactions} initialFilter="Out" />;
       case 'INSIGHTS':
         return <InsightsDetail onBack={() => setActiveTab(lastMainTab)} />;
       case '[]':
         return <TransactionsPage onBack={() => setActiveTab(lastMainTab)} transactions={transactions} />;
       case 'SETTINGS':
         return (
-          <SettingsPage 
+          <SettingsPage
             userProfile={userProfile}
             setUserProfile={setUserProfile}
             bankAccounts={bankAccounts}
@@ -239,6 +263,7 @@ export const App = () => {
             onConnectionSelect={startConnectionSetup}
             onCreateOpenBankConnection={syncExternalBankAndNavigate}
             onRemoveOpenBankConnection={deleteExternalBankConnection}
+            onUpdateBankAccount={updateBankAccountSettings}
             isConnectingOpenBank={isBankSyncInProgress}
             openBankErrorMessage={appErrorMessage}
             onDownloadDataExport={downloadDataExport}
@@ -254,7 +279,7 @@ export const App = () => {
               } else {
                 handleNavigate('SETTINGS_' + v);
               }
-            }} 
+            }}
           />
         );
       
@@ -305,6 +330,7 @@ export const App = () => {
             onConnectionSelect={startConnectionSetup}
             onCreateOpenBankConnection={syncExternalBankAndNavigate}
             onRemoveOpenBankConnection={deleteExternalBankConnection}
+            onUpdateBankAccount={updateBankAccountSettings}
             isConnectingOpenBank={isBankSyncInProgress}
             openBankErrorMessage={appErrorMessage}
             onDownloadDataExport={downloadDataExport}
@@ -376,6 +402,7 @@ export const App = () => {
             onConnectionSelect={startConnectionSetup}
             onCreateOpenBankConnection={syncExternalBankAndNavigate}
             onRemoveOpenBankConnection={deleteExternalBankConnection}
+            onUpdateBankAccount={updateBankAccountSettings}
             isConnectingOpenBank={isBankSyncInProgress}
             openBankErrorMessage={appErrorMessage}
             onDownloadDataExport={downloadDataExport}
@@ -419,6 +446,8 @@ export const App = () => {
       case 'INVOICING': return 'Revenue';
       case 'INCOME': return 'Income Breakdown';
       case 'EXPENSES': return 'Expense Breakdown';
+      case 'TRANSACTIONS_IN': return 'Income Transactions';
+      case 'TRANSACTIONS_OUT': return 'Expense Transactions';
       case 'INSIGHTS': return 'Financial Insights';
       case '[]': return 'All Activity';
       case 'SETTINGS': return 'Settings';
@@ -426,13 +455,13 @@ export const App = () => {
     }
   };
 
-  const isSubpage = ['INCOME', 'EXPENSES', 'INSIGHTS', '[]', 'QUICK_INCOME', 'QUICK_EXPENSE', 'QUICK_INVOICE', 'SETTINGS_BANK_SETUP'].includes(activeTab)
+  const isSubpage = ['INCOME', 'EXPENSES', 'TRANSACTIONS_IN', 'TRANSACTIONS_OUT', 'INSIGHTS', '[]', 'QUICK_INCOME', 'QUICK_EXPENSE', 'QUICK_INVOICE', 'SETTINGS_BANK_SETUP'].includes(activeTab)
     || (activeTab.startsWith('SETTINGS_') && !['SETTINGS_OPEN_BANKING', 'SETTINGS_ADD_BANK'].includes(activeTab));
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans flex text-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 font-sans flex text-gray-900 dark:text-gray-100 transition-colors duration-200">
       <Sidebar activeTab={activeTab} setActiveTab={handleNavigate} onLogout={logout} userProfile={userProfile} />
-      <main className="flex-1 md:ml-64 min-w-0 relative">
+      <main className="flex-1 md:ml-64 min-w-0 relative dark:bg-slate-900">
          {!isSubpage && <TopBar title={getPageTitle()} />}
          {appErrorMessage && (
            <div className="px-4 md:px-6 pt-4 max-w-7xl mx-auto">

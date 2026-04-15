@@ -31,41 +31,4 @@ export const PERIOD_DATA: Record<string, Array<{ label: string; value: number }>
   ]
 };
 
-export const MOCK_NOTIFICATIONS = [
-  {
-    id: 'notif_1',
-    unread: true,
-    type: 'success',
-    title: 'Tax reminder configured',
-    desc: 'Your next tax deadline is now monitored automatically.',
-    time: '5m',
-    icon: CheckCircle2
-  },
-  {
-    id: 'notif_2',
-    unread: true,
-    type: 'warning',
-    title: 'Consent expiring soon',
-    desc: 'Rabobank consent will expire in 4 days.',
-    time: '2h',
-    icon: AlertTriangle
-  },
-  {
-    id: 'notif_3',
-    unread: false,
-    type: 'info',
-    title: 'New invoice draft',
-    desc: 'A draft invoice was created from your latest quote.',
-    time: '1d',
-    icon: FileText
-  },
-  {
-    id: 'notif_4',
-    unread: false,
-    type: 'info',
-    title: 'Insights updated',
-    desc: 'AI insights were recalculated with your latest transactions.',
-    time: '2d',
-    icon: Sparkles
-  }
-];
+export const MOCK_NOTIFICATIONS: any[] = [];

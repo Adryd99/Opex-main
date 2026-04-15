@@ -67,7 +67,8 @@ import {
   CheckCircle2,
   ArrowRightLeft,
   Image,
-  Palette
+  Palette,
+  ArrowLeft
 } from 'lucide-react';
 
 import {
@@ -128,6 +129,7 @@ type OnboardingQuestionStep = {
 type ProviderConnectionCard = {
   key: string;
   account: BankAccountRecord;
+  allAccounts: BankAccountRecord[];
   accountCount: number;
   totalBalance: number;
   connectionId: string | null;
@@ -346,108 +348,6 @@ const resolveConnectionRecordId = (account: BankAccountRecord | null | undefined
   return (account.id ?? '').trim();
 };
 
-const ConnectionAccountCard = ({
-  account,
-  providerName,
-  onClick,
-  isSelected = false,
-  index = 0,
-  accountCount = 1,
-  totalBalance,
-  connectionStatus = null,
-  canManageConnection = false,
-  isRemoving = false,
-  onRemove
-}: {
-  account: BankAccountRecord;
-  providerName: string;
-  onClick: () => void;
-  isSelected?: boolean;
-  index?: number;
-  accountCount?: number;
-  totalBalance: number;
-  connectionStatus?: string | null;
-  canManageConnection?: boolean;
-  isRemoving?: boolean;
-  onRemove?: () => void;
-}) => {
-  const connectionRecordId = resolveConnectionRecordId(account) || `${index}`;
-  const accountSubtitle = (account.institutionName ?? '').trim() || 'Unknown Institution';
-  const accountIcon = accountSubtitle.slice(0, 2).toUpperCase();
-  const normalizedStatus = (connectionStatus ?? '').trim();
-  const statusLabel = normalizedStatus.length > 0
-    ? normalizedStatus.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
-    : null;
-  const resolvedTotalBalance = Number.isFinite(totalBalance) ? totalBalance : Number(account.balance ?? 0);
-
-  return (
-    <div
-      onClick={onClick}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onClick();
-        }
-      }}
-      role="button"
-      tabIndex={0}
-      className={`text-left p-6 rounded-[2rem] border transition-all ${
-        isSelected
-          ? 'bg-white border-opex-teal/40 shadow-lg shadow-teal-900/10'
-          : 'bg-gray-50 border-gray-100 hover:border-gray-200'
-      } cursor-pointer`}
-      data-connection-record-id={connectionRecordId}
-    >
-      <div className={`w-14 h-14 rounded-2xl ${isSelected ? 'bg-opex-dark' : 'bg-opex-dark/90'} text-white flex items-center justify-center font-black text-xl shadow-md`}>
-        {accountIcon}
-      </div>
-      <p className="mt-5 text-base font-black text-gray-900 leading-tight">
-        {resolveConnectionAccountName(account, providerName)}
-      </p>
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-          {accountCount > 1 ? `${accountCount} Accounts` : toAccountCategory(account.nature)} | {account.isSaltedge ? 'Open Banking' : 'Local'}
-        </p>
-        {statusLabel && (
-          <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
-            {statusLabel}
-          </span>
-        )}
-        {account.isForTax && (
-          <span className="inline-flex items-center rounded-full bg-opex-teal/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-opex-teal">
-            Tax Buffer
-          </span>
-        )}
-      </div>
-      <p className="mt-4 text-lg font-black text-gray-900">
-        {new Intl.NumberFormat('it-IT', {
-          style: 'currency',
-          currency: account.currency || 'EUR',
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 2
-        }).format(resolvedTotalBalance)}
-      </p>
-      {canManageConnection && (
-        <div className="mt-4 flex gap-2">
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onRemove?.();
-            }}
-            className="inline-flex h-10 flex-1 items-center justify-center rounded-[1rem] border border-red-100 bg-red-50 px-3 text-xs font-black text-red-600 transition-colors hover:border-red-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={isRemoving}
-          >
-            {isRemoving ? 'Removing...' : 'Remove'}
-          </button>
-        </div>
-      )}
-      {false && (<p className="mt-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-        {toAccountCategory(account.nature)} • {account.isSaltedge ? 'Open Banking' : 'Local'}
-      </p>)}
-    </div>
-  );
-};
 
 const TaxProfileSetupDialog = ({
   isOpen,
@@ -1314,12 +1214,14 @@ export const BreakdownLayout = ({ type, onBack }: { type: 'INCOME' | 'EXPENSES',
 
 export const TransactionsPage = ({
   onBack,
-  transactions
+  transactions,
+  initialFilter = 'All'
 }: {
   onBack: () => void;
   transactions: TransactionRecord[];
+  initialFilter?: 'All' | 'In' | 'Out';
 }) => {
-  const [filter, setFilter] = useState('All');
+  const [filter, setFilter] = useState(initialFilter);
   
   const filteredTransactions = useMemo(() => {
     const normalized = transactions
@@ -1457,6 +1359,7 @@ export const AddTransactionPage = ({
   const [amount, setAmount] = useState('0.00');
   const [selectedCat, setSelectedCat] = useState('General');
   const [note, setNote] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedAccountId, setSelectedAccountId] = useState(localAccounts[0] ? resolveSelectableAccountId(localAccounts[0]) : '');
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -1511,7 +1414,8 @@ export const AddTransactionPage = ({
         amount: parsedAmount,
         category: selectedCat,
         description: note,
-        type
+        type,
+        bookingDate: date
       });
       onBack();
     } catch (error) {
@@ -1605,18 +1509,20 @@ export const AddTransactionPage = ({
              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Transaction Details</h3>
              <Card>
                 <div className="space-y-6">
-                   <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 text-gray-400">
-                         <Calendar size={20} />
-                         <span className="text-sm font-bold">Today, 9 July 2023</span>
-                      </div>
-                      <button className="text-[10px] font-black text-opex-teal uppercase tracking-widest">Change</button>
+                   <div className="flex items-center gap-3">
+                      <Calendar size={20} className="text-gray-400 flex-shrink-0" />
+                      <input
+                        type="date"
+                        value={date}
+                        onChange={e => setDate(e.target.value)}
+                        className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold text-gray-900 outline-none"
+                      />
                    </div>
                    <div className="h-px bg-gray-50 w-full"></div>
                    <div className="flex items-center gap-3">
                       <Edit2 size={20} className="text-gray-400" />
-                      <input 
-                        placeholder="Add a note or description..." 
+                      <input
+                        placeholder="Add a note or description..."
                         value={note}
                         onChange={e => setNote(e.target.value)}
                         className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold text-gray-900 outline-none"
@@ -2046,7 +1952,8 @@ export const AccountSetupPage = ({
 export const AddBankPage = ({
   onNavigate,
   onBankSelect,
-  onConnectionSelect,
+  onConnectionSelect: _onConnectionSelect,
+  onUpdateBankAccount,
   bankAccounts,
   taxBufferProviders = [],
   onCreateOpenBankConnection,
@@ -2059,6 +1966,7 @@ export const AddBankPage = ({
   onNavigate: (v: string) => void;
   onBankSelect: (bank: BankOption) => void;
   onConnectionSelect: (account: BankAccountRecord, providerName: string) => void;
+  onUpdateBankAccount?: (bankAccountId: string, isSaltedge: boolean, payload: { institutionName: string; nature: string; isForTax: boolean }) => Promise<void>;
   bankAccounts: BankAccountRecord[];
   taxBufferProviders?: TaxBufferProviderItem[];
   onCreateOpenBankConnection: (consent: OpenBankingConsentPayload) => Promise<void>;
@@ -2068,6 +1976,7 @@ export const AddBankPage = ({
   openBankErrorMessage?: string | null;
   embeddedInSettings?: boolean;
 }) => {
+  // ─── Data ────────────────────────────────────────────────────────────────────
   const providerByConnectionId = useMemo(() => {
     const providerMap = new Map<string, string>();
     taxBufferProviders.forEach((provider) => {
@@ -2136,6 +2045,7 @@ export const AddBankPage = ({
             return {
               key: groupKey,
               account: representativeAccount,
+              allAccounts: sortedAccounts,
               accountCount: sortedAccounts.length,
               totalBalance: sortedAccounts.reduce((sum, item) => sum + Number(item.balance ?? 0), 0),
               connectionId: normalizedConnectionId.length > 0 ? normalizedConnectionId : null,
@@ -2154,59 +2064,106 @@ export const AddBankPage = ({
       }))
       .sort((left, right) => left.providerName.localeCompare(right.providerName));
   }, [bankAccounts, providerByConnectionId, providerStatusByConnectionId]);
-  const [expandedProviders, setExpandedProviders] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    if (groupedByProvider.length === 0) {
-      setExpandedProviders({});
-      return;
-    }
+  const allConnectionCards = useMemo(
+    () => groupedByProvider.flatMap(({ providerName, connections }) =>
+      connections.map((conn) => ({ conn, providerName }))
+    ),
+    [groupedByProvider]
+  );
 
-    setExpandedProviders((previous) => {
-      const next: Record<string, boolean> = {};
-      groupedByProvider.forEach(({ providerName }) => {
-        next[providerName] = previous[providerName] ?? false;
-      });
+  // ─── View navigation state ──────────────────────────────────────────────────
+  const [bankingView, setBankingView] = useState<'list' | 'connection-detail' | 'account-edit'>('list');
+  const [selectedConnectionKey, setSelectedConnectionKey] = useState<string | null>(null);
+  const [selectedConnectionProviderName, setSelectedConnectionProviderName] = useState('');
+  const [selectedAccountRecordId, setSelectedAccountRecordId] = useState<string | null>(null);
 
-      const hasExpanded = Object.values(next).some(Boolean);
-      if (!hasExpanded) {
-        next[groupedByProvider[0].providerName] = true;
-      }
-      return next;
-    });
-  }, [groupedByProvider]);
+  const liveConnection = useMemo(
+    () => allConnectionCards.find(({ conn }) => conn.key === selectedConnectionKey) ?? null,
+    [allConnectionCards, selectedConnectionKey]
+  );
+
+  const liveAccount = useMemo(() => {
+    if (!selectedAccountRecordId || !liveConnection) return null;
+    return liveConnection.conn.allAccounts.find(
+      (a) => (resolveConnectionRecordId(a) || a.id) === selectedAccountRecordId
+    ) ?? null;
+  }, [liveConnection, selectedAccountRecordId]);
+
+  // ─── Account edit state ──────────────────────────────────────────────────────
+  const [editAccountName, setEditAccountName] = useState('');
+  const [editAccountCategory, setEditAccountCategory] = useState<AccountCategory>('Personal');
+  const [editIsTaxBuffer, setEditIsTaxBuffer] = useState(false);
+  const [isSavingAccount, setIsSavingAccount] = useState(false);
+  const [accountEditError, setAccountEditError] = useState<string | null>(null);
+
+  // ─── Connection remove state ─────────────────────────────────────────────────
+  const [isRemovingConnection, setIsRemovingConnection] = useState(false);
+  const [removeConnectionError, setRemoveConnectionError] = useState<string | null>(null);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+
+  // ─── Add connection consent modal ────────────────────────────────────────────
   const [isOpenBankingConsentModalOpen, setIsOpenBankingConsentModalOpen] = useState(false);
   const [acceptOpenBankingNotice, setAcceptOpenBankingNotice] = useState(false);
   const [acceptSaltEdgeTransfer, setAcceptSaltEdgeTransfer] = useState(false);
   const [openBankingConsentError, setOpenBankingConsentError] = useState<string | null>(null);
   const [isSubmittingOpenBankingConsent, setIsSubmittingOpenBankingConsent] = useState(false);
-  const [activeRemoveConnectionId, setActiveRemoveConnectionId] = useState<string | null>(null);
-  const [connectionActionError, setConnectionActionError] = useState<string | null>(null);
 
-  const toggleProvider = (providerName: string) => {
-    setExpandedProviders((previous) => ({
-      ...previous,
-      [providerName]: !previous[providerName]
-    }));
+  const openConnectionDetail = (connKey: string, provName: string) => {
+    setSelectedConnectionKey(connKey);
+    setSelectedConnectionProviderName(provName);
+    setRemoveConnectionError(null);
+    setShowRemoveConfirm(false);
+    setBankingView('connection-detail');
   };
 
-  const handleRemoveConnection = async (connectionId: string, providerName: string) => {
-    const confirmed = window.confirm(
-      `Remove the ${providerName} connection? Imported accounts and transactions linked to this Salt Edge connection will be deleted from Opex.`
-    );
-    if (!confirmed) {
+  const openAccountEdit = (account: BankAccountRecord) => {
+    const recordId = resolveConnectionRecordId(account) || account.id;
+    setSelectedAccountRecordId(recordId);
+    setEditAccountName(resolveConnectionAccountName(account, selectedConnectionProviderName));
+    setEditAccountCategory(toAccountCategory(account.nature));
+    setEditIsTaxBuffer(Boolean(account.isForTax));
+    setAccountEditError(null);
+    setBankingView('account-edit');
+  };
+
+  const handleSaveAccount = async () => {
+    if (!liveAccount || !onUpdateBankAccount) return;
+    const accountId = resolveConnectionRecordId(liveAccount) || liveAccount.id;
+    if (!accountId) {
+      setAccountEditError('Unable to identify the account ID.');
       return;
     }
-
-    setConnectionActionError(null);
-    setActiveRemoveConnectionId(connectionId);
-
+    setIsSavingAccount(true);
+    setAccountEditError(null);
     try {
-      await onRemoveOpenBankConnection(connectionId);
+      await onUpdateBankAccount(accountId, Boolean(liveAccount.isSaltedge), {
+        institutionName: editAccountName.trim() || resolveConnectionAccountName(liveAccount, selectedConnectionProviderName),
+        nature: ACCOUNT_CATEGORY_TO_NATURE[editAccountCategory],
+        isForTax: editIsTaxBuffer
+      });
+      setBankingView('connection-detail');
     } catch (error) {
-      setConnectionActionError(error instanceof Error ? error.message : 'Unable to remove this Salt Edge connection.');
+      setAccountEditError(error instanceof Error ? error.message : 'Unable to save changes.');
     } finally {
-      setActiveRemoveConnectionId(null);
+      setIsSavingAccount(false);
+    }
+  };
+
+  const handleRemoveConnection = async () => {
+    const connId = liveConnection?.conn.connectionId;
+    if (!connId) return;
+    setIsRemovingConnection(true);
+    setRemoveConnectionError(null);
+    try {
+      await onRemoveOpenBankConnection(connId);
+      setBankingView('list');
+      setSelectedConnectionKey(null);
+    } catch (error) {
+      setRemoveConnectionError(error instanceof Error ? error.message : 'Unable to remove connection.');
+    } finally {
+      setIsRemovingConnection(false);
+      setShowRemoveConfirm(false);
     }
   };
 
@@ -2215,15 +2172,12 @@ export const AddBankPage = ({
       setOpenBankingConsentError('Open banking notice version is not available yet. Reload and retry.');
       return;
     }
-
     if (!acceptOpenBankingNotice || !acceptSaltEdgeTransfer) {
-      setOpenBankingConsentError('You must confirm the data notice and Salt Edge processing before connecting a bank.');
+      setOpenBankingConsentError('You must confirm both notices before connecting a bank.');
       return;
     }
-
     setOpenBankingConsentError(null);
     setIsSubmittingOpenBankingConsent(true);
-
     try {
       await onCreateOpenBankConnection({
         acceptOpenBankingNotice: true,
@@ -2238,292 +2192,562 @@ export const AddBankPage = ({
     }
   };
 
-  const pageContent = (
-    <div className={`max-w-4xl mx-auto ${embeddedInSettings ? 'flex flex-col gap-8' : 'space-y-8'}`}>
-        <Card title="Connections By Provider" className={embeddedInSettings ? 'order-2' : ''}>
-          {groupedByProvider.length === 0 ? (
-            <p className="text-sm text-gray-500 font-medium">No connections available yet.</p>
+  const fmtBalance = (amount: number, currency?: string) =>
+    new Intl.NumberFormat('it-IT', {
+      style: 'currency',
+      currency: currency || 'EUR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(amount);
+
+  const resolveStatusLabel = (status: string | null) => {
+    const s = (status ?? '').trim();
+    return s ? s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : null;
+  };
+
+  const resolveStatusColor = (status: string | null) => {
+    const s = (status ?? '').trim().toLowerCase();
+    if (s === 'active') return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+    if (s === 'inactive' || s === 'disabled') return 'bg-gray-100 text-gray-500 border-gray-200';
+    if (s.includes('error') || s.includes('failed')) return 'bg-red-50 text-red-600 border-red-100';
+    if (s.includes('expir') || s.includes('consent')) return 'bg-amber-50 text-amber-600 border-amber-100';
+    return 'bg-slate-100 text-slate-500 border-slate-200';
+  };
+
+  // ─── VIEW: Account Edit ──────────────────────────────────────────────────────
+  if (bankingView === 'account-edit') {
+    const account = liveAccount;
+    const displayName = account
+      ? resolveConnectionAccountName(account, selectedConnectionProviderName)
+      : 'Account';
+
+    const accountViewContent = (
+      <div className="max-w-2xl mx-auto space-y-5 animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
+        <button
+          type="button"
+          onClick={() => setBankingView('connection-detail')}
+          className="flex items-center gap-2 text-sm font-black text-gray-500 hover:text-opex-dark transition-colors"
+        >
+          <ArrowLeft size={16} />
+          Back to connection
+        </button>
+
+        <div className="pt-1">
+          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Edit Account</p>
+          <h2 className="mt-1.5 text-2xl font-black text-opex-dark">{displayName}</h2>
+          {account && (
+            <p className="mt-1 text-sm font-medium text-slate-400">
+              {account.isSaltedge ? 'Open Banking account' : 'Local account'}
+              {' · '}
+              {fmtBalance(Number(account.balance ?? 0), account.currency)}
+            </p>
+          )}
+        </div>
+
+        {/* Account Name */}
+        <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm space-y-3">
+          <label className="block text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">
+            Account Name
+          </label>
+          <input
+            type="text"
+            value={editAccountName}
+            onChange={(e) => {
+              setEditAccountName(e.target.value);
+              if (accountEditError) setAccountEditError(null);
+            }}
+            placeholder="e.g. Conto Corrente ING"
+            className="w-full border-0 border-b-2 border-slate-200 bg-transparent pb-3 text-xl font-black text-opex-dark placeholder:text-slate-300 focus:border-opex-dark focus:outline-none focus:ring-0"
+            disabled={isSavingAccount}
+          />
+        </div>
+
+        {/* Category */}
+        <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Account Category</p>
+          <div className="flex flex-wrap gap-3">
+            {ACCOUNT_CATEGORY_OPTIONS.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => {
+                  setEditAccountCategory(cat);
+                  if (accountEditError) setAccountEditError(null);
+                }}
+                disabled={isSavingAccount}
+                className={`px-5 py-2.5 rounded-2xl text-sm font-black transition-all ${
+                  editAccountCategory === cat
+                    ? 'bg-opex-dark text-white shadow-md'
+                    : 'bg-gray-50 text-gray-600 border border-gray-100 hover:border-gray-300 hover:bg-gray-100'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs font-medium text-slate-400">
+            {editAccountCategory === 'Personal' && 'Personal banking, everyday spending and income.'}
+            {editAccountCategory === 'Business' && 'Business operations, professional income and expenses.'}
+            {editAccountCategory === 'Savings' && 'Savings goals, deposits and long-term reserves.'}
+          </p>
+        </div>
+
+        {/* Fiscal Settings */}
+        <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm">
+          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400 mb-5">Fiscal Settings</p>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <p className="text-base font-black text-gray-900">Tax Buffer</p>
+              <p className="text-sm font-medium text-slate-500 mt-1 max-w-sm">
+                Include this account in tax buffer calculations. Opex uses its balance to compute how much to set aside.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={editIsTaxBuffer}
+              onClick={() => setEditIsTaxBuffer((v) => !v)}
+              disabled={isSavingAccount}
+              className={`relative inline-flex h-7 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                editIsTaxBuffer ? 'bg-opex-dark' : 'bg-slate-200'
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition duration-200 ${
+                  editIsTaxBuffer ? 'translate-x-8' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          {editIsTaxBuffer && (
+            <div className="mt-4 rounded-xl bg-opex-teal/5 border border-opex-teal/10 px-4 py-3">
+              <p className="text-xs font-black text-opex-teal">Tax Buffer Enabled</p>
+              <p className="text-xs font-medium text-slate-500 mt-0.5">This account's balance is included in fiscal calculations.</p>
+            </div>
+          )}
+        </div>
+
+        {accountEditError && (
+          <p className="text-sm font-bold text-red-600 px-1">{accountEditError}</p>
+        )}
+
+        <div className="flex gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => setBankingView('connection-detail')}
+            className="inline-flex h-12 items-center justify-center rounded-[1.3rem] border border-slate-200 bg-white px-6 text-sm font-black text-slate-500 hover:border-slate-300 hover:text-opex-dark transition-colors disabled:opacity-50"
+            disabled={isSavingAccount}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleSaveAccount()}
+            disabled={isSavingAccount || !onUpdateBankAccount}
+            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-[1.3rem] bg-opex-dark px-6 text-sm font-black text-white shadow-[0_8px_24px_-8px_rgba(12,33,49,0.4)] hover:bg-slate-800 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isSavingAccount ? (
+              <><Loader2 size={16} className="animate-spin" />Saving...</>
+            ) : (
+              'Save Changes'
+            )}
+          </button>
+        </div>
+      </div>
+    );
+
+    if (embeddedInSettings) return accountViewContent;
+    return (
+      <SubpageShell onBack={() => setBankingView('connection-detail')} title="Edit Account">
+        {accountViewContent}
+      </SubpageShell>
+    );
+  }
+
+  // ─── VIEW: Connection Detail ─────────────────────────────────────────────────
+  if (bankingView === 'connection-detail') {
+    const conn = liveConnection?.conn;
+    const provName = selectedConnectionProviderName;
+    const icon = provName.slice(0, 2).toUpperCase();
+    const statusLabel = resolveStatusLabel(conn?.status ?? null);
+    const accounts = conn?.allAccounts ?? [];
+
+    const connectionDetailContent = (
+      <div className="max-w-2xl mx-auto space-y-5 animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
+        <button
+          type="button"
+          onClick={() => { setBankingView('list'); setShowRemoveConfirm(false); }}
+          className="flex items-center gap-2 text-sm font-black text-gray-500 hover:text-opex-dark transition-colors"
+        >
+          <ArrowLeft size={16} />
+          All connections
+        </button>
+
+        {/* Header card */}
+        <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-[1.5rem] bg-opex-dark text-white flex items-center justify-center font-black text-xl shadow-lg flex-shrink-0">
+              {icon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xl font-black text-gray-900 leading-tight">{provName}</p>
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  {conn?.isManagedConnection ? 'Open Banking · Salt Edge' : 'Local Account'}
+                </span>
+                {statusLabel && (
+                  <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${resolveStatusColor(conn?.status ?? null)}`}>
+                    {statusLabel}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="text-lg font-black text-gray-900">
+                {fmtBalance(conn?.totalBalance ?? 0, conn?.account.currency)}
+              </p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                {(conn?.accountCount ?? 0)} {(conn?.accountCount ?? 0) === 1 ? 'account' : 'accounts'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Accounts */}
+        <div className="space-y-2">
+          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400 px-1">Accounts in this connection</p>
+          {accounts.length === 0 ? (
+            <p className="text-sm font-medium text-slate-400 px-1">No accounts found.</p>
           ) : (
-            <div className="space-y-3">
-              {groupedByProvider.map(({ providerName, connections }) => {
-                const isExpanded = Boolean(expandedProviders[providerName]);
-
+            <div className="space-y-2">
+              {accounts.map((account) => {
+                const accName = resolveConnectionAccountName(account, provName);
                 return (
-                  <div key={providerName} className="rounded-2xl border border-gray-100 bg-gray-50 overflow-hidden">
-                    <button
-                      onClick={() => toggleProvider(providerName)}
-                      className="w-full px-4 py-3 flex items-center justify-between gap-4 hover:bg-gray-100/60 transition-colors"
-                    >
-                      <div className="text-left">
-                        <p className="text-sm font-black text-gray-900">{providerName}</p>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                          {connections.length} {connections.length === 1 ? 'connection' : 'connections'}
-                        </p>
+                  <button
+                    key={account.id}
+                    type="button"
+                    onClick={() => openAccountEdit(account)}
+                    className="w-full text-left rounded-[1.75rem] border border-gray-100 bg-white p-4 shadow-sm hover:border-opex-teal/30 hover:shadow-md transition-all group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-2xl bg-gray-50 text-gray-500 flex items-center justify-center font-black text-xs group-hover:bg-opex-dark/5 group-hover:text-opex-dark transition-colors flex-shrink-0">
+                        {accName.slice(0, 2).toUpperCase()}
                       </div>
-                      <ChevronDown
-                        size={16}
-                        className={`text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-
-                    {isExpanded && (
-                      <div className="border-t border-gray-100 bg-white/80 p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                          {connections.map((connection, index) => (
-                            <React.Fragment key={connection.key}>
-                              <ConnectionAccountCard
-                                account={connection.account}
-                                providerName={providerName}
-                                index={index}
-                                accountCount={connection.accountCount}
-                                totalBalance={connection.totalBalance}
-                                connectionStatus={connection.status}
-                                canManageConnection={connection.isManagedConnection && Boolean(connection.connectionId)}
-                                isRemoving={connection.connectionId === activeRemoveConnectionId}
-                                onRemove={connection.connectionId ? () => void handleRemoveConnection(connection.connectionId, providerName) : undefined}
-                                onClick={() => onConnectionSelect(connection.account, providerName)}
-                              />
-                            </React.Fragment>
-                          ))}
-                          {false && connections.map(({ account }: ProviderConnectionCard, index) => (
-                            <React.Fragment key={`${providerName}-${account.connectionId ?? 'no-connection'}-${account.id ?? account.institutionName ?? 'account'}-${index}`}>
-                              <ConnectionAccountCard
-                                account={account}
-                                providerName={providerName}
-                                index={index}
-                                totalBalance={Number(account.balance ?? 0)}
-                                onClick={() => onConnectionSelect(account, providerName)}
-                              />
-                              {false && (
-                            <button
-                              key={`${providerName}-${account.connectionId ?? 'no-connection'}-${account.id ?? account.institutionName ?? 'account'}-${index}`}
-                              onClick={() => onConnectionSelect(account, providerName)}
-                              className="text-left w-full rounded-2xl border border-gray-100 bg-white px-4 py-4 hover:border-opex-teal/30 hover:shadow-sm transition-all"
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="space-y-1">
-                                  <p className="text-sm font-black text-gray-900">{resolveConnectionAccountName(account, providerName)}</p>
-                                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                    {toAccountCategory(account.nature)} • {account.isSaltedge ? 'Open Banking' : 'Local'}
-                                  </p>
-                                </div>
-                                <ChevronRight size={16} className="text-gray-400" />
-                              </div>
-                              <div className="mt-3 flex items-center justify-between gap-3">
-                                <p className="text-sm font-bold text-gray-700">
-                                  {new Intl.NumberFormat('it-IT', {
-                                    style: 'currency',
-                                    currency: account.currency || 'EUR',
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 2
-                                  }).format(account.balance ?? 0)}
-                                </p>
-                                {account.isForTax && (
-                                  <span className="inline-flex items-center rounded-full bg-opex-teal/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-opex-teal">
-                                    Tax Buffer
-                                  </span>
-                                )}
-                              </div>
-                            </button>
-                              )}
-                            </React.Fragment>
-                          ))}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-black text-gray-900 leading-tight truncate">{accName}</p>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                            {toAccountCategory(account.nature)}
+                          </span>
+                          {account.isForTax && (
+                            <span className="inline-flex items-center rounded-full bg-opex-teal/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-opex-teal">
+                              Tax Buffer
+                            </span>
+                          )}
                         </div>
                       </div>
-                    )}
-                  </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <p className="text-sm font-black text-gray-700">
+                          {fmtBalance(Number(account.balance ?? 0), account.currency)}
+                        </p>
+                        <ChevronRight size={16} className="text-gray-300 group-hover:text-opex-teal transition-colors" />
+                      </div>
+                    </div>
+                  </button>
                 );
               })}
             </div>
           )}
-        </Card>
+        </div>
 
-        {connectionActionError && (
-          <p className="text-sm font-medium text-red-600">{connectionActionError}</p>
-        )}
-
-        <Card title="Add New Connection" className={embeddedInSettings ? 'order-1' : ''}>
-          <button
-            onClick={() => {
-              setAcceptOpenBankingNotice(false);
-              setAcceptSaltEdgeTransfer(false);
-              setOpenBankingConsentError(null);
-              setIsOpenBankingConsentModalOpen(true);
-            }}
-            className="w-full bg-opex-teal/5 p-6 rounded-[2rem] border border-opex-teal/20 flex items-center justify-between gap-4 hover:bg-opex-teal/10 transition-all group"
-            disabled={isConnectingOpenBank}
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-opex-teal text-white flex items-center justify-center font-black text-lg shadow-lg group-hover:scale-105 transition-transform">
-                OB
-              </div>
-              <div className="text-left">
-                <p className="text-base font-black text-gray-900">New Open Banking Connection</p>
-                <p className="text-xs text-gray-500 font-medium">
-                  {isConnectingOpenBank
-                    ? 'Preparing connection and opening a new browser tab...'
-                    : 'Start a new bank connection and authorize via Salt Edge.'}
-                </p>
-              </div>
-            </div>
-            {isConnectingOpenBank ? <Loader2 size={20} className="text-opex-teal animate-spin" /> : <ChevronRight size={20} className="text-opex-teal" />}
-          </button>
-          {openBankErrorMessage && <p className="mt-3 text-sm text-red-600 font-medium">{openBankErrorMessage}</p>}
-          <button
-            onClick={() => onBankSelect({ name: 'Manual Account', color: 'bg-gray-400', icon: <Plus />, isManual: true })}
-            className="mt-4 w-full bg-gray-50 p-4 rounded-2xl border border-dashed border-gray-300 text-left hover:bg-gray-100 transition-all"
-          >
-            <p className="text-sm font-black text-gray-700">Add Manual Account</p>
-            <p className="text-xs text-gray-500 font-medium mt-1">Create a local account without Open Banking authorization.</p>
-          </button>
-        </Card>
-
-        {isOpenBankingConsentModalOpen && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/20 px-4 py-8 backdrop-blur-[6px]">
-            <div className="w-full max-w-2xl rounded-[2.25rem] border border-white/70 bg-white/95 p-6 shadow-[0_32px_80px_-32px_rgba(15,23,42,0.45)] md:p-8">
+        {/* Danger zone */}
+        {conn?.isManagedConnection && conn.connectionId && (
+          <div className="rounded-[2rem] border border-red-100 bg-red-50/40 p-6 space-y-4">
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-red-400">Danger Zone</p>
+            {!showRemoveConfirm ? (
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Open Banking Notice</p>
-                  <h3 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Review the banking data notice</h3>
-                  <p className="mt-3 text-sm font-medium leading-relaxed text-slate-500">
-                    Before Opex redirects you to Salt Edge, confirm that you understand what banking data will be imported and why.
+                  <p className="text-sm font-black text-gray-900">Remove this connection</p>
+                  <p className="text-xs font-medium text-slate-500 mt-1 max-w-xs">
+                    All imported accounts and transactions from this Salt Edge connection will be permanently deleted.
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIsOpenBankingConsentModalOpen(false)}
-                  className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-opex-dark"
-                  disabled={isSubmittingOpenBankingConsent}
+                  onClick={() => setShowRemoveConfirm(true)}
+                  className="flex-shrink-0 inline-flex h-9 items-center gap-1.5 rounded-xl border border-red-200 bg-white px-4 text-xs font-black text-red-600 transition-colors hover:bg-red-50 whitespace-nowrap"
                 >
-                  <X size={18} />
+                  Remove
                 </button>
               </div>
-
-              <div className="mt-8 grid gap-4 md:grid-cols-2">
-                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-                  <p className="text-sm font-black text-slate-900">Data imported</p>
-                  <p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">
-                    Opex may import account identifiers, provider metadata, balances and transactions for the connected bank.
+            ) : (
+              <div className="space-y-4">
+                <div className="rounded-[1.5rem] border border-red-200 bg-white px-5 py-4">
+                  <p className="text-sm font-black text-red-700">Are you sure?</p>
+                  <p className="text-xs font-medium text-slate-500 mt-1">
+                    This permanently deletes all accounts and transactions from <span className="font-black">{provName}</span>. This cannot be undone.
                   </p>
                 </div>
-                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-                  <p className="text-sm font-black text-slate-900">Third-party processing</p>
-                  <p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">
-                    Salt Edge handles the authorization redirect and connection workflow with your bank.
-                  </p>
+                {removeConnectionError && (
+                  <p className="text-sm font-bold text-red-600">{removeConnectionError}</p>
+                )}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setShowRemoveConfirm(false); setRemoveConnectionError(null); }}
+                    disabled={isRemovingConnection}
+                    className="flex-1 inline-flex h-10 items-center justify-center rounded-[1rem] border border-slate-200 bg-white text-sm font-black text-slate-500 transition-colors hover:border-slate-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleRemoveConnection()}
+                    disabled={isRemovingConnection}
+                    className="flex-1 inline-flex h-10 items-center justify-center gap-2 rounded-[1rem] bg-red-600 text-sm font-black text-white transition-colors hover:bg-red-700 disabled:opacity-60"
+                  >
+                    {isRemovingConnection ? (
+                      <><Loader2 size={14} className="animate-spin" />Removing...</>
+                    ) : 'Delete Connection'}
+                  </button>
                 </div>
               </div>
-
-              <div className="mt-6 space-y-4 rounded-[1.75rem] border border-slate-200 bg-white p-5">
-                <label className="flex items-start gap-4">
-                  <input
-                    type="checkbox"
-                    checked={acceptOpenBankingNotice}
-                    onChange={(event) => {
-                      setAcceptOpenBankingNotice(event.target.checked);
-                      if (openBankingConsentError) {
-                        setOpenBankingConsentError(null);
-                      }
-                    }}
-                    className="mt-1 h-5 w-5 rounded border-slate-300 text-opex-dark focus:ring-opex-dark"
-                    disabled={isSubmittingOpenBankingConsent}
-                  />
-                  <span>
-                    <span className="block text-base font-black text-slate-900">
-                      I accept the Open Banking Notice v{openBankingNoticeVersion || 'current'}.
-                    </span>
-                    <span className="mt-1 block text-sm font-medium leading-relaxed text-slate-500">
-                      I understand how Opex will use connected banking data inside the product.
-                    </span>
-                  </span>
-                </label>
-
-                <label className="flex items-start gap-4">
-                  <input
-                    type="checkbox"
-                    checked={acceptSaltEdgeTransfer}
-                    onChange={(event) => {
-                      setAcceptSaltEdgeTransfer(event.target.checked);
-                      if (openBankingConsentError) {
-                        setOpenBankingConsentError(null);
-                      }
-                    }}
-                    className="mt-1 h-5 w-5 rounded border-slate-300 text-opex-dark focus:ring-opex-dark"
-                    disabled={isSubmittingOpenBankingConsent}
-                  />
-                  <span>
-                    <span className="block text-base font-black text-slate-900">
-                      I authorize the redirect to Salt Edge for bank connection setup.
-                    </span>
-                    <span className="mt-1 block text-sm font-medium leading-relaxed text-slate-500">
-                      This specific flow is optional. You can keep using manual accounts if you prefer not to connect a bank.
-                    </span>
-                  </span>
-                </label>
-              </div>
-
-              <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-                <button
-                  type="button"
-                  onClick={() => openLegalDocument('open-banking')}
-                  className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
-                  disabled={isSubmittingOpenBankingConsent}
-                >
-                  Open Banking Notice
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openLegalDocument('privacy')}
-                  className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
-                  disabled={isSubmittingOpenBankingConsent}
-                >
-                  Privacy Notice
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openLegalDocument('terms')}
-                  className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
-                  disabled={isSubmittingOpenBankingConsent}
-                >
-                  Terms
-                </button>
-              </div>
-
-              {openBankingConsentError && (
-                <p className="mt-5 text-sm font-bold text-red-600">{openBankingConsentError}</p>
-              )}
-
-              <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => setIsOpenBankingConsentModalOpen(false)}
-                  className="inline-flex h-12 items-center justify-center rounded-[1rem] border border-slate-200 bg-white px-5 text-sm font-black text-slate-500 transition-colors hover:border-slate-300 hover:text-opex-dark"
-                  disabled={isSubmittingOpenBankingConsent}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleOpenBankingStart()}
-                  className="inline-flex h-12 items-center justify-center rounded-[1rem] bg-opex-dark px-5 text-sm font-black text-white"
-                  disabled={isSubmittingOpenBankingConsent}
-                >
-                  {isSubmittingOpenBankingConsent ? 'Opening...' : 'Continue to Salt Edge'}
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         )}
+      </div>
+    );
+
+    if (embeddedInSettings) return connectionDetailContent;
+    return (
+      <SubpageShell onBack={() => setBankingView('list')} title={selectedConnectionProviderName || 'Connection'}>
+        {connectionDetailContent}
+      </SubpageShell>
+    );
+  }
+
+  // ─── VIEW: Connection List ───────────────────────────────────────────────────
+  const consentModal = isOpenBankingConsentModalOpen && (
+    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/20 px-4 py-8 backdrop-blur-[6px]">
+      <div className="w-full max-w-2xl rounded-[2.25rem] border border-white/70 bg-white/95 p-6 shadow-[0_32px_80px_-32px_rgba(15,23,42,0.45)] md:p-8">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Open Banking Notice</p>
+            <h3 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Review the banking data notice</h3>
+            <p className="mt-3 text-sm font-medium leading-relaxed text-slate-500">
+              Before Opex redirects you to Salt Edge, confirm that you understand what banking data will be imported and why.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsOpenBankingConsentModalOpen(false)}
+            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-opex-dark"
+            disabled={isSubmittingOpenBankingConsent}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+            <p className="text-sm font-black text-slate-900">Data imported</p>
+            <p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">
+              Opex may import account identifiers, provider metadata, balances and transactions for the connected bank.
+            </p>
+          </div>
+          <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+            <p className="text-sm font-black text-slate-900">Third-party processing</p>
+            <p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">
+              Salt Edge handles the authorization redirect and connection workflow with your bank.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 space-y-4 rounded-[1.75rem] border border-slate-200 bg-white p-5">
+          <label className="flex items-start gap-4">
+            <input
+              type="checkbox"
+              checked={acceptOpenBankingNotice}
+              onChange={(event) => {
+                setAcceptOpenBankingNotice(event.target.checked);
+                if (openBankingConsentError) setOpenBankingConsentError(null);
+              }}
+              className="mt-1 h-5 w-5 rounded border-slate-300 text-opex-dark focus:ring-opex-dark"
+              disabled={isSubmittingOpenBankingConsent}
+            />
+            <span>
+              <span className="block text-base font-black text-slate-900">
+                I accept the Open Banking Notice v{openBankingNoticeVersion || 'current'}.
+              </span>
+              <span className="mt-1 block text-sm font-medium leading-relaxed text-slate-500">
+                I understand how Opex will use connected banking data inside the product.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-4">
+            <input
+              type="checkbox"
+              checked={acceptSaltEdgeTransfer}
+              onChange={(event) => {
+                setAcceptSaltEdgeTransfer(event.target.checked);
+                if (openBankingConsentError) setOpenBankingConsentError(null);
+              }}
+              className="mt-1 h-5 w-5 rounded border-slate-300 text-opex-dark focus:ring-opex-dark"
+              disabled={isSubmittingOpenBankingConsent}
+            />
+            <span>
+              <span className="block text-base font-black text-slate-900">
+                I authorize the redirect to Salt Edge for bank connection setup.
+              </span>
+              <span className="mt-1 block text-sm font-medium leading-relaxed text-slate-500">
+                This specific flow is optional. You can keep using manual accounts if you prefer not to connect a bank.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+          <button type="button" onClick={() => openLegalDocument('open-banking')} className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark" disabled={isSubmittingOpenBankingConsent}>Open Banking Notice</button>
+          <button type="button" onClick={() => openLegalDocument('privacy')} className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark" disabled={isSubmittingOpenBankingConsent}>Privacy Notice</button>
+          <button type="button" onClick={() => openLegalDocument('terms')} className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark" disabled={isSubmittingOpenBankingConsent}>Terms</button>
+        </div>
+
+        {openBankingConsentError && (
+          <p className="mt-5 text-sm font-bold text-red-600">{openBankingConsentError}</p>
+        )}
+
+        <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button type="button" onClick={() => setIsOpenBankingConsentModalOpen(false)} className="inline-flex h-12 items-center justify-center rounded-[1rem] border border-slate-200 bg-white px-5 text-sm font-black text-slate-500 transition-colors hover:border-slate-300 hover:text-opex-dark" disabled={isSubmittingOpenBankingConsent}>
+            Cancel
+          </button>
+          <button type="button" onClick={() => void handleOpenBankingStart()} className="inline-flex h-12 items-center justify-center rounded-[1rem] bg-opex-dark px-5 text-sm font-black text-white disabled:opacity-60" disabled={isSubmittingOpenBankingConsent}>
+            {isSubmittingOpenBankingConsent ? 'Opening...' : 'Continue to Salt Edge'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const pageContent = (
+    <div className="max-w-2xl mx-auto space-y-6 pb-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+
+      {/* Add connection */}
+      <div className="space-y-3">
+        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400 px-1">
+          Add Connection
+        </p>
+        <button
+          onClick={() => {
+            setAcceptOpenBankingNotice(false);
+            setAcceptSaltEdgeTransfer(false);
+            setOpenBankingConsentError(null);
+            setIsOpenBankingConsentModalOpen(true);
+          }}
+          className="w-full bg-opex-teal/5 p-5 rounded-[2rem] border border-opex-teal/20 flex items-center justify-between gap-4 hover:bg-opex-teal/10 transition-all group"
+          disabled={isConnectingOpenBank}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-opex-teal text-white flex items-center justify-center font-black text-sm shadow-lg group-hover:scale-105 transition-transform flex-shrink-0">
+              OB
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-black text-gray-900">New Open Banking Connection</p>
+              <p className="text-xs text-gray-500 font-medium">
+                {isConnectingOpenBank ? 'Preparing connection...' : 'Connect via Salt Edge authorization.'}
+              </p>
+            </div>
+          </div>
+          {isConnectingOpenBank
+            ? <Loader2 size={18} className="text-opex-teal animate-spin flex-shrink-0" />
+            : <ChevronRight size={18} className="text-opex-teal flex-shrink-0" />}
+        </button>
+        {openBankErrorMessage && (
+          <p className="text-sm text-red-600 font-medium px-1">{openBankErrorMessage}</p>
+        )}
+        <button
+          onClick={() => onBankSelect({ name: 'Manual Account', color: 'bg-gray-400', icon: <Plus />, isManual: true })}
+          className="w-full bg-gray-50 p-4 rounded-2xl border border-dashed border-gray-200 text-left hover:bg-gray-100 transition-all"
+        >
+          <p className="text-sm font-black text-gray-700">Add Manual Account</p>
+          <p className="text-xs text-gray-500 font-medium mt-0.5">Create a local account without Open Banking.</p>
+        </button>
+      </div>
+
+      {/* Connected accounts */}
+      <div>
+        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400 mb-3 px-1">
+          Connected Accounts
+        </p>
+        {allConnectionCards.length === 0 ? (
+          <div className="rounded-[2rem] border border-dashed border-gray-200 bg-gray-50/50 p-10 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto">
+              <Building2 size={22} className="text-gray-400" />
+            </div>
+            <p className="mt-4 text-sm font-black text-gray-500">No connections yet</p>
+            <p className="text-xs font-medium text-gray-400 mt-1">
+              Add an open banking connection or create a manual account above.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {allConnectionCards.map(({ conn, providerName }) => {
+              const icon = providerName.slice(0, 2).toUpperCase();
+              const statusLabel = resolveStatusLabel(conn.status);
+              return (
+                <button
+                  key={conn.key}
+                  type="button"
+                  onClick={() => openConnectionDetail(conn.key, providerName)}
+                  className="w-full text-left rounded-[1.75rem] border border-gray-100 bg-white p-4 shadow-sm hover:border-opex-teal/30 hover:shadow-md transition-all group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-[1.25rem] bg-opex-dark text-white flex items-center justify-center font-black text-sm shadow-md flex-shrink-0">
+                      {icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-black text-gray-900 leading-tight">{providerName}</p>
+                        {statusLabel && (
+                          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${resolveStatusColor(conn.status)}`}>
+                            {statusLabel}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                        {conn.isManagedConnection ? 'Open Banking · Salt Edge' : 'Local Account'}
+                        {' · '}
+                        {conn.accountCount} {conn.accountCount === 1 ? 'account' : 'accounts'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <p className="text-sm font-black text-gray-600 hidden sm:block">
+                        {fmtBalance(conn.totalBalance, conn.account.currency)}
+                      </p>
+                      <ChevronRight size={18} className="text-gray-300 group-hover:text-opex-teal transition-colors" />
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 
   if (embeddedInSettings) {
-    return pageContent;
+    return (
+      <>
+        {pageContent}
+        {consentModal}
+      </>
+    );
   }
 
   return (
-    <SubpageShell onBack={() => onNavigate('SETTINGS')} title="Add Bank">
+    <SubpageShell onBack={() => onNavigate('SETTINGS')} title="Banking">
       {pageContent}
+      {consentModal}
     </SubpageShell>
   );
 };
@@ -4898,21 +5122,21 @@ export const DashboardPage = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <ClickableStat 
-          title="Total Income" 
+        <ClickableStat
+          title="Total Income"
           amount={Math.round(totalIncome).toLocaleString('it-IT')}
           trend={isLoading ? 'sync...' : 'month'}
-          icon={ArrowUp} 
+          icon={ArrowUp}
           trendUp={true}
-          onClick={() => onNavigate('INCOME')}
+          onClick={() => onNavigate('TRANSACTIONS_IN')}
         />
-        <ClickableStat 
-          title="Total Expenses" 
+        <ClickableStat
+          title="Total Expenses"
           amount={Math.round(totalExpenses).toLocaleString('it-IT')}
           trend={isLoading ? 'sync...' : 'month'}
-          icon={TrendingDown} 
+          icon={TrendingDown}
           trendUp={false}
-          onClick={() => onNavigate('EXPENSES')}
+          onClick={() => onNavigate('TRANSACTIONS_OUT')}
         />
         <RecurringWidget onClick={() => onNavigate('RECURRING')} />
       </div>
@@ -5120,8 +5344,20 @@ export const BudgetPage = ({
 
         {/* 3. CLIENT RISK (Conditional Block) */}
         {clientConcentration > 50 && (
-          <div className="lg:col-span-4">
-            <div className={`${risk.bg} rounded-[2rem] p-5 border ${risk.border} h-full flex flex-col justify-center`}>
+          <div className="lg:col-span-4 relative">
+            {/* Coming Soon overlay */}
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem] pointer-events-auto select-none">
+              <div className="flex flex-col items-center gap-2 text-center px-4">
+                <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
+                  <Lock size={20} className="text-gray-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-gray-700 tracking-tight">Coming Soon</p>
+                  <p className="text-xs text-gray-400 font-medium mt-0.5 max-w-xs">Client risk analysis in development.</p>
+                </div>
+              </div>
+            </div>
+            <div className={`${risk.bg} rounded-[2rem] p-5 border ${risk.border} h-full flex flex-col justify-center pointer-events-none select-none`} style={{ filter: 'blur(2px)', opacity: 0.5 }}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-xl ${risk.iconBg} flex items-center justify-center ${risk.iconText}`}>
@@ -5432,30 +5668,88 @@ export const CategoriesPage = ({ onBack }: { onBack: () => void }) => {
   );
 };
 
+import { opexApi } from '../services/opexApi';
+
 export const NotificationDetailsPage = ({ onBack }: { onBack: () => void }) => {
-  const [balanceThreshold, setBalanceThreshold] = useState("500");
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await opexApi.syncUser();
+        setProfile(data);
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleToggle = (key: keyof UserProfile) => {
+    if (!profile) return;
+    setProfile({
+      ...profile,
+      [key]: !profile[key]
+    });
+  };
+
+  const handleApply = async () => {
+    if (!profile) return;
+    try {
+      setSaving(true);
+      await opexApi.updateNotificationSettings({
+        notificationBalanceThreshold: profile.notificationBalanceThreshold,
+        notifyCriticalBalance: profile.notifyCriticalBalance,
+        notifySignificantIncome: profile.notifySignificantIncome,
+        notifyAbnormalOutflow: profile.notifyAbnormalOutflow,
+        notifyConsentExpiration: profile.notifyConsentExpiration,
+        notifySyncErrors: profile.notifySyncErrors,
+        notifyQuarterlyVat: profile.notifyQuarterlyVat,
+        notifyMonthlyAnalysis: profile.notifyMonthlyAnalysis,
+      });
+      onBack();
+    } catch (err) {
+      console.error('Error updating profile:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SubpageShell onBack={onBack} title="Notification Details">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-opex-teal" />
+        </div>
+      </SubpageShell>
+    );
+  }
 
   const sections = [
     {
       title: 'Transactions & Balance',
       items: [
-        { label: 'Critical Balance', desc: 'Sends an alert when you drop below the set threshold.', enabled: true },
-        { label: 'Significant Income', desc: 'Notify whenever you receive a transfer > €100.', enabled: true },
-        { label: 'Abnormal Outflow', desc: 'Identify suspicious transactions or duplicates.', enabled: true },
+        { label: 'Critical Balance', desc: 'Sends an alert when you drop below the set threshold.', key: 'notifyCriticalBalance' as const },
+        { label: 'Significant Income', desc: 'Notify whenever you receive a transfer > €100.', key: 'notifySignificantIncome' as const },
+        { label: 'Abnormal Outflow', desc: 'Identify suspicious transactions or duplicates.', key: 'notifyAbnormalOutflow' as const },
       ]
     },
     {
       title: 'Open Banking',
       items: [
-        { label: 'Consent Expiration', desc: 'Receive reminders 7 and 2 days before bank disconnection.', enabled: true },
-        { label: 'Sync Errors', desc: 'Immediate alert if a bank requires reconnection.', enabled: false },
+        { label: 'Consent Expiration', desc: 'Receive reminders 7 and 2 days before bank disconnection.', key: 'notifyConsentExpiration' as const },
+        { label: 'Sync Errors', desc: 'Immediate alert if a bank requires reconnection.', key: 'notifySyncErrors' as const },
       ]
     },
     {
       title: 'Tax & Deadlines',
       items: [
-        { label: 'Quarterly VAT', desc: 'Reminder 10 days before the payment deadline.', enabled: true },
-        { label: 'Monthly Analysis', desc: 'Summary report of the performance of the month just ended.', enabled: false },
+        { label: 'Quarterly VAT', desc: 'Reminder 10 days before the payment deadline.', key: 'notifyQuarterlyVat' as const },
+        { label: 'Monthly Analysis', desc: 'Summary report of the performance of the month just ended.', key: 'notifyMonthlyAnalysis' as const },
       ]
     }
   ];
@@ -5469,8 +5763,8 @@ export const NotificationDetailsPage = ({ onBack }: { onBack: () => void }) => {
               <label className="text-sm font-bold text-gray-700">Low Balance Notification (€)</label>
               <input 
                 type="number" 
-                value={balanceThreshold} 
-                onChange={(e) => setBalanceThreshold(e.target.value)}
+                value={profile?.notificationBalanceThreshold ?? 500} 
+                onChange={(e) => setProfile(prev => prev ? { ...prev, notificationBalanceThreshold: Number(e.target.value) } : null)}
                 className="w-24 p-2 bg-gray-50 border-none rounded-xl text-right font-black text-opex-teal focus:ring-2 focus:ring-opex-teal/10 outline-none" 
               />
             </div>
@@ -5485,23 +5779,31 @@ export const NotificationDetailsPage = ({ onBack }: { onBack: () => void }) => {
           <div key={idx} className="space-y-4">
             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">{section.title}</h3>
             <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
-              {section.items.map((item, i) => (
-                <div key={i} className="p-6 flex items-center justify-between group">
-                  <div className="space-y-1">
-                    <p className="text-sm font-black text-gray-900">{item.label}</p>
-                    <p className="text-xs text-gray-500 leading-relaxed max-sm:max-w-sm">{item.desc}</p>
+              {section.items.map((item, i) => {
+                const isEnabled = profile ? !!profile[item.key] : false;
+                return (
+                  <div key={i} className="p-6 flex items-center justify-between group">
+                    <div className="space-y-1">
+                      <p className="text-sm font-black text-gray-900">{item.label}</p>
+                      <p className="text-xs text-gray-500 leading-relaxed max-sm:max-w-sm">{item.desc}</p>
+                    </div>
+                    <button 
+                      onClick={() => handleToggle(item.key)}
+                      className={`w-14 h-7 rounded-full relative transition-all ${isEnabled ? 'bg-opex-teal shadow-lg shadow-teal-900/20' : 'bg-gray-200'}`}
+                    >
+                      <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm transition-all ${isEnabled ? 'left-8' : 'left-1'}`}></div>
+                    </button>
                   </div>
-                  <button className={`w-14 h-7 rounded-full relative transition-all ${item.enabled ? 'bg-opex-teal shadow-lg shadow-teal-900/20' : 'bg-gray-200'}`}>
-                    <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm transition-all ${item.enabled ? 'left-8' : 'left-1'}`}></div>
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}
 
         <div className="pt-4">
-           <Button fullWidth size="lg" icon={Check} onClick={onBack}>Apply Configurations</Button>
+           <Button fullWidth size="lg" icon={saving ? Loader2 : Check} onClick={handleApply} disabled={saving}>
+             {saving ? 'Saving...' : 'Apply Configurations'}
+           </Button>
         </div>
       </div>
     </SubpageShell>
@@ -5878,6 +6180,7 @@ export const SettingsPage = ({
   onConnectionSelect,
   onCreateOpenBankConnection,
   onRemoveOpenBankConnection,
+  onUpdateBankAccount,
   onDownloadDataExport,
   onDeleteAccount,
   isConnectingOpenBank = false,
@@ -5894,6 +6197,7 @@ export const SettingsPage = ({
   onConnectionSelect: (account: BankAccountRecord, providerName: string) => void,
   onCreateOpenBankConnection: (consent: OpenBankingConsentPayload) => Promise<void>,
   onRemoveOpenBankConnection: (connectionId: string) => Promise<void>,
+  onUpdateBankAccount?: (bankAccountId: string, isSaltedge: boolean, payload: { institutionName: string; nature: string; isForTax: boolean }) => Promise<void>,
   onDownloadDataExport: () => Promise<void>,
   onDeleteAccount: () => Promise<void>,
   isConnectingOpenBank?: boolean,
@@ -5902,10 +6206,23 @@ export const SettingsPage = ({
 }) => {
   const [activeSection, setActiveSection] = useState(initialSection);
   const [isBusinessMode, setIsBusinessMode] = useState(true);
-  const [theme, setTheme] = useState('light');
+  const [theme, setTheme] = useState(() => {
+    // Load theme from localStorage or default to 'light'
+    return localStorage.getItem('app-theme') || 'light';
+  });
   const [isExportingData, setIsExportingData] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const hasTaxProfile = Boolean((userProfile.residence ?? '').trim()) && Boolean((userProfile.vatFrequency ?? '').trim());
+
+  // Apply theme to document
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('app-theme', theme);
+  }, [theme]);
   const privacyPolicyCurrent = Boolean(legalPublicInfo?.privacyPolicy.version) && userProfile.privacyPolicyVersion === legalPublicInfo?.privacyPolicy.version;
   const termsCurrent = Boolean(legalPublicInfo?.termsOfService.version) && userProfile.termsOfServiceVersion === legalPublicInfo?.termsOfService.version;
   const hasCurrentRequiredConsents = Boolean(userProfile.gdprAccepted && privacyPolicyCurrent && termsCurrent);
@@ -6183,6 +6500,7 @@ export const SettingsPage = ({
                 onNavigate={onNavigate}
                 onBankSelect={onBankSelect}
                 onConnectionSelect={onConnectionSelect}
+                onUpdateBankAccount={onUpdateBankAccount}
                 bankAccounts={bankAccounts}
                 taxBufferProviders={taxBufferProviders}
                 onCreateOpenBankConnection={onCreateOpenBankConnection}
@@ -6242,10 +6560,19 @@ export const SettingsPage = ({
                                <button onClick={()=>setTheme('dark')} className={`p-2 rounded-lg transition-all ${theme === 'dark' ? 'bg-opex-teal text-white shadow-md' : 'text-gray-400'}`}><Moon size={18} /></button>
                             </div>
                          </div>
-                         <div className="flex items-center justify-between p-5 bg-gray-50 rounded-[2rem] border border-gray-100">
-                            <span className="text-sm font-bold text-gray-700">Business Mode</span>
-                            <button onClick={() => setIsBusinessMode(!isBusinessMode)} className={`w-14 h-7 rounded-full relative transition-all ${isBusinessMode ? 'bg-opex-teal shadow-lg shadow-teal-900/20' : 'bg-gray-200'}`}>
-                               <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${isBusinessMode ? 'left-8' : 'left-1'}`}></div>
+                         <div className="relative flex items-center justify-between p-5 bg-gray-50 rounded-[2rem] border border-gray-100">
+                            {/* Coming Soon overlay */}
+                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem] pointer-events-auto select-none">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center">
+                                  <Lock size={12} className="text-gray-400" />
+                                </div>
+                                <p className="text-[10px] font-black text-gray-700 tracking-tight">Coming Soon</p>
+                              </div>
+                            </div>
+                            <span className="text-sm font-bold text-gray-700 pointer-events-none select-none" style={{ filter: 'blur(1px)', opacity: 0.5 }}>Business Mode</span>
+                            <button disabled className={`w-14 h-7 rounded-full relative transition-all bg-gray-200 pointer-events-none select-none`} style={{ filter: 'blur(1px)', opacity: 0.5 }}>
+                               <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all left-1`}></div>
                             </button>
                          </div>
                       </div>
@@ -6448,6 +6775,134 @@ export const SettingsPage = ({
             </div>
           )}
 
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const PostBankConnectionGdprPage = ({
+  legalPublicInfo,
+  onConfirm,
+  onCancel,
+  isSyncing
+}: {
+  legalPublicInfo: LegalPublicInfoRecord;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isSyncing: boolean;
+}) => {
+  const [accepted, setAccepted] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const handleConfirm = () => {
+    if (!accepted) {
+      setFormError('Devi confermare il trattamento dei dati open banking per continuare.');
+      return;
+    }
+    setFormError(null);
+    onConfirm();
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f7f7f3] px-6 py-8 md:px-10 md:py-12 text-gray-900">
+      <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-2xl flex-col justify-center">
+
+        <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-[1.35rem] bg-slate-200/70 text-opex-dark shadow-sm">
+          <Building2 size={30} />
+        </div>
+
+        <h1 className="max-w-2xl text-4xl font-black tracking-tight text-opex-dark md:text-5xl">
+          Conferma il trattamento dei dati bancari.
+        </h1>
+        <p className="mt-4 max-w-2xl text-lg font-medium leading-relaxed text-slate-500 md:text-xl">
+          La connessione con la tua banca è avvenuta con successo. Prima di importare conti e movimenti, conferma che autorizzi Opex a trattare i tuoi dati open banking.
+        </p>
+
+        <div className="mt-10 space-y-6 rounded-[2rem] border border-slate-200 bg-white/80 p-6 shadow-sm md:p-8">
+
+          {legalPublicInfo.openBankingNotice.sections.map((section) => (
+            <div key={section.title} className="space-y-3">
+              <h3 className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">
+                {section.title}
+              </h3>
+              <div className="space-y-2">
+                {section.bullets.map((bullet, idx) => (
+                  <div key={idx} className="flex items-start gap-3">
+                    <div className="mt-2 h-2 w-2 flex-shrink-0 rounded-full bg-opex-dark/60" />
+                    <p className="text-sm font-medium leading-relaxed text-slate-600">{bullet}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <div className="border-t border-slate-100 pt-5">
+            <label className="flex cursor-pointer items-start gap-4">
+              <input
+                type="checkbox"
+                checked={accepted}
+                onChange={(e) => {
+                  setAccepted(e.target.checked);
+                  if (formError) setFormError(null);
+                }}
+                className="mt-1 h-5 w-5 rounded border-slate-300 text-opex-dark focus:ring-opex-dark"
+                disabled={isSyncing}
+              />
+              <span className="space-y-1">
+                <span className="block text-base font-black text-gray-900">
+                  Autorizzo Opex a importare e trattare i miei dati open banking.
+                </span>
+                <span className="block text-sm font-medium leading-relaxed text-slate-500">
+                  Questo include metadati di connessione, dettagli dei conti, saldi e movimenti della banca appena collegata. Informativa Open Banking v{legalPublicInfo.openBankingNotice.version}.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <div className="rounded-[1.5rem] bg-slate-50 px-5 py-4 text-sm font-medium leading-relaxed text-slate-500">
+            Leggi l&apos;{' '}
+            <button
+              type="button"
+              onClick={() => openLegalDocument('open-banking')}
+              className="font-black text-opex-dark hover:underline"
+              disabled={isSyncing}
+            >
+              Informativa Open Banking completa
+            </button>
+            . Puoi disconnettere la banca in qualsiasi momento da{' '}
+            <span className="font-black text-opex-dark">Impostazioni &gt; Banking</span>.
+          </div>
+        </div>
+
+        {formError && (
+          <p className="mt-6 text-sm font-bold text-red-600">{formError}</p>
+        )}
+
+        <div className="mt-10 flex flex-col-reverse gap-4 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="inline-flex h-14 items-center justify-center rounded-[1.3rem] border border-slate-200 bg-white px-6 text-sm font-black text-slate-500 transition-colors hover:border-slate-300 hover:text-opex-dark disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isSyncing}
+          >
+            Annulla
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            className="inline-flex h-16 flex-1 items-center justify-center rounded-[1.3rem] bg-opex-dark px-8 text-base font-black text-white shadow-[0_20px_40px_-20px_rgba(12,33,49,0.55)] transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isSyncing}
+          >
+            {isSyncing ? (
+              <span className="flex items-center gap-3">
+                <Loader2 size={20} className="animate-spin" />
+                Sincronizzazione...
+              </span>
+            ) : (
+              'Conferma e sincronizza'
+            )}
+          </button>
         </div>
       </div>
     </div>

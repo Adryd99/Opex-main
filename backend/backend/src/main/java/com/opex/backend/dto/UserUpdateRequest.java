@@ -31,4 +31,14 @@ public class UserUpdateRequest {
     private String answer5;
 
     private String profilePicture;
+
+    // --- Notification Settings ---
+    private Double notificationBalanceThreshold;
+    private Boolean notifyCriticalBalance;
+    private Boolean notifySignificantIncome;
+    private Boolean notifyAbnormalOutflow;
+    private Boolean notifyConsentExpiration;
+    private Boolean notifySyncErrors;
+    private Boolean notifyQuarterlyVat;
+    private Boolean notifyMonthlyAnalysis;
 }

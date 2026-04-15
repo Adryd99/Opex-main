@@ -1,6 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LayoutGrid, ChevronDown, Check, Bell, ArrowUp, Plus, ArrowDownRight, Receipt, Building2, Hexagon, ArrowLeft } from 'lucide-react';
-import { ACCOUNTS, MOCK_NOTIFICATIONS } from '../../models/mockData';
+import { LayoutGrid, ChevronDown, Check, Bell, ArrowUp, Plus, ArrowDownRight, Receipt, Building2, Hexagon, ArrowLeft, AlertTriangle, CheckCircle2, FileText, Sparkles } from 'lucide-react';
+import { ACCOUNTS } from '../../models/mockData';
+import { opexApi } from '../../services/opexApi';
+import { NotificationRecord } from '../../models/types';
+
+const ICON_MAP: Record<string, React.FC<any>> = {
+  AlertTriangle,
+  CheckCircle2,
+  FileText,
+  Sparkles,
+  Bell
+};
 
 export const AccountSelector = ({ compact = false }: { compact?: boolean }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -70,7 +80,27 @@ export const AccountSelector = ({ compact = false }: { compact?: boolean }) => {
 
 export const NotificationButton = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
+  const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const data = await opexApi.getNotifications();
+      setNotifications(data);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -82,7 +112,25 @@ export const NotificationButton = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const unreadCount = MOCK_NOTIFICATIONS.filter(n => n.unread).length;
+  const unreadCount = notifications.filter((n) => n.unread).length;
+
+  const markAsRead = async (id: string) => {
+    try {
+      await opexApi.markNotificationAsRead(id);
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)));
+    } catch (err) {
+      console.error('Error marking as read:', err);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await opexApi.markAllNotificationsAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    } catch (err) {
+      console.error('Error marking all as read:', err);
+    }
+  };
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -100,31 +148,48 @@ export const NotificationButton = () => {
         <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-[2rem] shadow-2xl border border-gray-100 py-4 z-[100] animate-in fade-in zoom-in-95 duration-200 origin-top-right">
           <div className="px-6 py-2 border-b border-gray-50 flex items-center justify-between mb-2">
             <h3 className="font-black text-gray-900 tracking-tight">Notifications</h3>
-            <button className="text-[10px] font-black text-opex-teal uppercase tracking-widest hover:underline">Mark as read</button>
+            {unreadCount > 0 && (
+              <button onClick={markAllAsRead} className="text-[10px] font-black text-opex-teal uppercase tracking-widest hover:underline">
+                Mark as read
+              </button>
+            )}
           </div>
           <div className="max-h-[400px] overflow-y-auto no-scrollbar px-2">
-            {MOCK_NOTIFICATIONS.map((notif) => (
-              <div key={notif.id} className={`p-4 flex gap-4 rounded-2xl hover:bg-gray-50 transition-colors cursor-pointer group ${notif.unread ? 'bg-opex-teal/[0.02]' : ''}`}>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                  notif.type === 'warning' ? 'bg-orange-100 text-orange-600' :
-                  notif.type === 'danger' ? 'bg-red-100 text-red-600' :
-                  notif.type === 'success' ? 'bg-green-100 text-green-600' :
-                  'bg-blue-100 text-blue-600'
-                }`}>
-                  <notif.icon size={18} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start">
-                    <p className={`text-sm font-bold leading-none mb-1 ${notif.unread ? 'text-gray-900' : 'text-gray-600'}`}>{notif.title}</p>
-                    <span className="text-[10px] text-gray-400 whitespace-nowrap">{notif.time}</span>
+            {notifications.length === 0 ? (
+              <div className="p-8 text-center text-gray-400 text-sm">No notifications</div>
+            ) : (
+              notifications.map((notif) => {
+                const Icon = ICON_MAP[notif.icon] || Bell;
+                return (
+                  <div 
+                    key={notif.id} 
+                    onClick={() => markAsRead(notif.id)}
+                    className={`p-4 flex gap-4 rounded-2xl hover:bg-gray-50 transition-colors cursor-pointer group ${notif.unread ? 'bg-opex-teal/[0.02]' : ''}`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                      notif.type === 'warning' ? 'bg-orange-100 text-orange-600' :
+                      notif.type === 'danger' ? 'bg-red-100 text-red-600' :
+                      notif.type === 'success' ? 'bg-green-100 text-green-600' :
+                      'bg-blue-100 text-blue-600'
+                    }`}>
+                      <Icon size={18} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <p className={`text-sm font-bold leading-none mb-1 ${notif.unread ? 'text-gray-900' : 'text-gray-600'}`}>{notif.title}</p>
+                        <span className="text-[10px] text-gray-400 whitespace-nowrap">{notif.time}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 leading-relaxed truncate-2-lines">{notif.description}</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 leading-relaxed truncate-2-lines">{notif.desc}</p>
-                </div>
-              </div>
-            ))}
+                );
+              })
+            )}
           </div>
           <div className="px-6 pt-4 border-t border-gray-50 mt-2">
-            <button className="w-full py-3 bg-gray-50 rounded-xl text-xs font-black text-gray-400 hover:text-opex-teal transition-colors">View all notifications</button>
+            <button className="w-full py-3 bg-gray-50 rounded-xl text-xs font-black text-gray-400 hover:text-opex-teal transition-colors">
+              View all notifications
+            </button>
           </div>
         </div>
       )}
@@ -149,7 +214,7 @@ export const QuickActions = ({ compact = false, onNavigate }: { compact?: boolea
   const quickActionItems = [
     { label: 'Add Income', icon: ArrowUp, color: 'text-green-500', bg: 'bg-green-50', id: 'QUICK_INCOME' },
     { label: 'Add Expense', icon: ArrowDownRight, color: 'text-red-500', bg: 'bg-red-50', id: 'QUICK_EXPENSE' },
-    { label: 'Add Invoice', icon: Receipt, color: 'text-blue-500', bg: 'bg-blue-50', id: 'QUICK_INVOICE' },
+    // { label: 'Add Invoice', icon: Receipt, color: 'text-blue-500', bg: 'bg-blue-50', id: 'QUICK_INVOICE' },
     { label: 'Open Banking', icon: Building2, color: 'text-purple-500', bg: 'bg-purple-50', id: 'OPEN_BANKING' },
   ];
 

@@ -18,7 +18,8 @@ import {
   TimeAggregatedPoint,
   TimeAggregatedRecord,
   TransactionRecord,
-  UserProfile
+  UserProfile,
+  NotificationRecord
 } from '../models/types';
 import {
   DEFAULT_LEGAL_PUBLIC_INFO,
@@ -179,6 +180,24 @@ type BackendUserProfileResponse = {
   openBankingNoticeAcceptedAt?: unknown;
   openBankingConsentScopes?: unknown;
   profilePicture?: unknown;
+  notificationBalanceThreshold?: unknown;
+  notifyCriticalBalance?: unknown;
+  notifySignificantIncome?: unknown;
+  notifyAbnormalOutflow?: unknown;
+  notifyConsentExpiration?: unknown;
+  notifySyncErrors?: unknown;
+  notifyQuarterlyVat?: unknown;
+  notifyMonthlyAnalysis?: unknown;
+};
+
+type BackendNotificationResponse = {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  unread: boolean;
+  createdAt: string;
+  icon: string;
 };
 
 type LegalSectionRaw = {
@@ -491,7 +510,15 @@ const normalizeUserProfile = (payload: unknown, fallback?: Partial<UserProfile>)
     openBankingNoticeAcceptedAt: toStringOrNull(item.openBankingNoticeAcceptedAt) ?? fallback?.openBankingNoticeAcceptedAt ?? null,
     openBankingConsentScopes: toStringList(item.openBankingConsentScopes).length > 0
       ? toStringList(item.openBankingConsentScopes)
-      : fallback?.openBankingConsentScopes ?? []
+      : fallback?.openBankingConsentScopes ?? [],
+    notificationBalanceThreshold: toNumber(item.notificationBalanceThreshold) ?? fallback?.notificationBalanceThreshold ?? 500,
+    notifyCriticalBalance: toBooleanValue(item.notifyCriticalBalance, fallback?.notifyCriticalBalance ?? true),
+    notifySignificantIncome: toBooleanValue(item.notifySignificantIncome, fallback?.notifySignificantIncome ?? true),
+    notifyAbnormalOutflow: toBooleanValue(item.notifyAbnormalOutflow, fallback?.notifyAbnormalOutflow ?? true),
+    notifyConsentExpiration: toBooleanValue(item.notifyConsentExpiration, fallback?.notifyConsentExpiration ?? true),
+    notifySyncErrors: toBooleanValue(item.notifySyncErrors, fallback?.notifySyncErrors ?? false),
+    notifyQuarterlyVat: toBooleanValue(item.notifyQuarterlyVat, fallback?.notifyQuarterlyVat ?? true),
+    notifyMonthlyAnalysis: toBooleanValue(item.notifyMonthlyAnalysis, fallback?.notifyMonthlyAnalysis ?? false)
   };
 };
 
@@ -832,6 +859,33 @@ export const toUserProfilePatchPayload = (profile: UserProfile): UserProfilePatc
   };
 };
 
+const normalizeNotification = (payload: BackendNotificationResponse): NotificationRecord => {
+  const createdAt = toStringValue(payload.createdAt, new Date().toISOString());
+  const date = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.round(diffMs / 60000);
+  const diffHours = Math.round(diffMs / 3600000);
+  const diffDays = Math.round(diffMs / 86400000);
+
+  let time = 'now';
+  if (diffMin < 1) time = 'now';
+  else if (diffMin < 60) time = `${diffMin}m`;
+  else if (diffHours < 24) time = `${diffHours}h`;
+  else time = `${diffDays}d`;
+
+  return {
+    id: toStringValue(payload.id, ''),
+    unread: Boolean(payload.unread),
+    type: (payload.type as any) || 'info',
+    title: toStringValue(payload.title, ''),
+    description: toStringValue(payload.description, ''),
+    time,
+    createdAt,
+    icon: toStringValue(payload.icon, 'Bell')
+  };
+};
+
 export const opexApi = {
   getLegalPublicInfo: async () => {
     try {
@@ -867,6 +921,21 @@ export const opexApi = {
       method: 'PATCH',
       body: JSON.stringify(payload)
     }), fallback),
+
+  updateNotificationSettings: async (prefs: {
+    notificationBalanceThreshold?: number;
+    notifyCriticalBalance?: boolean;
+    notifySignificantIncome?: boolean;
+    notifyAbnormalOutflow?: boolean;
+    notifyConsentExpiration?: boolean;
+    notifySyncErrors?: boolean;
+    notifyQuarterlyVat?: boolean;
+    notifyMonthlyAnalysis?: boolean;
+  }) =>
+    normalizeUserProfile(await request<unknown>('/api/users/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(prefs)
+    })),
 
   deleteUserProfile: () => request<void>('/api/users/profile', { method: 'DELETE' }),
 
@@ -1032,5 +1101,16 @@ export const opexApi = {
     }),
 
   bankIntegrationSync: () =>
-    request<BankIntegrationResponse>('/api/bank-integration/sync', { method: 'POST' })
+    request<BankIntegrationResponse>('/api/bank-integration/sync', { method: 'POST' }),
+
+  getNotifications: async () => {
+    const raw = await request<BackendNotificationResponse[]>('/api/notifications');
+    return (raw || []).map(normalizeNotification);
+  },
+
+  markNotificationAsRead: (id: string) =>
+    request<void>(`/api/notifications/${id}/read`, { method: 'PATCH' }),
+
+  markAllNotificationsAsRead: () =>
+    request<void>('/api/notifications/read-all', { method: 'PATCH' })
 };

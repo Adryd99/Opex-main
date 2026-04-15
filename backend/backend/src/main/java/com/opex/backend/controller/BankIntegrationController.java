@@ -4,6 +4,7 @@ import com.opex.backend.dto.BankIntegrationConsentRequest;
 import com.opex.backend.dto.BankConnectionRefreshResponse;
 import com.opex.backend.service.BankIntegrationService;
 import com.opex.backend.service.LegalService;
+import com.opex.backend.service.NotificationTriggerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,6 +24,7 @@ public class BankIntegrationController {
 
     private final BankIntegrationService bankIntegrationService;
     private final LegalService legalService;
+    private final NotificationTriggerService notificationTriggerService;
 
     /**
      * Endpoint che crea sempre una nuova connect URL.
@@ -57,14 +59,18 @@ public class BankIntegrationController {
     @PostMapping("/sync")
     public ResponseEntity<String> syncBank(@AuthenticationPrincipal Jwt jwt) {
         System.out.printf("SINCRONIZZAZIONE CONNESSIONE!");
-        // Estraiamo sempre in modo sicuro l'ID utente dal token
         String userId = jwt.getClaimAsString("sub");
 
-        // Facciamo la chiamata al microservizio di sync
-        String response = bankIntegrationService.syncWithMicroservice(userId);
-
-        // Restituiamo il JSON identico a quello del microservizio
-        return ResponseEntity.ok(response);
+        try {
+            String response = bankIntegrationService.syncWithMicroservice(userId);
+            return ResponseEntity.ok(response);
+        } catch (HttpStatusCodeException exception) {
+            notificationTriggerService.onSyncError(userId, null);
+            return ResponseEntity.status(exception.getStatusCode()).body(exception.getResponseBodyAsString());
+        } catch (Exception exception) {
+            notificationTriggerService.onSyncError(userId, null);
+            return ResponseEntity.internalServerError().body(exception.getMessage());
+        }
     }
 
     @PostMapping("/connections/{connectionId}/refresh")
@@ -79,6 +85,7 @@ public class BankIntegrationController {
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.badRequest().body(exception.getMessage());
         } catch (HttpStatusCodeException exception) {
+            notificationTriggerService.onSyncError(userId, null);
             return ResponseEntity.status(exception.getStatusCode()).body(exception.getResponseBodyAsString());
         }
     }

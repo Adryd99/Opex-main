@@ -128,6 +128,16 @@ public class UserService {
         if (request.getAnswer4() != null) user.setAnswer4(request.getAnswer4());
         if (request.getAnswer5() != null) user.setAnswer5(request.getAnswer5());
         if (request.getProfilePicture() != null) user.setProfilePicture(request.getProfilePicture());
+        
+        // --- Notification Settings ---
+        if (request.getNotificationBalanceThreshold() != null) user.setNotificationBalanceThreshold(request.getNotificationBalanceThreshold());
+        if (request.getNotifyCriticalBalance() != null) user.setNotifyCriticalBalance(request.getNotifyCriticalBalance());
+        if (request.getNotifySignificantIncome() != null) user.setNotifySignificantIncome(request.getNotifySignificantIncome());
+        if (request.getNotifyAbnormalOutflow() != null) user.setNotifyAbnormalOutflow(request.getNotifyAbnormalOutflow());
+        if (request.getNotifyConsentExpiration() != null) user.setNotifyConsentExpiration(request.getNotifyConsentExpiration());
+        if (request.getNotifySyncErrors() != null) user.setNotifySyncErrors(request.getNotifySyncErrors());
+        if (request.getNotifyQuarterlyVat() != null) user.setNotifyQuarterlyVat(request.getNotifyQuarterlyVat());
+        if (request.getNotifyMonthlyAnalysis() != null) user.setNotifyMonthlyAnalysis(request.getNotifyMonthlyAnalysis());
 
         // 5. Salvo tutto sul mio Database PostgreSQL
         return userRepository.save(user);
