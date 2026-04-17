@@ -68,7 +68,7 @@ services:
       - "8081:8080"
       - "9000:9000"
     volumes:
-      - ./auth/realm:/opt/keycloak/data/import
+      - ./auth/realm/local:/opt/keycloak/data/import
       - ./auth/themes:/opt/keycloak/providers/
       - kc_data:/opt/keycloak/data
     healthcheck:

@@ -1,0 +1,43 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    dir: opex-web
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/opex-web:${_TAG}
+      - --build-arg
+      - BUILD_API_BASE_URL=${_BUILD_API_BASE_URL}
+      - --build-arg
+      - BUILD_API_ORIGIN=${_BUILD_API_ORIGIN}
+      - --build-arg
+      - BUILD_IDP_LOGIN_URL=${_BUILD_IDP_LOGIN_URL}
+      - --build-arg
+      - BUILD_IDP_EXCHANGE_URL=${_BUILD_IDP_EXCHANGE_URL}
+      - --build-arg
+      - BUILD_KEYCLOAK_LOGOUT_URL=${_BUILD_KEYCLOAK_LOGOUT_URL}
+      - --build-arg
+      - BUILD_KEYCLOAK_CLIENT_ID=${_BUILD_KEYCLOAK_CLIENT_ID}
+      - --build-arg
+      - BUILD_KEYCLOAK_SCOPE=${_BUILD_KEYCLOAK_SCOPE}
+      - --build-arg
+      - BUILD_KEYCLOAK_REDIRECT_URI=${_BUILD_KEYCLOAK_REDIRECT_URI}
+      - .
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/opex-web:${_TAG}
+
+substitutions:
+  _REGION: us-central1
+  _REPOSITORY: opex
+  _TAG: latest
+  _BUILD_API_BASE_URL: ""
+  _BUILD_API_ORIGIN: https://api.example.com
+  _BUILD_IDP_LOGIN_URL: https://auth.example.com/realms/opex/protocol/openid-connect/auth
+  _BUILD_IDP_EXCHANGE_URL: https://auth.example.com/realms/opex/protocol/openid-connect/token
+  _BUILD_KEYCLOAK_LOGOUT_URL: https://auth.example.com/realms/opex/protocol/openid-connect/logout
+  _BUILD_KEYCLOAK_CLIENT_ID: opex
+  _BUILD_KEYCLOAK_SCOPE: openid profile email
+  _BUILD_KEYCLOAK_REDIRECT_URI: https://app.example.com
+
+options:
+  logging: CLOUD_LOGGING_ONLY

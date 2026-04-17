@@ -48,17 +48,14 @@ export const joinBaseAndPath = (baseUrl: string, path: string): string => {
   return `${normalizedBase}${normalizedPath}`;
 };
 
-export const toSameOriginIfApiOrigin = (url: string): string => {
+export const toBrowserRelativeIfSameOrigin = (url: string): string => {
   const browserOrigin = typeof window === 'undefined' ? 'http://localhost:3000' : window.location.origin;
   const target = new URL(url, browserOrigin);
-  const apiOrigin = new URL(API_ORIGIN);
-  if (target.origin !== apiOrigin.origin) {
-    return target.origin === browserOrigin
-      ? `${target.pathname}${target.search}${target.hash}`
-      : target.toString();
+  if (target.origin === browserOrigin) {
+    return `${target.pathname}${target.search}${target.hash}`;
   }
 
-  return `${target.pathname}${target.search}${target.hash}`;
+  return target.toString();
 };
 
 export const fetchAuthorized = async (
@@ -77,7 +74,7 @@ export const fetchAuthorized = async (
     headers.set('Content-Type', 'application/json');
   }
 
-  const requestUrl = toSameOriginIfApiOrigin(joinBaseAndPath(baseUrl, path));
+  const requestUrl = toBrowserRelativeIfSameOrigin(joinBaseAndPath(baseUrl, path));
   return fetch(requestUrl, {
     ...init,
     headers,

@@ -1,2 +1,3 @@
 .DS_Store
 .idea/
+deploy/cloud-run/local-secrets.txt

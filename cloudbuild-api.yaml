@@ -1,0 +1,19 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    dir: opex-api
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/opex-api:${_TAG}
+      - .
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/opex-api:${_TAG}
+
+substitutions:
+  _REGION: us-central1
+  _REPOSITORY: opex
+  _TAG: latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -32,4 +32,4 @@ npm.cmd run dev -- --host 0.0.0.0
 
 ## Google Cloud
 
-For the production migration plan and container strategy, see [GCP_MIGRATION.md](C:/Users/danie/workspace/Opex/Opex-main/GCP_MIGRATION.md).
+For the production deployment guide and ready-to-run Cloud Run scripts, see [deploy/cloud-run/README.md](C:/Users/danie/workspace/Opex/Opex-main/deploy/cloud-run/README.md).
