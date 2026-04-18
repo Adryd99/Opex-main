@@ -19,7 +19,8 @@ param(
   [string]$KeycloakAdminUserSecret = 'KC_ADMIN',
   [string]$KeycloakAdminPasswordSecret = 'KC_ADMIN_PW',
   [string]$SaltEdgeAppIdSecret = 'SALTEDGE_APP_ID',
-  [string]$SaltEdgeSecretSecret = 'SALTEDGE_SECRET'
+  [string]$SaltEdgeSecretSecret = 'SALTEDGE_SECRET',
+  [switch]$DryRun
 )
 
 Set-StrictMode -Version Latest
@@ -181,6 +182,11 @@ $arguments = @(
   '--set-env-vars', ("^@^" + ($envVars -join '@')),
   '--update-secrets', ($secrets -join ',')
 )
+
+if ($DryRun) {
+  Write-Host "[DryRun] gcloud $($arguments -join ' ')" -ForegroundColor Yellow
+  return
+}
 
 & gcloud @arguments
 if ($LASTEXITCODE -ne 0) {

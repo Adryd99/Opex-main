@@ -34,14 +34,21 @@ No manual SQL import is needed for the first deploy.
 ## Files In This Folder
 
 - `build-images.ps1`: builds and pushes all three images
+- `preflight-stack.ps1`: validates local templates and runs dry-run checks for the full production stack
 - `deploy-auth.ps1`: deploys Keycloak
 - `apply-auth-production-settings.ps1`: applies production realm settings to Keycloak via Admin API after deploy
 - `deploy-api.ps1`: deploys the API
 - `deploy-web.ps1`: deploys the frontend
+- `env.auth.example`: template for non-secret auth deploy values, used by `deploy-auth.ps1` and `apply-auth-production-settings.ps1` after copying it to `env.auth`
+- `env.auth.secrets.example`: template for auth Secret Manager secret names, used by `deploy-auth.ps1` and `apply-auth-production-settings.ps1` after copying it to `env.auth.secrets`
 - `env.api.example`: template for non-secret API deploy values, used by `deploy-api.ps1` after copying it to `env.api`
 - `env.api.secrets.example`: template for API Secret Manager secret names, used by `deploy-api.ps1` after copying it to `env.api.secrets`
-- `env.auth.example`: reference template for auth values
 - `env.web.example`: template for frontend build/deploy values, used after copying it to `env.web`
+
+For auth, the deploy scripts now read:
+
+- `deploy/cloud-run/env.auth`
+- `deploy/cloud-run/env.auth.secrets`
 
 For the backend API, the deploy script now reads:
 
@@ -116,6 +123,8 @@ gcloud config set run/region $REGION
 Prepare backend API deploy files:
 
 ```powershell
+Copy-Item .\deploy\cloud-run\env.auth.example .\deploy\cloud-run\env.auth
+Copy-Item .\deploy\cloud-run\env.auth.secrets.example .\deploy\cloud-run\env.auth.secrets
 Copy-Item .\deploy\cloud-run\env.api.example .\deploy\cloud-run\env.api
 Copy-Item .\deploy\cloud-run\env.api.secrets.example .\deploy\cloud-run\env.api.secrets
 Copy-Item .\deploy\cloud-run\env.web.example .\deploy\cloud-run\env.web
@@ -123,13 +132,29 @@ Copy-Item .\deploy\cloud-run\env.web.example .\deploy\cloud-run\env.web
 
 Then edit:
 
+- `deploy/cloud-run/env.auth`
+- `deploy/cloud-run/env.auth.secrets`
 - `deploy/cloud-run/env.api`
 - `deploy/cloud-run/env.api.secrets`
 - `deploy/cloud-run/env.web`
 
+`env.auth` contains non-secret Keycloak container settings and non-secret realm apply inputs.
+`env.auth.secrets` contains only Secret Manager secret names for Keycloak bootstrap, database password, SMTP, and Google IDP credentials.
 `env.api` contains non-secret backend settings.
 `env.api.secrets` contains only Secret Manager secret names. The secret values themselves must already exist in Secret Manager.
 `env.web` contains only non-secret frontend build/deploy settings. If a value is secret, it does not belong in the web app.
+
+Run the full preflight before any real production deploy:
+
+```powershell
+.\deploy\cloud-run\preflight-stack.ps1
+```
+
+If you want to validate the repository templates only:
+
+```powershell
+.\deploy\cloud-run\preflight-stack.ps1 -UseExamplesOnly
+```
 
 Enable APIs:
 
@@ -281,17 +306,12 @@ Deploy services:
 
 ```powershell
 .\deploy\cloud-run\deploy-auth.ps1 `
-  -ProjectId $PROJECT_ID `
-  -Region $REGION `
-  -AppDomain $APP_DOMAIN `
-  -Network $NETWORK `
-  -Subnet $SUBNET `
-  -AuthDomain $AUTH_DOMAIN `
-  -DatabaseHost $CLOUD_SQL_PRIVATE_IP
+  -ConfigFile .\deploy\cloud-run\env.auth `
+  -SecretsFile .\deploy\cloud-run\env.auth.secrets
 
 .\deploy\cloud-run\apply-auth-production-settings.ps1 `
-  -ProjectId $PROJECT_ID `
-  -AuthDomain $AUTH_DOMAIN
+  -ConfigFile .\deploy\cloud-run\env.auth `
+  -SecretsFile .\deploy\cloud-run\env.auth.secrets
 
 .\deploy\cloud-run\deploy-api.ps1 `
   -ConfigFile .\deploy\cloud-run\env.api `
@@ -305,14 +325,9 @@ If you also want SMTP and Google configured on the production realm, run:
 
 ```powershell
 .\deploy\cloud-run\apply-auth-production-settings.ps1 `
-  -ProjectId $PROJECT_ID `
-  -AuthDomain $AUTH_DOMAIN `
+  -ConfigFile .\deploy\cloud-run\env.auth `
+  -SecretsFile .\deploy\cloud-run\env.auth.secrets `
   -ApplySmtp `
-  -SmtpHost "smtp.gmail.com" `
-  -SmtpPort 587 `
-  -FromAddress "noreply@example.com" `
-  -FromDisplayName "Opex" `
-  -Encryption StartTLS `
   -ApplyGoogleIdp
 ```
 

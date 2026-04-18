@@ -78,3 +78,9 @@ Local URLs:
 For Cloud Run build and deploy flow, environment files, and secret handling, see:
 
 - [deploy/cloud-run/README.md](C:/Users/danie/workspace/Opex/Opex-main/deploy/cloud-run/README.md)
+
+Before any real production deploy, run the deployment preflight:
+
+```powershell
+.\deploy\cloud-run\preflight-stack.ps1
+```
