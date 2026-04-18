@@ -154,16 +154,14 @@ When refactoring this module:
 5. Remove legacy paths only after the replacement path is already confirmed.
 6. If a file grows because it owns a rich UI, that is acceptable; split only when responsibilities are mixed.
 
-## Current Known Refactor Themes
+## Current Watchpoints
 
-These are the areas that should be watched during the cleanup work:
+These are the areas worth monitoring as the module grows:
 
-- `src/app/App.tsx` is still too central
-- `src/app/layout/index.tsx` still groups too many shell components
-- `src/features/settings` is the densest feature
-- `src/features/taxes/pages/TaxesPage.tsx` is still page-heavy
-- `src/shared/types.ts` is too broad
-- `src/services/api/opex/http.ts` still deserves continued attention as the API error contract evolves
-- there is now a minimal Vitest base, but test coverage is still intentionally selective
+- `src/app/App.tsx` should stay focused on shell composition
+- `src/features/settings` is still the densest product feature
+- `src/features/taxes/pages/TaxesPage.tsx` should remain a page shell, not a new orchestrator
+- `src/services/api/opex/http.ts` should stay the single place where transport errors are normalized
+- test coverage exists now, but it is still intentionally selective
 
-These themes are tracked in the temporary refactor plan and should be addressed step by step instead of all at once.
+These are not blockers. They are just the main places where new complexity could accumulate again if future changes are not kept local to the owning feature.
