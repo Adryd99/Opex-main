@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Building2, Globe, HelpCircle, Lock, Palette, ShieldCheck, Users } from 'lucide-react';
-import { formatConsentTimestamp } from '../utils';
 import { AddBankPage } from '../../banking';
-import { SettingsPageProps, SettingsSectionDefinition, SettingsSectionId } from '../types';
+import { useEmailVerificationState } from '../hooks/useEmailVerificationState';
+import { buildConfigurationChecklist, buildConsentAuditItems, hasCurrentRequiredConsents } from '../support/configurationStatus';
+import { SETTINGS_SECTIONS } from '../support/sections';
+import { SettingsPageProps, SettingsSectionId } from '../types';
 import {
   SettingsBrandingSection,
   SettingsHeader,
@@ -17,6 +18,8 @@ import {
 export const SettingsPage = ({
   userProfile,
   setUserProfile,
+  onSaveProfile,
+  onRequestEmailVerification,
   onNavigate,
   bankAccounts,
   taxBufferProviders,
@@ -36,55 +39,18 @@ export const SettingsPage = ({
   const [theme, setTheme] = useState(() => localStorage.getItem('app-theme') || 'light');
   const [isExportingData, setIsExportingData] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-
-  const hasTaxProfile = Boolean((userProfile.residence ?? '').trim()) && Boolean((userProfile.vatFrequency ?? '').trim());
-  const privacyPolicyCurrent = Boolean(legalPublicInfo?.privacyPolicy.version) && userProfile.privacyPolicyVersion === legalPublicInfo?.privacyPolicy.version;
-  const termsCurrent = Boolean(legalPublicInfo?.termsOfService.version) && userProfile.termsOfServiceVersion === legalPublicInfo?.termsOfService.version;
-  const hasCurrentRequiredConsents = Boolean(userProfile.gdprAccepted && privacyPolicyCurrent && termsCurrent);
-
-  const consentAuditItems = [
-    {
-      label: 'Privacy Notice',
-      version: userProfile.privacyPolicyVersion ?? 'Not accepted',
-      acceptedAt: formatConsentTimestamp(userProfile.privacyAcceptedAt)
-    },
-    {
-      label: 'Terms of Service',
-      version: userProfile.termsOfServiceVersion ?? 'Not accepted',
-      acceptedAt: formatConsentTimestamp(userProfile.termsAcceptedAt)
-    },
-    {
-      label: 'Cookie Notice',
-      version: userProfile.cookiePolicyVersion ?? 'Not acknowledged',
-      acceptedAt: formatConsentTimestamp(userProfile.cookiePolicyAcknowledgedAt)
-    },
-    {
-      label: 'Open Banking Notice',
-      version: userProfile.openBankingNoticeVersion ?? 'Not accepted',
-      acceptedAt: formatConsentTimestamp(userProfile.openBankingNoticeAcceptedAt)
-    }
-  ];
-
-  const checklistItems = [
-    { id: 1, label: 'Verify Email', completed: true, cta: 'Done', action: null },
-    { id: 2, label: 'Link a Bank Account', completed: true, cta: 'Manage', action: () => setActiveSection('BANKING') },
-    { id: 3, label: 'Set Base Currency', completed: true, cta: 'Change', action: () => setActiveSection('PREFERENCES') },
-    { id: 4, label: 'Define Tax Profile', completed: hasTaxProfile, cta: hasTaxProfile ? 'Done' : 'Set Now', action: hasTaxProfile ? null : () => onNavigate('EDIT_PROFILE') },
-    { id: 5, label: 'Customize Notifications', completed: false, cta: 'Configure', action: () => onNavigate('NOTIFICATIONS') }
-  ];
-
-  const sections: SettingsSectionDefinition[] = [
-    { id: 'PROFILE', label: 'Profile & Account', icon: Users },
-    { id: 'BRANDING', label: 'Branding', icon: Palette },
-    { id: 'BANKING', label: 'Open Banking', icon: Building2 },
-    { id: 'PREFERENCES', label: 'Preferences', icon: Globe },
-    { id: 'SECURITY', label: 'Security', icon: Lock },
-    { id: 'PRIVACY', label: 'Data & Privacy', icon: ShieldCheck },
-    { id: 'HELP', label: 'Help & Legal', icon: HelpCircle }
-  ];
+  const { verificationEmailAction } = useEmailVerificationState({
+    emailVerified: Boolean(userProfile.emailVerified),
+    onRequestEmailVerification
+  });
+  const requiredConsentsCurrent = hasCurrentRequiredConsents(userProfile, legalPublicInfo);
+  const consentAuditItems = buildConsentAuditItems(userProfile);
+  const checklistItems = buildConfigurationChecklist({
+    userProfile,
+    verificationEmailAction
+  });
 
   const completedCount = checklistItems.filter((item) => item.completed).length;
-  const progressPercent = (completedCount / checklistItems.length) * 100;
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -119,9 +85,8 @@ export const SettingsPage = ({
           <SettingsProfileSection
             userProfile={userProfile}
             checklistItems={checklistItems}
-            progressPercent={progressPercent}
             completedCount={completedCount}
-            onNavigate={onNavigate}
+            onSaveProfile={onSaveProfile}
           />
         );
       case 'BRANDING':
@@ -145,6 +110,7 @@ export const SettingsPage = ({
               taxBufferProviders={taxBufferProviders}
               onCreateOpenBankConnection={onCreateOpenBankConnection}
               onRemoveOpenBankConnection={onRemoveOpenBankConnection}
+              legalPublicInfo={legalPublicInfo}
               openBankingNoticeVersion={legalPublicInfo?.openBankingNotice.version ?? null}
               isConnectingOpenBank={isConnectingOpenBank}
               openBankErrorMessage={openBankErrorMessage}
@@ -166,7 +132,7 @@ export const SettingsPage = ({
           <SettingsPrivacySection
             userProfile={userProfile}
             legalPublicInfo={legalPublicInfo}
-            hasCurrentRequiredConsents={hasCurrentRequiredConsents}
+            hasCurrentRequiredConsents={requiredConsentsCurrent}
             consentAuditItems={consentAuditItems}
             isExportingData={isExportingData}
             isDeletingAccount={isDeletingAccount}
@@ -186,7 +152,7 @@ export const SettingsPage = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       <SettingsHeader onNavigate={onNavigate} />
-      <SettingsTabs sections={sections} activeSection={activeSection} onSectionChange={setActiveSection} />
+      <SettingsTabs sections={SETTINGS_SECTIONS} activeSection={activeSection} onSectionChange={setActiveSection} />
 
       <div className="flex flex-col gap-8">
         <div className="flex-1 w-full space-y-8">

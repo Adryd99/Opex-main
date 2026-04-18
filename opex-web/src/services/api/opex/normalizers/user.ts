@@ -1,4 +1,4 @@
-import { UserProfile } from '../../../../shared/types';
+import type { UserProfile } from '../../../../shared/types/user';
 import { UserProfilePatchPayload } from '../types';
 import {
   toBooleanValue,
@@ -12,6 +12,7 @@ import {
 export const normalizeUserProfile = (payload: unknown, fallback?: Partial<UserProfile>): UserProfile => {
   const item = toRecord(payload);
   const email = toStringValue(item.email, fallback?.email ?? '');
+  const displayName = toStringOrNull(item.displayName) ?? fallback?.displayName ?? null;
   const firstName = toStringOrNull(item.firstName) ?? fallback?.firstName ?? null;
   const lastName = toStringOrNull(item.lastName) ?? fallback?.lastName ?? null;
   const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
@@ -24,10 +25,14 @@ export const normalizeUserProfile = (payload: unknown, fallback?: Partial<UserPr
       : toNumber(item.notificationBalanceThreshold);
 
   return {
-    name: fullName || fallbackName || inferredName,
+    name: (displayName?.trim() || fullName || fallbackName || inferredName),
+    displayName: displayName?.trim() || fullName || fallbackName || inferredName,
+    identityProvider: toStringOrNull(item.identityProvider) ?? fallback?.identityProvider ?? null,
     email,
-    residence: toStringValue(item.residence, fallback?.residence ?? 'Netherlands (NL)'),
-    vatFrequency: toStringValue(item.vatFrequency, fallback?.vatFrequency ?? 'Quarterly'),
+    emailVerified: toBooleanValue(item.emailVerified, fallback?.emailVerified ?? false),
+    registrationDate: toStringOrNull(item.registrationDate) ?? fallback?.registrationDate ?? null,
+    residence: toStringValue(item.residence, fallback?.residence ?? ''),
+    vatFrequency: toStringValue(item.vatFrequency, fallback?.vatFrequency ?? 'Yearly'),
     logo: toStringOrNull(item.profilePicture) ?? fallback?.logo ?? null,
     gdprAccepted: toBooleanValue(item.gdprAccepted, fallback?.gdprAccepted ?? false),
     fiscalResidence: toStringOrNull(item.fiscalResidence) ?? fallback?.fiscalResidence ?? null,
@@ -35,6 +40,15 @@ export const normalizeUserProfile = (payload: unknown, fallback?: Partial<UserPr
     activityType: toStringOrNull(item.activityType) ?? fallback?.activityType ?? null,
     firstName: firstName ?? undefined,
     lastName: lastName ?? undefined,
+    country: toStringOrNull(item.country) ?? fallback?.country ?? null,
+    occupation: toStringOrNull(item.occupation) ?? fallback?.occupation ?? null,
+    preferredSecondFactor: toStringOrNull(item.preferredSecondFactor) ?? fallback?.preferredSecondFactor ?? null,
+    secondFactorEnrollmentDeferred: toBooleanValue(
+      item.secondFactorEnrollmentDeferred,
+      fallback?.secondFactorEnrollmentDeferred ?? false
+    ),
+    secondFactorMethod: toStringOrNull(item.secondFactorMethod) ?? fallback?.secondFactorMethod ?? null,
+    secondFactorConfiguredAt: toStringOrNull(item.secondFactorConfiguredAt) ?? fallback?.secondFactorConfiguredAt ?? null,
     customerId: toStringOrNull(item.customerId) ?? fallback?.customerId ?? null,
     connectionId: fallback?.connectionId ?? null,
     dob: toStringOrNull(item.dob) ?? fallback?.dob ?? null,
@@ -49,6 +63,11 @@ export const normalizeUserProfile = (payload: unknown, fallback?: Partial<UserPr
     termsAcceptedAt: toStringOrNull(item.termsAcceptedAt) ?? fallback?.termsAcceptedAt ?? null,
     cookiePolicyVersion: toStringOrNull(item.cookiePolicyVersion) ?? fallback?.cookiePolicyVersion ?? null,
     cookiePolicyAcknowledgedAt: toStringOrNull(item.cookiePolicyAcknowledgedAt) ?? fallback?.cookiePolicyAcknowledgedAt ?? null,
+    legalVersion: toStringOrNull(item.legalVersion) ?? fallback?.legalVersion ?? null,
+    strictlyNecessaryCookiesAcknowledged: toBooleanValue(
+      item.strictlyNecessaryCookiesAcknowledged,
+      fallback?.strictlyNecessaryCookiesAcknowledged ?? false
+    ),
     openBankingNoticeVersion: toStringOrNull(item.openBankingNoticeVersion) ?? fallback?.openBankingNoticeVersion ?? null,
     openBankingNoticeAcceptedAt: toStringOrNull(item.openBankingNoticeAcceptedAt) ?? fallback?.openBankingNoticeAcceptedAt ?? null,
     openBankingConsentScopes: consentScopes.length > 0
@@ -66,15 +85,17 @@ export const normalizeUserProfile = (payload: unknown, fallback?: Partial<UserPr
 };
 
 export const toUserProfilePatchPayload = (profile: UserProfile): UserProfilePatchPayload => {
-  const nameParts = profile.name.trim().split(/\s+/).filter(Boolean);
-  const firstName = profile.firstName ?? nameParts[0] ?? '';
-  const lastName = profile.lastName ?? (nameParts.length > 1 ? nameParts.slice(1).join(' ') : '');
+  const displayName = (profile.displayName ?? profile.name).trim();
+  const occupation = profile.occupation?.trim() || null;
+  const residence = profile.residence;
 
   return {
+    displayName,
     email: profile.email,
-    firstName,
-    lastName,
-    residence: profile.residence,
+    firstName: (profile.firstName ?? '').trim(),
+    lastName: (profile.lastName ?? '').trim(),
+    residence,
+    occupation,
     vatFrequency: profile.vatFrequency,
     gdprAccepted: profile.gdprAccepted ?? false,
     fiscalResidence: profile.fiscalResidence ?? null,
@@ -83,9 +104,9 @@ export const toUserProfilePatchPayload = (profile: UserProfile): UserProfilePatc
     customerId: profile.customerId ?? null,
     connectionId: profile.connectionId ?? null,
     dob: profile.dob ?? null,
-    answer1: profile.answer1 ?? null,
-    answer2: profile.answer2 ?? null,
-    answer3: profile.answer3 ?? null,
+    answer1: displayName || profile.answer1 || null,
+    answer2: residence || profile.answer2 || null,
+    answer3: occupation || profile.answer3 || null,
     answer4: profile.answer4 ?? null,
     answer5: profile.answer5 ?? null,
     profilePicture: profile.logo ?? null

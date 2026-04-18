@@ -2,12 +2,7 @@ import { Download, Mail, ShieldCheck, Trash2 } from 'lucide-react';
 import { openLegalDocument } from '../../../shared/legal';
 import { Badge, Button, Card } from '../../../shared/ui';
 import { LegalPublicInfoRecord, UserProfile } from '../../../shared/types';
-
-type ConsentAuditItem = {
-  label: string;
-  version: string;
-  acceptedAt: string;
-};
+import { ConsentAuditItem } from '../types';
 
 type SettingsPrivacySectionProps = {
   userProfile: UserProfile;
@@ -65,7 +60,7 @@ export const SettingsPrivacySection = ({
             >
               <p className="text-sm font-black text-gray-900">Privacy Notice</p>
               <p className="mt-2 text-xs font-medium leading-relaxed text-gray-500">
-                v{legalPublicInfo?.privacyPolicy.version || 'n/a'} · Open the current notice in a new tab.
+                v{legalPublicInfo?.privacyPolicy.version || 'n/a'} - Open the current notice in a new tab.
               </p>
             </button>
             <button
@@ -75,7 +70,7 @@ export const SettingsPrivacySection = ({
             >
               <p className="text-sm font-black text-gray-900">Terms Of Service</p>
               <p className="mt-2 text-xs font-medium leading-relaxed text-gray-500">
-                v{legalPublicInfo?.termsOfService.version || 'n/a'} · Review the contractual rules for the app.
+                v{legalPublicInfo?.termsOfService.version || 'n/a'} - Review the contractual rules for the app.
               </p>
             </button>
             <button
@@ -85,7 +80,7 @@ export const SettingsPrivacySection = ({
             >
               <p className="text-sm font-black text-gray-900">Cookie Notice</p>
               <p className="mt-2 text-xs font-medium leading-relaxed text-gray-500">
-                v{legalPublicInfo?.cookiePolicy.version || 'n/a'} · See which browser storage keys are used.
+                v{legalPublicInfo?.cookiePolicy.version || 'n/a'} - See which browser storage keys are used.
               </p>
             </button>
             <button
@@ -95,7 +90,7 @@ export const SettingsPrivacySection = ({
             >
               <p className="text-sm font-black text-gray-900">Open Banking Notice</p>
               <p className="mt-2 text-xs font-medium leading-relaxed text-gray-500">
-                v{legalPublicInfo?.openBankingNotice.version || 'n/a'} · Review banking-specific processing terms.
+                v{legalPublicInfo?.openBankingNotice.version || 'n/a'} - Review banking-specific processing terms.
               </p>
             </button>
           </div>

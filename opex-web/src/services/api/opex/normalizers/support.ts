@@ -1,4 +1,4 @@
-import { PaginatedResponse } from '../../../../shared/types';
+import type { PaginatedResponse } from '../../../../shared/types/app';
 
 export type LooseRecord = Record<string, unknown>;
 

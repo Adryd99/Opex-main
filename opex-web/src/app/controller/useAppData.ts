@@ -14,25 +14,27 @@ import {
 import {
   DEFAULT_LEGAL_PUBLIC_INFO,
   syncStoredLegalConsents
-} from '../../services/api/legalFallbacks';
+} from '../../shared/legal';
 import { opexApi } from '../../services/api/opexApi';
 import {
-  BANK_PROVIDERS_KEY,
-  BANK_PROVIDERS_UPDATED_EVENT,
+  buildAggregatedSummary,
+  buildAllowedConnectionIdsForSelectedProvider,
+  buildTimeAggregatedSummary,
+  buildVisibleTransactions,
+  createProviderMatcher
+} from './dashboardDerivations';
+import { DEFAULT_USER_PROFILE } from './defaults';
+import { toErrorMessage } from './errors';
+import {
   BANK_SYNC_COMPLETED_EVENT_KEY,
-  buildPeriodKey,
   buildProviderMap,
-  DEFAULT_USER_PROFILE,
-  formatPeriodLabel,
   getSelectedProviderFromStorage,
-  normalizeText,
-  PROVIDER_SELECTION_UPDATED_EVENT,
-  resolveAccountProviderName,
-  resolveBankAccountId,
-  resolveSelectedConnectionId,
-  SELECTED_PROVIDER_KEY,
-  toErrorMessage
-} from './controllerSupport';
+  resolveSelectedConnectionId
+} from './providerSupport';
+import {
+  useBankProviderRegistry,
+  useSelectedProviderName
+} from './providerSelection';
 import { DashboardRefreshResult } from './types';
 
 type UseAppDataArgs = {
@@ -45,9 +47,7 @@ export const useAppData = ({ isAuthenticated, setErrorMessage }: UseAppDataArgs)
   const [bankAccounts, setBankAccounts] = useState<BankAccountRecord[]>([]);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [taxes, setTaxes] = useState<TaxRecord[]>([]);
-  const [selectedProviderName, setSelectedProviderName] = useState<string | null>(
-    typeof window === 'undefined' ? null : getSelectedProviderFromStorage()
-  );
+  const selectedProviderName = useSelectedProviderName();
   const [taxBufferProviders, setTaxBufferProviders] = useState<TaxBufferProviderItem[]>([]);
   const [taxBufferDashboard, setTaxBufferDashboard] = useState<TaxBufferDashboardResponse | null>(null);
   const [forecastData, setForecastData] = useState<ForecastResponse | null>(null);
@@ -107,6 +107,17 @@ export const useAppData = ({ isAuthenticated, setErrorMessage }: UseAppDataArgs)
     }
   }, [setErrorMessage]);
 
+  const providerByConnectionId = useMemo(() => buildProviderMap(taxBufferProviders), [taxBufferProviders]);
+  useBankProviderRegistry({
+    bankAccounts,
+    taxBufferProviders,
+    providerByConnectionId
+  });
+  const doesAccountMatchSelectedProvider = useCallback(
+    createProviderMatcher(providerByConnectionId),
+    [providerByConnectionId]
+  );
+
   useEffect(() => {
     if (!isAuthenticated) {
       setLegalPublicInfo(DEFAULT_LEGAL_PUBLIC_INFO);
@@ -145,25 +156,6 @@ export const useAppData = ({ isAuthenticated, setErrorMessage }: UseAppDataArgs)
   }, [isAuthenticated, refreshDashboardData, setErrorMessage]);
 
   useEffect(() => {
-    const updateSelectedProvider = () => {
-      setSelectedProviderName(getSelectedProviderFromStorage());
-    };
-
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === SELECTED_PROVIDER_KEY) {
-        updateSelectedProvider();
-      }
-    };
-
-    window.addEventListener('storage', handleStorage);
-    window.addEventListener(PROVIDER_SELECTION_UPDATED_EVENT, updateSelectedProvider);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-      window.removeEventListener(PROVIDER_SELECTION_UPDATED_EVENT, updateSelectedProvider);
-    };
-  }, []);
-
-  useEffect(() => {
     if (!isAuthenticated) {
       return;
     }
@@ -179,31 +171,6 @@ export const useAppData = ({ isAuthenticated, setErrorMessage }: UseAppDataArgs)
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, [isAuthenticated, refreshDashboardData]);
-
-  useEffect(() => {
-    const providerByConnectionId = buildProviderMap(taxBufferProviders);
-    const providerNames = Array.from(
-      new Set([
-        ...taxBufferProviders
-          .map((provider) => normalizeText(provider.providerName))
-          .filter((name) => name.length > 0),
-        ...bankAccounts
-          .map((account) => resolveAccountProviderName(account, providerByConnectionId))
-          .filter((name) => name.length > 0)
-      ])
-    );
-
-    window.localStorage.setItem(BANK_PROVIDERS_KEY, JSON.stringify(providerNames));
-    window.dispatchEvent(new Event(BANK_PROVIDERS_UPDATED_EVENT));
-  }, [bankAccounts, taxBufferProviders]);
-
-  const providerByConnectionId = useMemo(() => buildProviderMap(taxBufferProviders), [taxBufferProviders]);
-
-  const doesAccountMatchSelectedProvider = useCallback(
-    (account: (typeof bankAccounts)[number], providerName: string) =>
-      resolveAccountProviderName(account, providerByConnectionId) === providerName,
-    [providerByConnectionId]
-  );
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -235,49 +202,21 @@ export const useAppData = ({ isAuthenticated, setErrorMessage }: UseAppDataArgs)
   }, [bankAccounts, isAuthenticated, selectedProviderName, setErrorMessage, taxBufferProviders]);
 
   const allowedConnectionIdsForSelectedProvider = useMemo(() => {
-    if (!selectedProviderName) {
-      return null;
-    }
-
-    return new Set(
-      bankAccounts
-        .filter((account) => doesAccountMatchSelectedProvider(account, selectedProviderName))
-        .map((account) => account.connectionId ?? '')
-        .filter((connectionId) => connectionId.length > 0)
+    return buildAllowedConnectionIdsForSelectedProvider(
+      bankAccounts,
+      selectedProviderName,
+      doesAccountMatchSelectedProvider
     );
   }, [bankAccounts, doesAccountMatchSelectedProvider, selectedProviderName]);
 
   const visibleTransactions = useMemo(() => {
-    if (!selectedProviderName) {
-      return transactions;
-    }
-
-    const accountsById = new Map(
-      bankAccounts.flatMap((account) => {
-        const resolvedId = resolveBankAccountId(account);
-        if (!resolvedId) {
-          return [];
-        }
-        return [[resolvedId, account] as const];
-      })
+    return buildVisibleTransactions(
+      bankAccounts,
+      transactions,
+      selectedProviderName,
+      allowedConnectionIdsForSelectedProvider,
+      doesAccountMatchSelectedProvider
     );
-    const allowedConnections = allowedConnectionIdsForSelectedProvider ?? new Set<string>();
-
-    return transactions.filter((transaction) => {
-      const txConnectionId = (transaction.connectionId ?? '').trim();
-      if (txConnectionId.length > 0) {
-        return allowedConnections.has(txConnectionId);
-      }
-
-      const relatedAccount = transaction.bankAccountId
-        ? accountsById.get(transaction.bankAccountId)
-        : undefined;
-      if (!relatedAccount) {
-        return false;
-      }
-
-      return doesAccountMatchSelectedProvider(relatedAccount, selectedProviderName);
-    });
   }, [
     allowedConnectionIdsForSelectedProvider,
     bankAccounts,
@@ -287,65 +226,18 @@ export const useAppData = ({ isAuthenticated, setErrorMessage }: UseAppDataArgs)
   ]);
 
   const aggregatedSummary = useMemo(() => {
-    const visibleBankAccounts = selectedProviderName
-      ? bankAccounts.filter((account) => doesAccountMatchSelectedProvider(account, selectedProviderName))
-      : bankAccounts;
-
-    return {
-      totalBalance: visibleBankAccounts.reduce((sum, account) => sum + Number(account.balance || 0), 0),
-      totalIncome: visibleTransactions.reduce((sum, transaction) => {
-        const amount = Number(transaction.amount || 0);
-        return amount > 0 ? sum + amount : sum;
-      }, 0),
-      totalExpenses: visibleTransactions.reduce((sum, transaction) => {
-        const amount = Number(transaction.amount || 0);
-        return amount < 0 ? sum + amount : sum;
-      }, 0)
-    };
+    return buildAggregatedSummary(
+      bankAccounts,
+      visibleTransactions,
+      selectedProviderName,
+      doesAccountMatchSelectedProvider
+    );
   }, [bankAccounts, doesAccountMatchSelectedProvider, selectedProviderName, visibleTransactions]);
 
-  const timeAggregatedSummary = useMemo<TimeAggregatedRecord>(() => {
-    const aggregateByPeriod = (period: 'month' | 'quarter' | 'year') => {
-      const grouped = new Map<string, TimeAggregatedRecord['byMonth'][number]>();
-
-      visibleTransactions.forEach((transaction) => {
-        const date = new Date(transaction.bookingDate);
-        if (Number.isNaN(date.getTime())) {
-          return;
-        }
-
-        const amount = Number(transaction.amount || 0);
-        const key = buildPeriodKey(date, period);
-        const existing = grouped.get(key);
-        if (existing) {
-          if (amount > 0) {
-            existing.income += amount;
-          } else if (amount < 0) {
-            existing.expenses += amount;
-          }
-          return;
-        }
-
-        grouped.set(key, {
-          key,
-          label: formatPeriodLabel(date, period),
-          income: amount > 0 ? amount : 0,
-          expenses: amount < 0 ? amount : 0,
-          connectionId: null
-        });
-      });
-
-      return Array.from(grouped.entries())
-        .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
-        .map(([, value]) => value);
-    };
-
-    return {
-      byMonth: aggregateByPeriod('month'),
-      byQuarter: aggregateByPeriod('quarter'),
-      byYear: aggregateByPeriod('year')
-    };
-  }, [visibleTransactions]);
+  const timeAggregatedSummary = useMemo<TimeAggregatedRecord>(
+    () => buildTimeAggregatedSummary(visibleTransactions),
+    [visibleTransactions]
+  );
 
   return {
     userProfile,

@@ -1,6 +1,7 @@
 package com.opex.backend.notification.controller;
 
 import com.opex.backend.common.security.AuthenticatedUser;
+import com.opex.backend.notification.dto.NotificationResponse;
 import com.opex.backend.notification.model.Notification;
 import com.opex.backend.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -17,8 +18,9 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     @GetMapping
-    public ResponseEntity<List<Notification>> getNotifications(AuthenticatedUser authenticatedUser) {
-        return ResponseEntity.ok(notificationService.getNotificationsForUser(authenticatedUser.userId()));
+    public ResponseEntity<List<NotificationResponse>> getNotifications(AuthenticatedUser authenticatedUser) {
+        List<Notification> notifications = notificationService.getNotificationsForUser(authenticatedUser.userId());
+        return ResponseEntity.ok(notifications.stream().map(NotificationResponse::from).toList());
     }
 
     @PatchMapping("/{id}/read")

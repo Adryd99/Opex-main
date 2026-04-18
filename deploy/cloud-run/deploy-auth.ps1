@@ -29,6 +29,8 @@ $envVars = @(
   "KC_HOSTNAME=https://$AuthDomain",
   "OPEX_APP_ORIGIN=https://$AppDomain",
   "OPEX_APP_ORIGIN_WILDCARD=https://$AppDomain/*",
+  "OPEX_LEGAL_APP_BASE_URL=https://$AppDomain",
+  "OPEX_LEGAL_API_PUBLIC_URL=https://api.$AppDomain/api/legal/public",
   'KC_LOG_LEVEL=INFO'
 )
 $secrets = @(

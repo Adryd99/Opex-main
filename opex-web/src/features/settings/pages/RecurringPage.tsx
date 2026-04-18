@@ -4,7 +4,7 @@ import { SubpageShell } from '../../../app/layout';
 import { Badge, Button, Card } from '../../../shared/ui';
 import { AddRecurringModal } from '../modals/AddRecurringModal';
 
-export const RecurringPage = ({ onBack }: { onBack: () => void; }) => {
+export const RecurringPage = ({ onBack }: { onBack: () => void }) => {
   const [activeTab, setActiveTab] = useState('All');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -15,11 +15,14 @@ export const RecurringPage = ({ onBack }: { onBack: () => void; }) => {
     { id: 4, name: 'Adobe CC', type: 'Expense', amount: 52, frequency: 'Monthly', nextBilling: '2026-03-12', status: 'Paused', daysLeft: 8 },
     { id: 5, name: 'Spotify', type: 'Expense', amount: 10, frequency: 'Monthly', nextBilling: '2026-03-15', status: 'Active', daysLeft: 11 },
     { id: 6, name: 'Office Rent', type: 'Expense', amount: 800, frequency: 'Monthly', nextBilling: '2026-04-01', status: 'Active', daysLeft: 28 },
-    { id: 7, name: 'SaaS Project B', type: 'Income', amount: 900, frequency: 'Monthly', nextBilling: '2026-03-20', status: 'Active', daysLeft: 16 },
+    { id: 7, name: 'SaaS Project B', type: 'Income', amount: 900, frequency: 'Monthly', nextBilling: '2026-03-20', status: 'Active', daysLeft: 16 }
   ];
 
-  const filteredItems = recurringItems.filter(item => {
-    if (activeTab === 'All') return true;
+  const filteredItems = recurringItems.filter((item) => {
+    if (activeTab === 'All') {
+      return true;
+    }
+
     return item.type === activeTab;
   });
 
@@ -36,54 +39,72 @@ export const RecurringPage = ({ onBack }: { onBack: () => void; }) => {
       onBack={onBack}
       title="Recurring"
       subtitle="Track your recurring income and expenses"
-      actions={<Button variant="primary" icon={Plus} onClick={() => setIsAddModalOpen(true)}>Add recurring</Button>}
+      actions={(
+        <Button variant="primary" icon={Plus} onClick={() => setIsAddModalOpen(true)}>
+          Add recurring
+        </Button>
+      )}
     >
       <div className="space-y-8 pb-20">
-        {/* KPI Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <Card>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Recurring Income</p>
+            <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
+              Recurring Income
+            </p>
             <div className="flex items-baseline gap-1">
-              <span className="text-lg font-bold text-gray-400">€</span>
-              <span className="text-3xl font-black text-gray-900 tracking-tight">{stats.income.toLocaleString()}</span>
+              <span className="text-lg font-bold text-gray-400">EUR</span>
+              <span className="text-3xl font-black tracking-tight text-gray-900">
+                {stats.income.toLocaleString()}
+              </span>
             </div>
           </Card>
           <Card>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Recurring Expenses</p>
+            <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
+              Recurring Expenses
+            </p>
             <div className="flex items-baseline gap-1">
-              <span className="text-lg font-bold text-gray-400">€</span>
-              <span className="text-3xl font-black text-gray-900 tracking-tight">{stats.expenses.toLocaleString()}</span>
+              <span className="text-lg font-bold text-gray-400">EUR</span>
+              <span className="text-3xl font-black tracking-tight text-gray-900">
+                {stats.expenses.toLocaleString()}
+              </span>
             </div>
           </Card>
-          <Card className="bg-opex-dark text-white border-none">
-            <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Net Recurring</p>
+          <Card className="border-none bg-opex-dark text-white">
+            <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-white/40">
+              Net Recurring
+            </p>
             <div className="flex items-baseline gap-1">
-              <span className="text-lg font-bold text-white/40">€</span>
-              <span className="text-3xl font-black text-white tracking-tight">+{stats.net.toLocaleString()}</span>
+              <span className="text-lg font-bold text-white/40">EUR</span>
+              <span className="text-3xl font-black tracking-tight text-white">
+                +{stats.net.toLocaleString()}
+              </span>
             </div>
           </Card>
         </div>
 
-        {/* Upcoming Section */}
         <div className="space-y-4">
-          <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Upcoming</h3>
-          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
+          <h3 className="px-1 text-[10px] font-black uppercase tracking-widest text-gray-400">Upcoming</h3>
+          <div className="divide-y divide-gray-50 overflow-hidden rounded-[2.5rem] border border-gray-100 bg-white shadow-sm">
             {upcoming.map((item) => (
-              <div key={item.id} className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors">
+              <div key={item.id} className="flex items-center justify-between p-6 transition-colors hover:bg-gray-50">
                 <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.type === 'Income' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                      item.type === 'Income' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
+                    }`}
+                  >
                     {item.type === 'Income' ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
                   </div>
                   <div>
                     <p className="text-sm font-black text-gray-900">{item.name}</p>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{item.type}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{item.type}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-12">
-                  <div className="text-right hidden sm:block">
-                    <p className="text-sm font-black text-gray-900">€{item.amount.toLocaleString()}</p>
+                  <div className="hidden text-right sm:block">
+                    <p className="text-sm font-black text-gray-900">EUR {item.amount.toLocaleString()}</p>
                   </div>
-                  <div className="text-right min-w-[100px]">
+                  <div className="min-w-[100px] text-right">
                     <p className="text-sm font-black text-gray-900">in {item.daysLeft} days</p>
                   </div>
                 </div>
@@ -92,39 +113,39 @@ export const RecurringPage = ({ onBack }: { onBack: () => void; }) => {
           </div>
         </div>
 
-        {/* Tabs & Table */}
         <div className="space-y-6">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            {['All', 'Income', 'Expenses'].map(tab => (
+            {['All', 'Income', 'Expenses'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-6 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab
+                className={`whitespace-nowrap rounded-full px-6 py-2 text-xs font-bold transition-all ${
+                  activeTab === tab
                     ? 'bg-opex-dark text-white shadow-lg shadow-blue-900/10'
-                    : 'bg-white text-gray-500 border border-gray-100 hover:bg-gray-50'
-                  }`}
+                    : 'border border-gray-100 bg-white text-gray-500 hover:bg-gray-50'
+                }`}
               >
                 {tab}
               </button>
             ))}
           </div>
 
-          <Card className="p-0 overflow-hidden">
+          <Card className="overflow-hidden p-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="border-b border-gray-50">
-                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Name</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Type</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Frequency</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Next billing</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Name</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Type</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Amount</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Frequency</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Next billing</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filteredItems.map(item => (
-                    <tr key={item.id} className="group hover:bg-gray-50/50 transition-colors">
+                  {filteredItems.map((item) => (
+                    <tr key={item.id} className="group transition-colors hover:bg-gray-50/50">
                       <td className="px-6 py-5">
                         <p className="text-sm font-black text-gray-900">{item.name}</p>
                       </td>
@@ -133,7 +154,7 @@ export const RecurringPage = ({ onBack }: { onBack: () => void; }) => {
                       </td>
                       <td className="px-6 py-5">
                         <p className={`text-sm font-black ${item.type === 'Income' ? 'text-emerald-600' : 'text-gray-900'}`}>
-                          €{item.amount.toLocaleString()}
+                          EUR {item.amount.toLocaleString()}
                         </p>
                       </td>
                       <td className="px-6 py-5">
@@ -143,10 +164,15 @@ export const RecurringPage = ({ onBack }: { onBack: () => void; }) => {
                         <p className="text-xs font-bold text-gray-600">{item.nextBilling}</p>
                       </td>
                       <td className="px-6 py-5">
-                        <Badge variant={
-                          item.status === 'Active' ? 'success' :
-                            item.status === 'Paused' ? 'warning' : 'danger'
-                        }>
+                        <Badge
+                          variant={
+                            item.status === 'Active'
+                              ? 'success'
+                              : item.status === 'Paused'
+                                ? 'warning'
+                                : 'danger'
+                          }
+                        >
                           {item.status}
                         </Badge>
                       </td>
@@ -162,13 +188,10 @@ export const RecurringPage = ({ onBack }: { onBack: () => void; }) => {
       <AddRecurringModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onAdd={(data) => {
-          console.log('Adding recurring:', data);
+        onAdd={(_data) => {
           setIsAddModalOpen(false);
         }}
       />
     </SubpageShell>
   );
 };
-
-

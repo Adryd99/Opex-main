@@ -1,4 +1,4 @@
-import { NotificationKind, NotificationRecord } from '../../../../shared/types';
+import type { NotificationKind, NotificationRecord } from '../../../../shared/types/notifications';
 import { toStringValue } from './support';
 
 const toNotificationKind = (value: unknown): NotificationKind => {

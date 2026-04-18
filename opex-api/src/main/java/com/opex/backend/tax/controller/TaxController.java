@@ -2,9 +2,11 @@ package com.opex.backend.tax.controller;
 
 import com.opex.backend.tax.dto.TaxBufferDashboardResponse;
 import com.opex.backend.tax.dto.TaxRequest;
+import com.opex.backend.tax.dto.TaxResponse;
 import com.opex.backend.tax.model.Tax;
 import com.opex.backend.common.security.AuthenticatedUser;
 import com.opex.backend.tax.service.TaxService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
@@ -22,13 +24,13 @@ public class TaxController {
     private final TaxService taxService;
 
     @GetMapping("/my-taxes")
-    public ResponseEntity<Page<Tax>> getMyTaxes(
+    public ResponseEntity<Page<TaxResponse>> getMyTaxes(
             AuthenticatedUser authenticatedUser,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         Page<Tax> taxes = taxService.getUserTaxes(authenticatedUser.userId(), page, size);
-        return ResponseEntity.ok(taxes);
+        return ResponseEntity.ok(taxes.map(TaxResponse::from));
     }
 
     @GetMapping("/buffer/dashboard")
@@ -83,20 +85,20 @@ public class TaxController {
     }
 
     @PostMapping("/local")
-    public ResponseEntity<Tax> createLocalTax(
+    public ResponseEntity<TaxResponse> createLocalTax(
             AuthenticatedUser authenticatedUser,
-            @RequestBody TaxRequest request
+            @Valid @RequestBody TaxRequest request
     ) {
-        return ResponseEntity.ok(taxService.createLocalTax(authenticatedUser.userId(), request));
+        return ResponseEntity.ok(TaxResponse.from(taxService.createLocalTax(authenticatedUser.userId(), request)));
     }
 
     @PatchMapping("/local/{taxId}")
-    public ResponseEntity<Tax> updateLocalTax(
+    public ResponseEntity<TaxResponse> updateLocalTax(
             AuthenticatedUser authenticatedUser,
             @PathVariable String taxId,
-            @RequestBody TaxRequest request
+            @Valid @RequestBody TaxRequest request
     ) {
-        return ResponseEntity.ok(taxService.updateLocalTax(authenticatedUser.userId(), taxId, request));
+        return ResponseEntity.ok(TaxResponse.from(taxService.updateLocalTax(authenticatedUser.userId(), taxId, request)));
     }
 
     @DeleteMapping("/local/{taxId}")

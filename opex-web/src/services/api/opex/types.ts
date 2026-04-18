@@ -1,8 +1,10 @@
 export interface UserProfilePatchPayload {
+  displayName: string;
   email: string;
   firstName: string;
   lastName: string;
   residence: string;
+  occupation: string | null;
   vatFrequency: string;
   gdprAccepted: boolean;
   fiscalResidence: string | null;

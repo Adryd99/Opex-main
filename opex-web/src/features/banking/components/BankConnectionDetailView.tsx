@@ -56,7 +56,7 @@ export const BankConnectionDetailView = ({
             <p className="text-2xl font-black text-gray-900 tracking-tight">{providerName}</p>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                {connection?.isManagedConnection ? 'Open Banking · Salt Edge' : 'Local Account'}
+                {connection?.isManagedConnection ? 'Open Banking - Salt Edge' : 'Local Account'}
               </span>
               {statusLabel && (
                 <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${resolveConnectionStatusColor(connection?.status ?? null)}`}>

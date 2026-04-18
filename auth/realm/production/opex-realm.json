@@ -33,7 +33,7 @@
   "verifyEmail": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
-  "resetPasswordAllowed": false,
+  "resetPasswordAllowed": true,
   "editUsernameAllowed": false,
   "bruteForceProtected": false,
   "permanentLockout": false,
@@ -1723,7 +1723,12 @@
       }
     ]
   },
-  "internationalizationEnabled": false,
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "it",
+    "en"
+  ],
+  "defaultLocale": "it",
   "authenticationFlows": [
     {
       "id": "fcc6d175-d327-4931-97c5-0803cba5caaa",
@@ -2412,66 +2417,39 @@
   ],
   "requiredActions": [
     {
-      "alias": "CONFIGURE_TOTP",
-      "name": "Configure OTP",
-      "providerId": "CONFIGURE_TOTP",
+      "alias": "SECURITY_SETUP_CHOICE",
+      "name": "Security setup choice",
+      "providerId": "SECURITY_SETUP_CHOICE",
       "enabled": true,
-      "defaultAction": false,
+      "defaultAction": true,
       "priority": 10,
       "config": {}
     },
     {
-      "alias": "TERMS_AND_CONDITIONS",
-      "name": "Terms and Conditions",
-      "providerId": "TERMS_AND_CONDITIONS",
-      "enabled": false,
+      "alias": "OPTIONAL_CONFIGURE_TOTP",
+      "name": "Optional configure OTP",
+      "providerId": "OPTIONAL_CONFIGURE_TOTP",
+      "enabled": true,
       "defaultAction": false,
       "priority": 20,
       "config": {}
     },
     {
-      "alias": "UPDATE_PASSWORD",
-      "name": "Update Password",
-      "providerId": "UPDATE_PASSWORD",
+      "alias": "OPTIONAL_WEBAUTHN_REGISTER",
+      "name": "Optional WebAuthn register",
+      "providerId": "OPTIONAL_WEBAUTHN_REGISTER",
       "enabled": true,
       "defaultAction": false,
       "priority": 30,
       "config": {}
     },
     {
-      "alias": "UPDATE_PROFILE",
-      "name": "Update Profile",
-      "providerId": "UPDATE_PROFILE",
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
       "enabled": true,
       "defaultAction": false,
-      "priority": 40,
-      "config": {}
-    },
-    {
-      "alias": "VERIFY_EMAIL",
-      "name": "Verify Email",
-      "providerId": "VERIFY_EMAIL",
-      "enabled": true,
-      "defaultAction": false,
-      "priority": 50,
-      "config": {}
-    },
-    {
-      "alias": "delete_account",
-      "name": "Delete Account",
-      "providerId": "delete_account",
-      "enabled": false,
-      "defaultAction": false,
-      "priority": 60,
-      "config": {}
-    },
-    {
-      "alias": "UPDATE_EMAIL",
-      "name": "Update Email",
-      "providerId": "UPDATE_EMAIL",
-      "enabled": false,
-      "defaultAction": false,
-      "priority": 70,
+      "priority": 20,
       "config": {}
     },
     {
@@ -2480,7 +2458,97 @@
       "providerId": "webauthn-register",
       "enabled": true,
       "defaultAction": false,
+      "priority": 30,
+      "config": {}
+    },
+    {
+      "alias": "PROFILE_BASICS",
+      "name": "Profile basics",
+      "providerId": "PROFILE_BASICS",
+      "enabled": true,
+      "defaultAction": true,
+      "priority": 40,
+      "config": {}
+    },
+    {
+      "alias": "COUNTRY_SELECTION",
+      "name": "Country selection",
+      "providerId": "COUNTRY_SELECTION",
+      "enabled": true,
+      "defaultAction": true,
+      "priority": 50,
+      "config": {}
+    },
+    {
+      "alias": "OCCUPATION",
+      "name": "Occupation",
+      "providerId": "OCCUPATION",
+      "enabled": true,
+      "defaultAction": true,
+      "priority": 60,
+      "config": {}
+    },
+    {
+      "alias": "LEGAL_ACCEPTANCE",
+      "name": "Legal acceptance",
+      "providerId": "LEGAL_ACCEPTANCE",
+      "enabled": true,
+      "defaultAction": true,
+      "priority": 70,
+      "config": {}
+    },
+    {
+      "alias": "UPDATE_PASSWORD",
+      "name": "Update Password",
+      "providerId": "UPDATE_PASSWORD",
+      "enabled": true,
+      "defaultAction": false,
       "priority": 80,
+      "config": {}
+    },
+    {
+      "alias": "UPDATE_PROFILE",
+      "name": "Update Profile",
+      "providerId": "UPDATE_PROFILE",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 90,
+      "config": {}
+    },
+    {
+      "alias": "VERIFY_EMAIL",
+      "name": "Verify Email",
+      "providerId": "VERIFY_EMAIL",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 100,
+      "config": {}
+    },
+    {
+      "alias": "TERMS_AND_CONDITIONS",
+      "name": "Terms and Conditions",
+      "providerId": "TERMS_AND_CONDITIONS",
+      "enabled": false,
+      "defaultAction": false,
+      "priority": 110,
+      "config": {}
+    },
+    {
+      "alias": "delete_account",
+      "name": "Delete Account",
+      "providerId": "delete_account",
+      "enabled": false,
+      "defaultAction": false,
+      "priority": 120,
+      "config": {}
+    },
+    {
+      "alias": "UPDATE_EMAIL",
+      "name": "Update Email",
+      "providerId": "UPDATE_EMAIL",
+      "enabled": false,
+      "defaultAction": false,
+      "priority": 130,
       "config": {}
     },
     {
@@ -2489,7 +2557,7 @@
       "providerId": "webauthn-register-passwordless",
       "enabled": true,
       "defaultAction": false,
-      "priority": 90,
+      "priority": 140,
       "config": {}
     },
     {

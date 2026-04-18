@@ -1,4 +1,4 @@
-import { OpenBankingConsentPayload } from '../../../../shared/types';
+import type { OpenBankingConsentPayload } from '../../../../shared/types/legal';
 import { request } from '../http';
 import { BankIntegrationResponse } from '../types';
 

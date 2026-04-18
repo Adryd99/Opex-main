@@ -1,16 +1,26 @@
 import { useCallback, useState } from 'react';
 
-const MAIN_TABS = new Set(['DASHBOARD', 'BUDGET', 'TAXES', 'SETTINGS']);
+import {
+  DEFAULT_APP_TAB,
+  isMainAppTab,
+  type MainAppTab,
+  normalizeAppTab
+} from '../navigation';
 
 export const useAppNavigation = () => {
-  const [activeTab, setActiveTab] = useState('DASHBOARD');
-  const [lastMainTab, setLastMainTab] = useState('DASHBOARD');
+  const [activeTab, setActiveTabState] = useState(DEFAULT_APP_TAB);
+  const [lastMainTab, setLastMainTab] = useState<MainAppTab>(DEFAULT_APP_TAB);
+
+  const setActiveTab = useCallback((tab: string) => {
+    setActiveTabState(normalizeAppTab(tab));
+  }, []);
 
   const handleNavigate = useCallback((tab: string) => {
-    if (MAIN_TABS.has(tab)) {
-      setLastMainTab(tab);
+    const nextTab = normalizeAppTab(tab);
+    if (isMainAppTab(nextTab)) {
+      setLastMainTab(nextTab);
     }
-    setActiveTab(tab);
+    setActiveTabState(nextTab);
   }, []);
 
   return {

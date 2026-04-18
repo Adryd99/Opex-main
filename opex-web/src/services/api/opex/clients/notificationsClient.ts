@@ -1,4 +1,4 @@
-import { NotificationRecord } from '../../../../shared/types';
+import type { NotificationRecord } from '../../../../shared/types/notifications';
 import { request } from '../http';
 import { normalizeNotifications } from '../normalizers/notifications';
 

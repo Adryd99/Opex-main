@@ -7,6 +7,15 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import {
+  APP_TABS,
+  getAppPageTitle,
+  isBudgetMobileTab,
+  isDashboardMobileTab,
+  isSettingsTab,
+  isSubpageAppTab,
+  resolveSettingsNavigationTarget
+} from './navigation';
 import { CenteredStatusCard, Sidebar, TopBar } from './layout';
 import { Button } from '../shared/ui';
 import { AccountSetupPage, BankRedirectionPage } from '../features/banking';
@@ -19,12 +28,11 @@ import {
   TransactionsPage
 } from '../features/dashboard';
 import { AddInvoicePage, InvoicingPage } from '../features/invoicing';
-import { LegalDocumentPage, resolveLegalDocumentSlug } from '../features/legal';
-import { OnboardingPage, PostBankConnectionGdprPage } from '../features/onboarding';
+import { LegalCenterPage, resolveLegalCenterSlug } from '../features/legal';
+import { PostBankConnectionGdprPage } from '../features/onboarding';
 import {
   CategoriesPage,
   ChangePasswordPage,
-  EditProfilePage,
   NotificationDetailsPage,
   RecurringPage,
   RenewConsentPage,
@@ -32,54 +40,20 @@ import {
   SupportPage
 } from '../features/settings';
 import { TaxesPage } from '../features/taxes';
-import { DEFAULT_LEGAL_PUBLIC_INFO } from '../services/api/legalFallbacks';
-
-
-
+import { DEFAULT_LEGAL_PUBLIC_INFO } from '../shared/legal';
 import { useAppController } from './useAppController';
 import { useKeycloakAuth } from '../services/auth/useKeycloakAuth';
 
-const PAGE_TITLES: Record<string, string> = {
-  DASHBOARD: 'Overview',
-  BUDGET: 'Budget',
-  TAXES: 'Tax Buffer',
-  INVOICING: 'Invoicing',
-  INCOME: 'Income Breakdown',
-  EXPENSES: 'Expense Breakdown',
-  TRANSACTIONS_IN: 'Income Transactions',
-  TRANSACTIONS_OUT: 'Expense Transactions',
-  INSIGHTS: 'Financial Insights',
-  '[]': 'All Activity',
-  SETTINGS: 'Settings'
-};
-
-const SETTINGS_ROOT_TABS = new Set(['SETTINGS_OPEN_BANKING', 'SETTINGS_ADD_BANK']);
-const SUBPAGE_TABS = new Set([
-  'INCOME',
-  'EXPENSES',
-  'TRANSACTIONS_IN',
-  'TRANSACTIONS_OUT',
-  'INSIGHTS',
-  '[]',
-  'QUICK_INCOME',
-  'QUICK_EXPENSE',
-  'QUICK_INVOICE',
-  'SETTINGS_BANK_SETUP'
-]);
-const DASHBOARD_MOBILE_TABS = new Set(['INCOME', 'EXPENSES', '[]']);
-const BUDGET_MOBILE_TABS = new Set(['INSIGHTS']);
-
-const isGlobalSettingsShortcut = (value: string) =>
-  value.startsWith('QUICK_') || value === 'ADD_BANK' || value === 'OPEN_BANKING' || value === 'SETTINGS_OPEN_BANKING';
-
 export const App = () => {
+  const legalDocumentSlug = resolveLegalCenterSlug(window.location.pathname);
+
   const {
     isAuthenticated,
     isLoading: isAuthLoading,
     errorMessage: authErrorMessage,
     login,
     logout
-  } = useKeycloakAuth();
+  } = useKeycloakAuth({ suspend: legalDocumentSlug !== null });
 
   const {
     activeTab,
@@ -118,7 +92,7 @@ export const App = () => {
     completeConnectionSetup,
     createLocalTransaction,
     saveUserProfile,
-    completeOnboarding,
+    requestEmailVerification,
     downloadDataExport,
     deleteAccount,
     updateBankAccountSettings,
@@ -128,16 +102,8 @@ export const App = () => {
   const successSyncRequestedRef = useRef(false);
   const [postSaltEdgeGdprPending, setPostSaltEdgeGdprPending] = useState(false);
   const isSuccessRoute = window.location.pathname === '/success';
-  const legalDocumentSlug = resolveLegalDocumentSlug(window.location.pathname);
   const isEmbeddedWindow = window.self !== window.top;
   const activeLegalPublicInfo = legalPublicInfo ?? DEFAULT_LEGAL_PUBLIC_INFO;
-  const needsMandatoryLegalAcceptance = Boolean(
-    activeLegalPublicInfo && (
-      !userProfile.gdprAccepted ||
-      userProfile.privacyPolicyVersion !== activeLegalPublicInfo.privacyPolicy.version ||
-      userProfile.termsOfServiceVersion !== activeLegalPublicInfo.termsOfService.version
-    )
-  );
 
   useEffect(() => {
     if (!isAuthenticated || !isSuccessRoute || successSyncRequestedRef.current || isEmbeddedWindow) {
@@ -149,7 +115,7 @@ export const App = () => {
   }, [isAuthenticated, isSuccessRoute, isEmbeddedWindow]);
 
   if (legalDocumentSlug) {
-    return <LegalDocumentPage slug={legalDocumentSlug} />;
+    return <LegalCenterPage initialSlug={legalDocumentSlug} />;
   }
 
   if (!isAuthenticated) {
@@ -243,23 +209,8 @@ export const App = () => {
     );
   }
 
-  if (needsMandatoryLegalAcceptance) {
-    return (
-      <OnboardingPage
-        userProfile={userProfile}
-        legalPublicInfo={activeLegalPublicInfo}
-        onComplete={completeOnboarding}
-      />
-    );
-  }
-
   const handleSettingsNavigate = (value: string) => {
-    if (isGlobalSettingsShortcut(value)) {
-      handleNavigate(value);
-      return;
-    }
-
-    handleNavigate(`SETTINGS_${value}`);
+    handleNavigate(resolveSettingsNavigationTarget(value));
   };
 
   const settingsPageProps = {
@@ -280,6 +231,8 @@ export const App = () => {
       await deleteAccount();
       logout();
     },
+    onSaveProfile: saveUserProfile,
+    onRequestEmailVerification: requestEmailVerification,
     onNavigate: handleSettingsNavigate
   };
 
@@ -290,43 +243,35 @@ export const App = () => {
     />
   );
 
-  const pageTitle = activeTab === 'QUICK_INVOICE'
-    ? 'Invoicing'
-    : activeTab.startsWith('SETTINGS_')
-    ? 'Settings'
-    : activeTab.startsWith('QUICK_')
-      ? 'New Transaction'
-      : PAGE_TITLES[activeTab] ?? 'Opex';
-
-  const isSubpage = SUBPAGE_TABS.has(activeTab)
-    || (activeTab.startsWith('SETTINGS_') && !SETTINGS_ROOT_TABS.has(activeTab));
+  const pageTitle = getAppPageTitle(activeTab);
+  const isSubpage = isSubpageAppTab(activeTab);
 
   const mobileNavItems = [
     {
-      id: 'DASHBOARD',
+      id: APP_TABS.DASHBOARD,
       icon: LayoutGrid,
-      isActive: activeTab === 'DASHBOARD' || DASHBOARD_MOBILE_TABS.has(activeTab)
+      isActive: isDashboardMobileTab(activeTab)
     },
     {
-      id: 'BUDGET',
+      id: APP_TABS.BUDGET,
       icon: Wallet,
-      isActive: activeTab === 'BUDGET' || BUDGET_MOBILE_TABS.has(activeTab)
+      isActive: isBudgetMobileTab(activeTab)
     },
     {
-      id: 'TAXES',
+      id: APP_TABS.TAXES,
       icon: Calculator,
-      isActive: activeTab === 'TAXES'
+      isActive: activeTab === APP_TABS.TAXES
     },
     {
-      id: 'SETTINGS',
+      id: APP_TABS.SETTINGS,
       icon: Settings,
-      isActive: activeTab === 'SETTINGS' || activeTab.startsWith('SETTINGS_')
+      isActive: activeTab === APP_TABS.SETTINGS || isSettingsTab(activeTab)
     }
   ] as const;
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'DASHBOARD':
+      case APP_TABS.DASHBOARD:
         return (
           <DashboardPage
             onNavigate={handleNavigate}
@@ -338,7 +283,7 @@ export const App = () => {
             onRefresh={refreshDashboardData}
           />
         );
-      case 'BUDGET':
+      case APP_TABS.BUDGET:
         return (
           <BudgetPage
             onNavigate={handleNavigate}
@@ -348,7 +293,7 @@ export const App = () => {
             forecastData={forecastData}
           />
         );
-      case 'TAXES':
+      case APP_TABS.TAXES:
         return (
           <TaxesPage
             onNavigate={handleNavigate}
@@ -359,27 +304,27 @@ export const App = () => {
             onSaveTaxSetup={saveUserProfile}
           />
         );
-      case 'INVOICING':
+      case APP_TABS.INVOICING:
         return <InvoicingPage userProfile={userProfile} />;
-      case 'RECURRING':
+      case APP_TABS.RECURRING:
         return <RecurringPage onBack={() => setActiveTab(lastMainTab)} />;
-      case 'INCOME':
+      case APP_TABS.INCOME:
         return <BreakdownLayout type="INCOME" onBack={() => setActiveTab(lastMainTab)} />;
-      case 'EXPENSES':
+      case APP_TABS.EXPENSES:
         return <BreakdownLayout type="EXPENSES" onBack={() => setActiveTab(lastMainTab)} />;
-      case 'TRANSACTIONS_IN':
+      case APP_TABS.TRANSACTIONS_IN:
         return <TransactionsPage onBack={() => setActiveTab(lastMainTab)} transactions={transactions} initialFilter="In" />;
-      case 'TRANSACTIONS_OUT':
+      case APP_TABS.TRANSACTIONS_OUT:
         return <TransactionsPage onBack={() => setActiveTab(lastMainTab)} transactions={transactions} initialFilter="Out" />;
-      case 'INSIGHTS':
+      case APP_TABS.INSIGHTS:
         return <InsightsDetail onBack={() => setActiveTab(lastMainTab)} />;
-      case '[]':
+      case APP_TABS.ALL_ACTIVITY:
         return <TransactionsPage onBack={() => setActiveTab(lastMainTab)} transactions={transactions} />;
-      case 'SETTINGS':
+      case APP_TABS.SETTINGS:
         return renderSettingsPage('PROFILE');
 
       // Quick Action Pages
-      case 'QUICK_INCOME':
+      case APP_TABS.QUICK_INCOME:
         return (
           <AddTransactionPage
             type="INCOME"
@@ -389,7 +334,7 @@ export const App = () => {
             isSaving={isTransactionSaving}
           />
         );
-      case 'QUICK_EXPENSE':
+      case APP_TABS.QUICK_EXPENSE:
         return (
           <AddTransactionPage
             type="EXPENSE"
@@ -399,38 +344,28 @@ export const App = () => {
             isSaving={isTransactionSaving}
           />
         );
-      case 'QUICK_INVOICE':
+      case APP_TABS.QUICK_INVOICE:
         return <AddInvoicePage onBack={() => setActiveTab(lastMainTab)} userProfile={userProfile} bankAccounts={bankAccounts} />;
 
       // Settings Subpages
-      case 'SETTINGS_EDIT_PROFILE':
-        return (
-          <EditProfilePage
-            userProfile={userProfile}
-            setUserProfile={setUserProfile}
-            onSaveProfile={saveUserProfile}
-            onBack={() => setActiveTab('SETTINGS')}
-          />
-        );
-      case 'SETTINGS_OPEN_BANKING':
-      case 'SETTINGS_ADD_BANK': // Legacy alias
+      case APP_TABS.SETTINGS_OPEN_BANKING:
         return renderSettingsPage('BANKING');
-      case 'SETTINGS_BANK_REDIRECT':
+      case APP_TABS.SETTINGS_BANK_REDIRECT:
         return selectedBank ? (
           <BankRedirectionPage
             bank={selectedBank}
             onComplete={syncExternalBankAndNavigate}
-            onBack={() => setActiveTab('SETTINGS_OPEN_BANKING')}
+            onBack={() => setActiveTab(APP_TABS.SETTINGS_OPEN_BANKING)}
             isSyncing={isBankSyncInProgress}
             syncStage={bankSyncStage}
             errorMessage={appErrorMessage}
           />
         ) : null;
-      case 'SETTINGS_BANK_SETUP':
+      case APP_TABS.SETTINGS_BANK_SETUP:
         return selectedBank ? (
           <AccountSetupPage
             bank={selectedBank}
-            onBack={() => setActiveTab('SETTINGS_OPEN_BANKING')}
+            onBack={() => setActiveTab(APP_TABS.SETTINGS_OPEN_BANKING)}
             onComplete={(payload) => {
               if (selectedBankAccount) {
                 if (!selectedBankAccountId) {
@@ -445,20 +380,16 @@ export const App = () => {
             presetAccount={selectedBankAccount}
           />
         ) : null;
-      case 'SETTINGS_RENEW_CONSENT':
-        return <RenewConsentPage onBack={() => setActiveTab('SETTINGS')} />;
-      case 'SETTINGS_CHANGE_PASSWORD':
-        return <ChangePasswordPage onBack={() => setActiveTab('SETTINGS')} />;
-      case 'SETTINGS_CATEGORIES':
-        return <CategoriesPage onBack={() => setActiveTab('SETTINGS')} />;
-      case 'SETTINGS_NOTIFICATIONS':
-        return <NotificationDetailsPage onBack={() => setActiveTab('SETTINGS')} />;
-      case 'SETTINGS_SUPPORT':
-        return <SupportPage onBack={() => setActiveTab('SETTINGS')} />;
-
-      case 'ADD_BANK': // Global shortcut
-      case 'OPEN_BANKING': // Global shortcut alias
-        return renderSettingsPage('BANKING');
+      case APP_TABS.SETTINGS_RENEW_CONSENT:
+        return <RenewConsentPage onBack={() => setActiveTab(APP_TABS.SETTINGS)} />;
+      case APP_TABS.SETTINGS_CHANGE_PASSWORD:
+        return <ChangePasswordPage onBack={() => setActiveTab(APP_TABS.SETTINGS)} />;
+      case APP_TABS.SETTINGS_CATEGORIES:
+        return <CategoriesPage onBack={() => setActiveTab(APP_TABS.SETTINGS)} />;
+      case APP_TABS.SETTINGS_NOTIFICATIONS:
+        return <NotificationDetailsPage onBack={() => setActiveTab(APP_TABS.SETTINGS)} />;
+      case APP_TABS.SETTINGS_SUPPORT:
+        return <SupportPage onBack={() => setActiveTab(APP_TABS.SETTINGS)} />;
 
       default:
         return (

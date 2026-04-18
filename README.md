@@ -10,25 +10,35 @@ Repository root for the Opex local stack.
 
 ## Local Run
 
-1. Start infrastructure from the repository root:
+1. Build or refresh the local Keycloak theme:
+
+```powershell
+cd .\auth\keycloakify
+.\build-local-theme.ps1
+cd ..\..
+```
+
+2. Start infrastructure from the repository root:
 
 ```powershell
 docker compose up -d
 ```
 
-2. Start the API:
+3. Start the API:
 
 ```powershell
 cd .\opex-api
 .\mvnw.cmd spring-boot:run
 ```
 
-3. Start the frontend:
+4. Start the frontend:
 
 ```powershell
 cd ..\opex-web
 npm.cmd run dev -- --host 0.0.0.0
 ```
+
+For theme-specific local development, see [auth/keycloakify/README.md](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/README.md).
 
 ## Google Cloud
 

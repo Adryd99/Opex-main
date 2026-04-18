@@ -83,7 +83,7 @@ export const useAppController = (isAuthenticated: boolean) => {
     completeConnectionSetup: bankingFlow.completeConnectionSetup,
     createLocalTransaction: profileActions.createLocalTransaction,
     saveUserProfile: profileActions.saveUserProfile,
-    completeOnboarding: profileActions.completeOnboarding,
+    requestEmailVerification: profileActions.requestEmailVerification,
     downloadDataExport: profileActions.downloadDataExport,
     deleteAccount: profileActions.deleteAccount,
     updateBankAccountSettings: bankingFlow.updateBankAccountSettings

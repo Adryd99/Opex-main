@@ -8,7 +8,6 @@ import com.opex.backend.banking.saltedge.dto.SaltEdgeCustomerResponse;
 import com.opex.backend.banking.saltedge.dto.SaltEdgeTransactionResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -28,20 +27,14 @@ import java.util.Map;
 import java.util.Set;
 
 @Service
+@lombok.RequiredArgsConstructor
 public class SaltEdgeApiService {
 
     private static final Logger log = LoggerFactory.getLogger(SaltEdgeApiService.class);
     private static final String BASE_URL = "https://www.saltedge.com/api/v6";
     private static final List<String> DEFAULT_CONSENT_SCOPES = List.of("accounts", "transactions");
 
-    @Value("${saltedge.app-id}")
-    private String appId;
-
-    @Value("${saltedge.secret}")
-    private String secret;
-
-    @Value("${saltedge.return-to-url:http://localhost:3000/success}")
-    private String returnToUrl;
+    private final SaltEdgeProperties saltEdgeProperties;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -60,7 +53,7 @@ public class SaltEdgeApiService {
         consent.put("scopes", normalizeConsentScopes(scopes));
 
         Map<String, Object> attempt = new HashMap<>();
-        attempt.put("return_to", returnToUrl);
+        attempt.put("return_to", saltEdgeProperties.getReturnToUrl());
 
         Map<String, Object> data = new HashMap<>();
         data.put("customer_id", customerId);
@@ -76,7 +69,7 @@ public class SaltEdgeApiService {
     public SaltEdgeConnectResponse refreshConnection(String connectionId) {
         Map<String, Object> attempt = new HashMap<>();
         attempt.put("fetch_scopes", normalizeConsentScopes(null));
-        attempt.put("return_to", returnToUrl);
+        attempt.put("return_to", saltEdgeProperties.getReturnToUrl());
 
         Map<String, Object> data = new HashMap<>();
         data.put("return_connection_id", true);
@@ -145,8 +138,8 @@ public class SaltEdgeApiService {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("App-id", appId);
-        headers.set("Secret", secret);
+        headers.set("App-id", saltEdgeProperties.getAppId());
+        headers.set("Secret", saltEdgeProperties.getSecret());
         return headers;
     }
 

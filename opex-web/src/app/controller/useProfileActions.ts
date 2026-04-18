@@ -14,12 +14,11 @@ import {
   clearStoredLegalConsents,
   DEFAULT_LEGAL_PUBLIC_INFO,
   syncStoredLegalConsents
-} from '../../services/api/legalFallbacks';
+} from '../../shared/legal';
 import { opexApi, toUserProfilePatchPayload } from '../../services/api/opexApi';
-import {
-  resolveBankAccountId,
-  toErrorMessage
-} from './controllerSupport';
+import { APP_TABS } from '../navigation';
+import { toErrorMessage } from './errors';
+import { resolveBankAccountId } from './providerSupport';
 
 type UseProfileActionsArgs = {
   bankAccounts: BankAccountRecord[];
@@ -92,7 +91,7 @@ export const useProfileActions = ({
         type: input.type === 'EXPENSE' ? 'DEBIT' : 'CREDIT'
       });
       await refreshDashboardData();
-      setActiveTab('DASHBOARD');
+      setActiveTab(APP_TABS.DASHBOARD);
     } catch (error) {
       setErrorMessage(toErrorMessage(error));
       throw error;
@@ -118,46 +117,19 @@ export const useProfileActions = ({
     await refreshDashboardData();
   }, [legalPublicInfo, refreshDashboardData, setErrorMessage, setUserProfile]);
 
-  const completeOnboarding = useCallback(async (profile: UserProfile) => {
-    const resolvedLegalPublicInfo = legalPublicInfo ?? DEFAULT_LEGAL_PUBLIC_INFO;
+  const requestEmailVerification = useCallback(async () => {
     setErrorMessage(null);
+    const response = await opexApi.sendVerificationEmail();
 
-    const savedProfile = await opexApi.patchUserProfile(toUserProfilePatchPayload(profile), profile);
-    setUserProfile((current) =>
-      syncStoredLegalConsents(
-        {
-          ...current,
-          ...savedProfile,
-          logo: savedProfile.logo ?? current.logo
-        },
-        resolvedLegalPublicInfo
-      )
-    );
+    if (response.emailVerified) {
+      setUserProfile((current) => ({
+        ...current,
+        emailVerified: true
+      }));
+    }
 
-    const consentedProfile = await opexApi.acceptRequiredConsents(
-      {
-        acceptPrivacyPolicy: true,
-        privacyPolicyVersion: resolvedLegalPublicInfo.privacyPolicy.version,
-        acceptTermsOfService: true,
-        termsOfServiceVersion: resolvedLegalPublicInfo.termsOfService.version,
-        acknowledgeCookiePolicy: true,
-        cookiePolicyVersion: resolvedLegalPublicInfo.cookiePolicy.version
-      },
-      savedProfile
-    );
-
-    setUserProfile((current) =>
-      syncStoredLegalConsents(
-        {
-          ...current,
-          ...consentedProfile,
-          logo: current.logo ?? consentedProfile.logo
-        },
-        resolvedLegalPublicInfo
-      )
-    );
-    await refreshDashboardData();
-  }, [legalPublicInfo, refreshDashboardData, setErrorMessage, setUserProfile]);
+    return response;
+  }, [setErrorMessage, setUserProfile]);
 
   const downloadDataExport = useCallback(async () => {
     setErrorMessage(null);
@@ -208,7 +180,7 @@ export const useProfileActions = ({
     isTransactionSaving,
     createLocalTransaction,
     saveUserProfile,
-    completeOnboarding,
+    requestEmailVerification,
     downloadDataExport,
     deleteAccount
   };

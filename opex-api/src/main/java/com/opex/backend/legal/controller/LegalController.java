@@ -4,7 +4,9 @@ import com.opex.backend.common.security.AuthenticatedUser;
 import com.opex.backend.legal.dto.LegalConsentRequest;
 import com.opex.backend.legal.dto.LegalPublicInfoResponse;
 import com.opex.backend.legal.service.LegalService;
+import com.opex.backend.user.dto.UserResponse;
 import com.opex.backend.user.model.User;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -30,11 +32,12 @@ public class LegalController {
     }
 
     @PutMapping("/consents")
-    public ResponseEntity<User> acceptRequiredConsents(
+    public ResponseEntity<UserResponse> acceptRequiredConsents(
             AuthenticatedUser authenticatedUser,
-            @RequestBody LegalConsentRequest request
+            @Valid @RequestBody LegalConsentRequest request
     ) {
-        return ResponseEntity.ok(legalService.acceptRequiredConsents(authenticatedUser.userId(), request));
+        User updatedUser = legalService.acceptRequiredConsents(authenticatedUser.userId(), request);
+        return ResponseEntity.ok(UserResponse.from(updatedUser));
     }
 
     @GetMapping(value = "/export", produces = MediaType.APPLICATION_JSON_VALUE)

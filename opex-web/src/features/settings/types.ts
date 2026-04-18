@@ -28,6 +28,8 @@ export type AddRecurringModalProps = {
 export type SettingsPageProps = {
   userProfile: UserProfile;
   setUserProfile: (profile: UserProfile) => void;
+  onSaveProfile: (profile: UserProfile) => Promise<void>;
+  onRequestEmailVerification: () => Promise<EmailVerificationRequestResult>;
   onNavigate: (view: string) => void;
   bankAccounts: BankAccountRecord[];
   taxBufferProviders: TaxBufferProviderItem[];
@@ -65,4 +67,34 @@ export type SettingsSectionDefinition = {
   id: SettingsSectionId;
   label: string;
   icon: LucideIcon;
+};
+
+export type EmailVerificationRequestResult = {
+  emailVerified: boolean;
+  verificationEmailSent: boolean;
+  cooldownRemainingSeconds: number;
+};
+
+export type VerificationEmailActionState = {
+  cta: string;
+  detail: string;
+  actionDisabled: boolean;
+  requestVerificationEmail: () => Promise<void>;
+};
+
+export type SettingsChecklistItem = {
+  id: number;
+  label: string;
+  completed: boolean;
+  cta: string;
+  detail?: string;
+  actionDisabled?: boolean;
+  opensProfileEditor?: boolean;
+  action: (() => Promise<void> | void) | null;
+};
+
+export type ConsentAuditItem = {
+  label: string;
+  version: string;
+  acceptedAt: string;
 };

@@ -107,8 +107,8 @@ export const BankConnectionListView = ({
                         )}
                       </div>
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
-                        {conn.isManagedConnection ? 'Open Banking · Salt Edge' : 'Local Account'}
-                        {' · '}
+                        {conn.isManagedConnection ? 'Open Banking - Salt Edge' : 'Local Account'}
+                        {' - '}
                         {conn.accountCount} {conn.accountCount === 1 ? 'account' : 'accounts'}
                       </p>
                     </div>

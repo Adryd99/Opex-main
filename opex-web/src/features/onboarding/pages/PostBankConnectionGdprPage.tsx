@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Building2, Loader2 } from 'lucide-react';
+
+import { LegalDocumentModal } from '../../legal';
 import { LegalPublicInfoRecord } from '../../../shared/types';
-import { openLegalDocument } from '../../../shared/legal';
+import type { LegalDocumentSlug } from '../../../shared/legal';
 
 export const PostBankConnectionGdprPage = ({
   legalPublicInfo,
@@ -16,6 +18,7 @@ export const PostBankConnectionGdprPage = ({
 }) => {
   const [accepted, setAccepted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [previewSlug, setPreviewSlug] = useState<LegalDocumentSlug | null>(null);
 
   const handleConfirm = () => {
     if (!accepted) {
@@ -86,7 +89,7 @@ export const PostBankConnectionGdprPage = ({
             Leggi l&apos;{' '}
             <button
               type="button"
-              onClick={() => openLegalDocument('open-banking')}
+              onClick={() => setPreviewSlug('open-banking')}
               className="font-black text-opex-dark hover:underline"
               disabled={isSyncing}
             >
@@ -126,6 +129,12 @@ export const PostBankConnectionGdprPage = ({
             )}
           </button>
         </div>
+
+        <LegalDocumentModal
+          legalInfo={legalPublicInfo}
+          slug={previewSlug}
+          onClose={() => setPreviewSlug(null)}
+        />
       </div>
     </div>
   );

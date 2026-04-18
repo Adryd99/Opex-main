@@ -1,208 +1,1549 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
 
+:root {
+  color-scheme: light;
+  --opex-bg: #f7f7f3;
+  --opex-surface: #ffffff;
+  --opex-dark: #0c2131;
+  --opex-text-soft: #667684;
+  --opex-line: #e5e7eb;
+  --opex-line-strong: #d7dce1;
+  --opex-teal: #2ea97f;
+  --opex-danger: #c2410c;
+  --opex-danger-ink: #9a3412;
+  --opex-danger-border: rgba(194, 65, 12, 0.26);
+  --opex-danger-surface: rgba(194, 65, 12, 0.045);
+}
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
 
-@media (max-width: 767px) {
-  #kc-header-wrapper {
-    display: flex;
-    justify-content: center; /* centro orizzontale */
-    padding: 10px !important; /* padding per mobile */
-    align-items: center !important; /* centra il logo */
-    min-height: 80px;         /* opzionale: altezza area header */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  background: var(--opex-bg);
+  color: var(--opex-dark);
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+.opex-auth-shell {
+  min-height: 100vh;
+  width: 100%;
+}
+
+.opex-auth-main {
+  width: 100%;
+  min-height: 100vh;
+  padding: clamp(28px, 5vw, 44px) clamp(18px, 4vw, 28px) clamp(40px, 6vw, 56px);
+  box-sizing: border-box;
+}
+
+.opex-auth-card {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.opex-auth-card-header {
+  display: grid;
+  gap: clamp(18px, 2.8vw, 24px);
+  padding: 0;
+}
+
+.opex-auth-topbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.opex-auth-language-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--opex-line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 14px 28px -26px rgba(12, 33, 49, 0.32);
+}
+
+.opex-auth-language-switch-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 74px;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 999px;
+  color: rgba(12, 33, 49, 0.62);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+@media (hover: hover) {
+  .opex-auth-language-switch-link:hover {
+    color: var(--opex-dark);
+    transform: translateY(-1px);
   }
-  #kc-header-wrapper img {
-    display: block;   /* evita lo spazio extra inline */
-    max-width: 100%;
-    height: auto;
-    width: 50%
-  }
 }
 
-/*CHECKBOX - start*/
-  input[type="checkbox"] {
-    accent-color: #06a854;   /* verde al checked/focus */
-    width: 14px;             /* ingrandisce il quadratino */
-    height: 14px;
-    /* fallback per browser che ignorano width/height sul checkbox */
-    transform: scale(1.15);
-    transform-origin: left center;
-    vertical-align: middle;
-  }
-/*CHECKBOX - start*/
-
-.kcInputClass::placeholder {
-  color: #9aa3a9;   /* grigio leggibile */
-  opacity: 1;       /* evita che alcuni browser lo schiariscano troppo */
+.opex-auth-language-switch-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(12, 33, 49, 0.12);
 }
 
-.kcInputClass:focus::placeholder {
-  color: #b6c3c9;   /* leggermente diverso in focus, se ti piace */
+.opex-auth-language-switch-link--active {
+  background: var(--opex-dark);
+  color: #ffffff;
+  box-shadow: 0 16px 28px -24px rgba(12, 33, 49, 0.62);
 }
 
-.kcFormCardClass {
-  box-shadow: none !important; /* rimuove l'ombra */
-  border-top: 0 !important; /* rimuove la linea superiore */
-  border-color: none !important; /* rimuove il bordo blu */
+.opex-auth-brand-lockup {
+  display: flex;
+  justify-content: center;
+  margin-bottom: clamp(18px, 4vw, 28px);
 }
 
-.kcInfoAreaWrapperClass {
-  background-color: transparent !important; /* sfondo trasparente */
+.opex-auth-logo {
+  width: min(286px, 56vw);
+  height: auto;
 }
 
-.kcContentWrapperClass .col-md-10 {
-  padding: 0 !important; /* rimuove il padding */
+.opex-auth-heading {
+  display: grid;
+  gap: 12px;
+}
+
+.opex-auth-progress {
+  display: grid;
+  gap: 12px;
+  margin: -6px 0 4px;
+}
+
+.opex-auth-progress-meta {
+  display: flex;
+  justify-content: center;
+}
+
+.opex-auth-progress-caption {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(12, 33, 49, 0.42);
+}
+
+.opex-auth-progress-track {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  align-items: center;
+  gap: 12px;
+}
+
+.opex-auth-progress-node {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.opex-auth-progress-node::before,
+.opex-auth-progress-node::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: calc(50% - 10px);
+  height: 2px;
+  background: rgba(12, 33, 49, 0.12);
+  transform: translateY(-50%);
+}
+
+.opex-auth-progress-node::before {
+  left: 0;
+}
+
+.opex-auth-progress-node::after {
+  right: 0;
+}
+
+.opex-auth-progress-node:first-child::before,
+.opex-auth-progress-node:last-child::after {
+  display: none;
+}
+
+.opex-auth-progress-dot {
+  position: relative;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #d8dee3;
+  box-shadow: 0 0 0 6px var(--opex-bg);
+  transition: transform 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.opex-auth-progress-label {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(12, 33, 49, 0.52);
+  text-align: center;
+  line-height: 1.25;
+}
+
+.opex-auth-progress-node--complete .opex-auth-progress-dot {
+  background: var(--opex-dark);
+}
+
+.opex-auth-progress-node--current .opex-auth-progress-dot {
+  background: var(--opex-teal);
+  transform: scale(1.08);
+  box-shadow: 0 0 0 6px var(--opex-bg), 0 0 0 10px rgba(46, 169, 127, 0.14);
+}
+
+.opex-auth-progress-node--current .opex-auth-progress-label,
+.opex-auth-progress-node--complete .opex-auth-progress-label {
+  color: var(--opex-dark);
+}
+
+.opex-auth-progress-node--complete::before,
+.opex-auth-progress-node--complete::after {
+  background: rgba(12, 33, 49, 0.36);
+}
+
+.opex-auth-kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(12, 33, 49, 0.45);
 }
 
 #kc-page-title {
-  font-family: 'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-weight: 500;      /* Medium */
-  font-size: 32px;
-  line-height: 1.25;        /* 100% */
-  letter-spacing: 0;     /* 0% */
-  color: #1B323E;
-  margin-bottom: 8px;
+  margin: 0;
+  font-size: clamp(2.2rem, 4.8vw, 3.2rem);
+  line-height: 0.98;
+  letter-spacing: -0.065em;
+  font-weight: 900;
+  color: var(--opex-dark);
 }
 
-.login-pf-page .login-pf-header h1 {
-  text-align: left;
+.opex-auth-description {
+  max-width: 520px;
+  margin: 0;
+  font-size: clamp(0.93rem, 1.6vw, 1rem);
+  line-height: 1.58;
+  font-weight: 500;
+  color: var(--opex-text-soft);
 }
 
-#kc-form-login {
-  font-family: 'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-  font-weight: 400;
-  letter-spacing: 0;     /* 0% */
-  color: #1B323E;
-  font-size: 16px;
-}
-
-#kc-register-form {
-  font-family: 'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-  font-weight: 400;
-  letter-spacing: 0;     /* 0% */
-  color: #1B323E;
-  font-size: 16px;
-}
-
-#kc-form-options {
+.opex-auth-required-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
-  color: #1B323E;
-  letter-spacing: 0%;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(12, 33, 49, 0.42);
 }
 
-#kc-form-options .checkbox {
-  color: #1B323E;
+.opex-auth-card-content {
+  padding: clamp(22px, 3vw, 28px) 0 0;
 }
 
-/*LINK - start*/
-  .kcFormOptionsWrapperClass {
-    font-size: 12px;
-    color: #838383;
-    letter-spacing: 0;
-  }
-
-  .kcFormOptionsWrapperClass a:link,
-  .kcFormOptionsWrapperClass a:visited {
-    color: inherit;
-    transition: color .15s ease;
-  }
-
-  .kcFormOptionsWrapperClass a:hover,
-  .kcFormOptionsWrapperClass a:focus,
-  .kcFormOptionsWrapperClass a:active {
-    color: #06a854;
-  }
-
-  .kcFormOptionsWrapperClass a:focus-visible {
-    outline: 2px solid #06a854;
-    outline-offset: 2px;
-  }
-/*LINK - end*/
-
-.kcButtonClass {
-  --btn-bg: #1B323E;        /* colore scuro come nel riferimento */
-  --btn-bg-hover: #223a46;  /* leggermente più chiaro al hover   */
-  --btn-bg-active: #1a2b34; /* più scuro al click                 */
-
+#kc-content,
+#kc-content-wrapper,
+#kc-form,
+#kc-form-wrapper,
+.opex-auth-form-slot,
+.opex-auth-form,
+.opex-auth-field,
+.opex-auth-card-content,
+.opex-auth-card-header {
   width: 100%;
-  padding: 20px 22px;
-  font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-weight: 500;      /* Medium */
-  font-size: 16px;
-  line-height: 1;
-  color: #fff;
-  background: var(--btn-bg);
-  border: 0;
-  border-radius: 12px;   /* arrotondamento come nell’immagine 1 */
-  box-shadow: none;      /* niente ombra: look piatto */
-  text-transform: none;  /* niente UPPERCASE */
-  cursor: pointer;
-  transition: background-color .15s ease;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
-.kcButtonClass:hover {
-  background: var(--btn-bg-hover);
+.opex-auth-form-slot > * {
+  min-width: 0;
 }
 
-.kcButtonClass:active {
-  background: var(--btn-bg-active);
+.opex-auth-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 13px 15px;
+  border: 1px solid var(--opex-danger-border);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(194, 65, 12, 0.08), rgba(194, 65, 12, 0.04));
+  box-shadow: 0 18px 32px -28px rgba(154, 52, 18, 0.6);
+  color: var(--opex-danger-ink);
 }
 
-.kcButtonClass:focus-visible {
-  outline: 2px solid #8fb6c7;  /* focus accessibile */
-  outline-offset: 2px;
+.opex-auth-alert .kc-feedback-text,
+.opex-auth-alert .pf-c-alert__icon,
+.opex-auth-alert .kcAlertTitleClass {
+  color: inherit;
 }
 
-.kcButtonClass:disabled {
-  background: #2a3e48;
-  color: #b8c3c9;
-  cursor: not-allowed;
-  opacity: .85;
+.opex-auth-alert .pf-c-alert__icon {
+  margin-top: 1px;
 }
 
-.kcInputClass {
-  border: 1px solid #f6f6f6;  /* bordo grigio chiaro */
-  box-shadow: none;           
-  border-radius: 12px;        
-  padding: 14px 16px;         
-  font-size: 14px;            
-  color: #1B323E;  
-  transition: border-color .15s ease, box-shadow .15s ease;
-  height: auto !important;
-  text-align: left;
+.opex-auth-alert .kcAlertTitleClass {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.55;
 }
 
-.kcInputClass:hover {
-  border-color: #d2dbe2;
+.opex-auth-form-slot,
+.opex-auth-form {
+  display: grid;
+  gap: 24px;
+}
+
+.kcFormClass,
+.kcFormGroupClass,
+.kcFormButtonsClass,
+.kcFormOptionsClass,
+.kcInputWrapperClass,
+.kcLabelWrapperClass,
+.row,
+.col-xs-12,
+.col-sm-12,
+.col-md-12,
+.col-lg-12,
+.col-md-10,
+#kc-form-buttons,
+#kc-form-options,
+#kc-register-form {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0 !important;
+  box-sizing: border-box;
+}
+
+.opex-auth-field,
+.form-group,
+.kcFormGroupClass {
+  display: grid;
+  gap: 12px;
+}
+
+.kcLabelClass {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--opex-dark);
+}
+
+.kcInputClass,
+select.kcInputClass,
+textarea.kcInputClass {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: clamp(54px, 6vw, 60px);
+  padding: 0 clamp(16px, 2.4vw, 22px);
+  border: 1px solid var(--opex-line);
+  border-radius: 20px;
+  background: var(--opex-surface);
+  color: var(--opex-dark);
+  font-size: clamp(15px, 1.45vw, 16px);
+  font-weight: 700;
+  line-height: 1.4;
+  outline: none;
+  box-shadow: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+textarea.kcInputClass {
+  min-height: 132px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.kcInputClass::placeholder,
+textarea.kcInputClass::placeholder {
+  color: #a8b0b7;
+  font-weight: 600;
+}
+
+.kcInputClass:hover,
+select.kcInputClass:hover,
+textarea.kcInputClass:hover {
+  border-color: var(--opex-line-strong);
 }
 
 .kcInputClass:focus,
-.kcInputClass:focus-visible {
-    height: auto !important;
-    padding-bottom: 14.5px !important;
+.kcInputClass:focus-visible,
+select.kcInputClass:focus,
+select.kcInputClass:focus-visible,
+textarea.kcInputClass:focus,
+textarea.kcInputClass:focus-visible {
+  border-color: var(--opex-dark);
+  box-shadow: 0 0 0 1px var(--opex-dark);
+  background: #ffffff;
 }
-#password {
-  border-radius: 12px 0px 0px 12px; 
+
+.kcInputGroup,
+.opex-auth-password-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: clamp(54px, 6vw, 60px);
+  border: 1px solid var(--opex-line) !important;
+  border-radius: 20px;
+  background: var(--opex-surface) !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  align-items: stretch;
+  gap: 0;
+  overflow: hidden;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.opex-auth-password-group:hover {
+  border-color: var(--opex-line-strong) !important;
+}
+
+.opex-auth-password-group:focus-within {
+  border-color: var(--opex-dark) !important;
+  box-shadow: 0 0 0 1px var(--opex-dark) !important;
+  background: #ffffff !important;
+}
+
+.opex-auth-password-group .kcInputClass {
+  min-height: 100%;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent;
+  box-shadow: none !important;
+  padding-right: 16px;
+}
+
+.opex-auth-password-group > * {
+  min-width: 0;
+}
+
+.opex-auth-password-group .kcInputClass:hover,
+.opex-auth-password-group .kcInputClass:focus,
+.opex-auth-password-group .kcInputClass:focus-visible {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent;
 }
 
 .kcFormPasswordVisibilityButtonClass {
-  border: 1px solid #f6f6f6 !important;  /* bordo grigio chiaro */
-  box-shadow: none;           
-  border-radius: 0px 12px 12px 0px;        
-  padding: 14px 16px;         
-  font-size: 16px;            
-  transition: border-color .15s ease, box-shadow .15s ease;
-  height: auto !important;
+  display: inline-grid;
+  place-items: center;
+  width: 74px;
+  border: 0;
+  border-left: 1px solid var(--opex-line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--opex-dark);
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease, color 150ms ease;
+}
+
+.opex-auth-password-group:hover .kcFormPasswordVisibilityButtonClass {
+  border-left-color: var(--opex-line-strong);
+}
+
+.opex-auth-password-group:focus-within .kcFormPasswordVisibilityButtonClass {
+  border-left-color: var(--opex-dark);
+}
+
+.kcFormPasswordVisibilityButtonClass:hover {
+  background: rgba(12, 33, 49, 0.04);
+}
+
+.kcFormPasswordVisibilityButtonClass:active {
+  transform: scale(0.98);
+  background: rgba(12, 33, 49, 0.08);
+}
+
+.kcFormPasswordVisibilityButtonClass:focus-visible {
+  outline: none;
+  background: rgba(12, 33, 49, 0.05);
+}
+
+.opex-auth-meta-row {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.opex-auth-split-fields {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.opex-auth-checkbox-row {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--opex-dark);
+}
+
+.opex-auth-checkbox-row input {
+  flex: 0 0 auto;
+}
+
+.opex-auth-checkbox-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: rgba(12, 33, 49, 0.02);
+  color: var(--opex-dark);
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+@media (hover: hover) {
+  .opex-auth-checkbox-control:hover {
+    background: rgba(12, 33, 49, 0.045);
+    border-color: rgba(12, 33, 49, 0.08);
+    transform: translateY(-1px);
+  }
+}
+
+.opex-auth-checkbox-control:has(input:focus-visible) {
+  border-color: rgba(12, 33, 49, 0.16);
+  box-shadow: 0 0 0 3px rgba(12, 33, 49, 0.08);
+}
+
+@media (hover: hover) {
+  .opex-auth-checkbox-control:has(input:checked):hover {
+    background: rgba(46, 169, 127, 0.08);
+  }
+}
+
+@supports not selector(:has(*)) {
+  .opex-auth-checkbox-control {
+    border-color: rgba(12, 33, 49, 0.08);
+  }
+}
+
+.opex-auth-step-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.opex-auth-step-nav--single {
+  justify-content: flex-start;
+}
+
+.opex-auth-text-button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--opex-dark);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.opex-auth-text-button--start {
   text-align: left;
-  background-color: white !important;
-  border-left: 0 !important;
 }
 
-#kc-registration-container {
+.opex-auth-text-button--end {
+  text-align: right;
+}
+
+@media (hover: hover) {
+  .opex-auth-text-button:hover {
+    opacity: 0.72;
+    transform: translateY(-1px);
+  }
+}
+
+.opex-auth-text-button:active {
+  transform: translateY(1px);
+}
+
+.opex-auth-text-button:focus-visible {
+  outline: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  accent-color: var(--opex-dark);
+}
+
+.kcButtonClass {
+  width: 100%;
+  min-height: clamp(54px, 6vw, 60px);
+  padding: 0 24px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--opex-dark);
+  color: #ffffff;
+  font-size: clamp(17px, 1.8vw, 18px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  cursor: pointer;
+  transition: background-color 150ms ease, transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+  box-shadow: 0 18px 34px -22px rgba(12, 33, 49, 0.56);
+}
+
+.opex-auth-register-submit-group,
+.opex-auth-register-actions {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.opex-auth-register-actions > .kcButtonClass,
+.opex-auth-register-actions > button,
+.opex-auth-register-actions > input[type="submit"] {
+  display: block;
+  inline-size: 100%;
+  width: 100%;
+}
+
+@media (hover: hover) {
+  .kcButtonClass:hover:not(:disabled) {
+    background: #132c40;
+    transform: translateY(-1px);
+    box-shadow: 0 24px 40px -24px rgba(12, 33, 49, 0.62);
+    filter: saturate(1.04);
+  }
+}
+
+.kcButtonClass:active:not(:disabled) {
+  transform: translateY(1px) scale(0.992);
+  box-shadow: 0 12px 24px -20px rgba(12, 33, 49, 0.54);
+}
+
+.kcButtonClass:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(12, 33, 49, 0.14);
+}
+
+.kcButtonClass:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.opex-auth-secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: var(--opex-dark);
+  border: 1px solid var(--opex-line);
+  box-shadow: none;
+  text-align: center;
+  text-decoration: none !important;
+}
+
+@media (hover: hover) {
+  .opex-auth-secondary-button:hover:not(:disabled) {
+    background: #f4f5f6;
+    border-color: var(--opex-line-strong);
+    box-shadow: 0 16px 30px -24px rgba(12, 33, 49, 0.34);
+  }
+}
+
+.kcInputErrorMessageClass {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--opex-danger-ink);
+}
+
+.kcInputErrorMessageClass::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-top: 6px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.78;
+}
+
+.opex-auth-field-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--opex-text-soft);
+}
+
+.opex-auth-field-counter {
+  color: rgba(12, 33, 49, 0.54);
+}
+
+.kcFormOptionsWrapperClass,
+#kc-form-options {
+  font-size: 15px;
+  color: var(--opex-text-soft);
+}
+
+.kcFormOptionsWrapperClass a,
+.opex-auth-inline-link a {
+  color: var(--opex-dark);
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.opex-auth-info {
+  margin-top: 12px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.opex-auth-inline-link {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--opex-text-soft);
+}
+
+.opex-auth-inline-link--solo {
+  justify-content: flex-start;
+}
+
+.opex-auth-social-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.opex-auth-social {
+  margin-top: 20px;
+}
+
+.opex-auth-info + .opex-auth-social {
+  margin-top: 60px;
+}
+
+.opex-auth-social-item {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.opex-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(12, 33, 49, 0.34);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.opex-auth-divider::before,
+.opex-auth-divider::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--opex-line);
+}
+
+.opex-auth-social-button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 18px;
+  width: min(100%, 320px);
+  min-height: 72px;
+  padding: 0 28px;
+  border: 1px solid #e6e6e2 !important;
+  border-bottom: 1px solid #e6e6e2 !important;
+  border-radius: 999px;
+  background: #ffffff !important;
+  text-decoration: none;
+  color: #202124;
+  box-shadow: none !important;
+  outline: none;
+  line-height: 1;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: transform 150ms ease, border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+@media (hover: hover) {
+  .opex-auth-social-button:hover {
+    border-color: #ddddda !important;
+    background: #fbfbf9 !important;
+    transform: translateY(-1px);
+  }
+}
+
+.opex-auth-social-button:active {
+  transform: translateY(1px) scale(0.995);
+}
+
+.opex-auth-social-button,
+.opex-auth-social-button:hover,
+.opex-auth-social-button:focus,
+.opex-auth-social-button:active,
+.opex-auth-social-button:visited {
+  text-decoration: none !important;
+}
+
+.opex-auth-social-button:focus-visible {
+  border-color: #d3d8de !important;
+  box-shadow: 0 0 0 4px rgba(66, 133, 244, 0.12) !important;
+}
+
+.opex-auth-social-icon-wrap {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+}
+
+.opex-auth-social-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+}
+
+.opex-auth-social-icon-letter {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.opex-auth-google-icon-svg {
+  width: 32px;
+  height: 32px;
+  display: block;
+  transform: translateY(1px);
+}
+
+.opex-auth-social-copy {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.opex-auth-social-label {
+  display: block;
+  font-size: clamp(1.1rem, 1.8vw, 1.24rem);
+  font-weight: 600;
+  color: #202124;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.opex-auth-terms-copy,
+.opex-auth-panel {
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+  border: 1px solid var(--opex-line);
+  border-radius: 28px;
+  background: #ffffff;
+}
+
+.opex-auth-terms-title,
+.opex-auth-panel-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--opex-dark);
+}
+
+.opex-auth-panel-copy {
+  margin: 0;
   font-size: 14px;
-  letter-spacing: 0%;
-}
-#kc-registration a {
-  color: #1B323E;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--opex-text-soft);
 }
 
+.opex-auth-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.opex-auth-chip-list,
+.opex-auth-detail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.opex-auth-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.opex-auth-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #f3f5f6;
+  color: var(--opex-dark);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.opex-auth-code-block {
+  padding: 18px 22px;
+  border-radius: 20px;
+  border: 1px solid var(--opex-line);
+  background: #f8f8f5;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  word-break: break-all;
+}
+
+.opex-auth-detail-list {
+  display: grid;
+  gap: 10px;
+  color: var(--opex-text-soft);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.opex-auth-detail-list strong {
+  color: var(--opex-dark);
+}
+
+.opex-auth-qr-frame {
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  border: 1px solid var(--opex-line);
+  border-radius: 24px;
+  background: #ffffff;
+}
+
+.opex-auth-qr-image {
+  width: min(220px, 100%);
+  height: auto;
+}
+
+.opex-auth-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.opex-auth-primary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none !important;
+}
+
+.opex-auth-primary-link:visited {
+  color: #ffffff;
+}
+
+.opex-auth-text-action {
+  justify-self: center;
+  color: #2b61b5;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+.opex-auth-verify-email-panel {
+  gap: 18px;
+}
+
+.opex-auth-info-panel {
+  gap: 18px;
+}
+
+.opex-auth-message-copy {
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.opex-auth-message-copy a {
+  color: #2b61b5;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+.opex-auth-verify-email-address {
+  display: grid;
+  gap: 6px;
+  padding: 18px 20px;
+  border: 1px solid var(--opex-line);
+  border-radius: 22px;
+  background: #f8f8f5;
+}
+
+.opex-auth-verify-email-address-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(12, 33, 49, 0.42);
+}
+
+.opex-auth-verify-email-address strong {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--opex-dark);
+  overflow-wrap: anywhere;
+}
+
+.opex-auth-option-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.opex-auth-option-grid--stacked {
+  grid-template-columns: 1fr;
+}
+
+.opex-auth-option-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 14px;
+  min-height: 84px;
+  padding: 18px 20px;
+  border: 1px solid var(--opex-line);
+  border-radius: 22px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease, background-color 150ms ease;
+}
+
+button.opex-auth-option-card {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+@media (hover: hover) {
+  .opex-auth-option-card:hover {
+    border-color: var(--opex-line-strong);
+    transform: translateY(-1px);
+    box-shadow: 0 16px 30px -24px rgba(12, 33, 49, 0.22);
+  }
+}
+
+.opex-auth-option-card--selected {
+  border-color: var(--opex-dark);
+  box-shadow: 0 0 0 1px var(--opex-dark);
+}
+
+.opex-auth-option-card-indicator {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1.5px solid var(--opex-line-strong);
+  background: #ffffff;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.opex-auth-option-card--selected .opex-auth-option-card-indicator {
+  border-color: var(--opex-dark);
+  background: radial-gradient(circle at center, var(--opex-dark) 0 5px, transparent 6px);
+  box-shadow: 0 0 0 1px rgba(12, 33, 49, 0.04);
+}
+
+.opex-auth-option-card input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--opex-dark);
+}
+
+.opex-auth-option-card-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.opex-auth-option-card-copy strong {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--opex-dark);
+}
+
+.opex-auth-option-card-copy small {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--opex-text-soft);
+  letter-spacing: 0.08em;
+}
+
+.opex-auth-username {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 22px;
+  border: 1px solid var(--opex-line);
+  border-radius: 24px;
+  background: #ffffff;
+}
+
+.opex-auth-tooltip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--opex-text-soft);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.opex-auth-legal-copy {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--opex-line);
+  border-radius: 24px;
+  background: #ffffff;
+  color: var(--opex-text-soft);
+  line-height: 1.8;
+}
+
+.opex-auth-legal-copy p,
+.opex-auth-legal-copy ul,
+.opex-auth-legal-copy ol {
+  margin: 0;
+}
+
+.opex-auth-legal-copy a {
+  color: var(--opex-dark);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.opex-auth-legal-links {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.opex-auth-legal-panel {
+  gap: 22px;
+}
+
+.opex-auth-legal-section {
+  display: grid;
+  gap: 16px;
+}
+
+.opex-auth-doc-link {
+  color: #2b61b5;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  width: fit-content;
+}
+
+.opex-auth-doc-link:hover {
+  color: #1f4e96;
+}
+
+.opex-auth-doc-link-button {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.opex-auth-legal-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.opex-auth-legal-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 33, 49, 0.36);
+  backdrop-filter: blur(8px);
+}
+
+.opex-auth-legal-modal {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(960px, 100%);
+  max-height: min(84vh, 960px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 30px;
+  background: var(--opex-bg);
+  box-shadow: 0 36px 90px -34px rgba(15, 23, 42, 0.55);
+}
+
+.opex-auth-legal-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 28px;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+}
+
+.opex-auth-legal-modal-title {
+  margin: 10px 0 0;
+  font-size: clamp(1.75rem, 3vw, 2.2rem);
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+  font-weight: 900;
+  color: var(--opex-dark);
+}
+
+.opex-auth-legal-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.opex-auth-legal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 16px;
+  background: #eef1f3;
+  color: var(--opex-text-soft);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.opex-auth-legal-close:hover {
+  background: #e3e8ec;
+  color: var(--opex-dark);
+}
+
+.opex-auth-legal-close:active {
+  transform: translateY(1px);
+}
+
+.opex-auth-legal-modal-body {
+  overflow-y: auto;
+  padding: 18px 22px 24px;
+  display: grid;
+  gap: 16px;
+}
+
+.opex-auth-legal-modal-section {
+  gap: 18px;
+}
+
+.opex-auth-legal-bullets {
+  display: grid;
+  gap: 12px;
+}
+
+.opex-auth-legal-bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.opex-auth-legal-bullet-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 8px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: rgba(12, 33, 49, 0.7);
+}
+
+.opex-auth-legal-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--opex-line), transparent);
+}
+
+.opex-auth-legal-checklist {
+  display: grid;
+  gap: 14px;
+}
+
+.opex-auth-legal-check {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.opex-auth-legal-check-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.opex-auth-legal-check-copy strong {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--opex-dark);
+}
+
+.opex-auth-legal-check-copy small {
+  font-size: 13px;
+  line-height: 1.65;
+  font-weight: 600;
+  color: var(--opex-text-soft);
+}
+
+.opex-auth-legal-link-card {
+  display: grid;
+  gap: 8px;
+  min-height: 108px;
+  padding: 20px;
+  border: 1px solid var(--opex-line);
+  border-radius: 22px;
+  background: #ffffff;
+  text-decoration: none;
+}
+
+.opex-auth-legal-link-card strong {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--opex-dark);
+}
+
+.opex-auth-legal-link-card span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--opex-text-soft);
+}
+
+.opex-auth-legal-necessary {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: 22px;
+  background: #f7f7f3;
+}
+
+.opex-auth-field--error .kcInputClass,
+.opex-auth-field--error select.kcInputClass,
+.opex-auth-field--error textarea.kcInputClass,
+.opex-auth-field--error .opex-auth-password-group,
+.opex-auth-field--error .opex-auth-option-card,
+.opex-auth-field--error .opex-auth-legal-necessary {
+  border-color: var(--opex-danger-border) !important;
+  background: linear-gradient(180deg, var(--opex-danger-surface), rgba(194, 65, 12, 0.025));
+}
+
+.opex-auth-field--error .opex-auth-option-card--selected,
+.opex-auth-field--error .opex-auth-password-group {
+  box-shadow: 0 0 0 1px rgba(194, 65, 12, 0.2) !important;
+}
+
+.opex-auth-field--error .kcFormPasswordVisibilityButtonClass {
+  border-left-color: var(--opex-danger-border);
+  background: rgba(194, 65, 12, 0.035);
+}
+
+.kcFormCardClass,
+.kcInfoAreaWrapperClass,
+.kcContentWrapperClass .col-md-10 {
+  box-shadow: none !important;
+  border-top: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+@media (max-width: 900px) {
+  #kc-page-title {
+    font-size: clamp(2.05rem, 8.8vw, 2.8rem);
+  }
+}
+
+@media (max-width: 640px) {
+  .opex-auth-main {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .opex-auth-topbar {
+    justify-content: center;
+  }
+
+  .opex-auth-language-switch-link {
+    min-width: 70px;
+    min-height: 36px;
+    padding: 0 14px;
+  }
+
+  #kc-page-title {
+    font-size: clamp(1.95rem, 8vw, 2.4rem);
+    line-height: 1.02;
+    letter-spacing: -0.05em;
+    overflow-wrap: anywhere;
+  }
+
+  .kcInputClass,
+  select.kcInputClass,
+  textarea.kcInputClass {
+    min-height: 52px;
+    padding-left: 16px;
+    padding-right: 16px;
+    font-size: 16px;
+  }
+
+  .kcFormPasswordVisibilityButtonClass {
+    width: 64px;
+  }
+
+  .kcButtonClass {
+    min-height: 54px;
+    font-size: 17px;
+  }
+
+  .opex-auth-meta-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .opex-auth-split-fields {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .opex-auth-option-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .opex-auth-legal-links {
+    grid-template-columns: 1fr;
+  }
+
+  .opex-auth-legal-modal-overlay {
+    padding: 16px;
+  }
+
+  .opex-auth-legal-modal {
+    max-height: 88vh;
+    border-radius: 24px;
+  }
+
+  .opex-auth-legal-modal-header {
+    padding: 18px 18px 16px;
+    flex-direction: column;
+  }
+
+  .opex-auth-legal-modal-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .opex-auth-legal-modal-body {
+    padding: 14px 14px 18px;
+  }
+
+  .opex-auth-progress-track {
+    gap: 10px;
+  }
+
+  .opex-auth-progress-label {
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  .opex-auth-logo {
+    width: min(236px, 70vw);
+  }
+
+  .opex-auth-social-button {
+    min-height: 66px;
+    padding: 0 20px;
+    gap: 14px;
+    width: min(100%, 280px);
+  }
+
+  .opex-auth-google-icon-svg,
+  .opex-auth-social-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .opex-auth-social-label {
+    font-size: 1.06rem;
+  }
+}

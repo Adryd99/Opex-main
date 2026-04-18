@@ -9,11 +9,13 @@ public class UserUpdateRequest {
     private String email;
     private String firstName;
     private String lastName;
+    private String displayName;
 
     // --- Campi extra (solo su DB Postgres) ---
     private String customerId;
     private LocalDate dob;
     private String residence;
+    private String occupation;
     private String vatFrequency;
     private Boolean gdprAccepted;
     private String fiscalResidence;

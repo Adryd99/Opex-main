@@ -1,12 +1,18 @@
-import React from 'react';
+import type { Root } from 'react-dom/client';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 
-const container = document.getElementById('root')!;
-// @ts-ignore
-if (!window.__root) {
-  // @ts-ignore
-  window.__root = createRoot(container);
+declare global {
+  interface Window {
+    __opexRoot?: Root;
+  }
 }
-// @ts-ignore
-window.__root.render(<App />);
+
+const container = document.getElementById('root');
+if (!container) {
+  throw new Error('Root element "#root" was not found.');
+}
+
+const root = window.__opexRoot ?? createRoot(container);
+window.__opexRoot = root;
+root.render(<App />);

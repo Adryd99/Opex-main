@@ -1,4 +1,10 @@
-import { BankAccountRecord, BankOption, OpenBankingConsentPayload, TaxBufferProviderItem } from '../../shared/types';
+import {
+  BankAccountRecord,
+  BankOption,
+  LegalPublicInfoRecord,
+  OpenBankingConsentPayload,
+  TaxBufferProviderItem
+} from '../../shared/types';
 
 export type AccountCategory = 'Personal' | 'Business' | 'Savings';
 
@@ -33,6 +39,7 @@ export type AddBankPageProps = {
   taxBufferProviders?: TaxBufferProviderItem[];
   onCreateOpenBankConnection: (consent: OpenBankingConsentPayload) => Promise<void>;
   onRemoveOpenBankConnection: (connectionId: string) => Promise<void>;
+  legalPublicInfo?: LegalPublicInfoRecord | null;
   openBankingNoticeVersion?: string | null;
   isConnectingOpenBank?: boolean;
   openBankErrorMessage?: string | null;

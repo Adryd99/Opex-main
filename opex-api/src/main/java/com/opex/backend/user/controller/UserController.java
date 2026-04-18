@@ -1,9 +1,12 @@
 package com.opex.backend.user.controller;
 
 import com.opex.backend.common.security.AuthenticatedUser;
+import com.opex.backend.user.dto.EmailVerificationStatusResponse;
+import com.opex.backend.user.dto.UserResponse;
 import com.opex.backend.user.dto.UserUpdateRequest;
 import com.opex.backend.user.model.User;
 import com.opex.backend.user.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,18 +19,24 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/sync")
-    public ResponseEntity<User> syncUser(AuthenticatedUser authenticatedUser) {
+    public ResponseEntity<UserResponse> syncUser(AuthenticatedUser authenticatedUser) {
         User user = userService.syncUserWithKeycloak(authenticatedUser);
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(UserResponse.from(user));
     }
 
     @PatchMapping("/profile")
-    public ResponseEntity<User> updateProfile(
+    public ResponseEntity<UserResponse> updateProfile(
             AuthenticatedUser authenticatedUser,
-            @RequestBody UserUpdateRequest request
+            @Valid @RequestBody UserUpdateRequest request
     ) {
         User updatedUser = userService.updateAdditionalData(authenticatedUser.userId(), request);
-        return ResponseEntity.ok(updatedUser);
+        return ResponseEntity.ok(UserResponse.from(updatedUser));
+    }
+
+    @PostMapping("/profile/send-verification-email")
+    public ResponseEntity<EmailVerificationStatusResponse> sendVerificationEmail(AuthenticatedUser authenticatedUser) {
+        EmailVerificationStatusResponse response = userService.sendVerificationEmail(authenticatedUser.userId());
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/profile")

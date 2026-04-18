@@ -1,5 +1,5 @@
 import "./main.css";
-import logoPngUrl from "../../public/opes.svg";
+import logoUrl from "./assets/Opes_compact.png";
 import { useEffect } from "react";
 import { clsx } from "keycloakify/tools/clsx";
 import { kcSanitize } from "keycloakify/lib/kcSanitize";
@@ -9,6 +9,8 @@ import { useSetClassName } from "keycloakify/tools/useSetClassName";
 import { useInitialize } from "keycloakify/login/Template.useInitialize";
 import type { I18n } from "./i18n";
 import type { KcContext } from "./KcContext";
+
+const OPEX_AUTH_LOCALE_STORAGE_KEY = "opex_auth_locale";
 
 export default function Template(props: TemplateProps<KcContext, I18n>) {
     const {
@@ -28,14 +30,44 @@ export default function Template(props: TemplateProps<KcContext, I18n>) {
     } = props;
 
     const { kcClsx } = getKcClsx({ doUseDefaultCss, classes });
-
-    const { msg, msgStr, /*currentLanguage,*/ enabledLanguages } = i18n;
-
+    const { msg, msgStr, currentLanguage, enabledLanguages } = i18n;
     const { realm, auth, url, message, isAppInitiatedAction } = kcContext;
+    const onboardingProgressSteps = getOnboardingProgressSteps(msgStr);
+    const localeOptions = enabledLanguages
+        .filter(({ languageTag }) => ["it", "en"].includes(languageTag))
+        .sort((a, b) => getLocaleOrder(a.languageTag) - getLocaleOrder(b.languageTag));
 
     useEffect(() => {
         document.title = documentTitle ?? msgStr("loginTitle", realm.displayName);
-    }, []);
+        document.documentElement.lang = currentLanguage.languageTag === "it" ? "it-IT" : "en-US";
+    }, [currentLanguage.languageTag, documentTitle, msgStr, realm.displayName]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        const requestedLocale = new URLSearchParams(window.location.search).get("kc_locale");
+        const preferredLocale = window.localStorage.getItem(OPEX_AUTH_LOCALE_STORAGE_KEY);
+        const targetLocale = preferredLocale ?? "it";
+
+        const targetOption = localeOptions.find(({ languageTag }) => languageTag === targetLocale);
+        if (targetOption === undefined) {
+            return;
+        }
+
+        if (requestedLocale !== null) {
+            window.localStorage.setItem(OPEX_AUTH_LOCALE_STORAGE_KEY, requestedLocale);
+            return;
+        }
+
+        if (currentLanguage.languageTag !== targetLocale) {
+            window.location.replace(targetOption.href);
+            return;
+        }
+
+        window.localStorage.setItem(OPEX_AUTH_LOCALE_STORAGE_KEY, targetLocale);
+    }, [currentLanguage.languageTag, localeOptions]);
 
     useSetClassName({
         qualifiedName: "html",
@@ -48,141 +80,197 @@ export default function Template(props: TemplateProps<KcContext, I18n>) {
     });
 
     const { isReadyToRender } = useInitialize({ kcContext, doUseDefaultCss });
+    const onboardingProgressIndex = getOnboardingProgressIndex(kcContext.pageId);
 
     if (!isReadyToRender) {
         return null;
     }
 
     return (
-        <div className={kcClsx("kcLoginClass")}>
-            <div id="kc-header" className={kcClsx("kcHeaderClass")}>
-                <div id="kc-header-wrapper" className={kcClsx("kcHeaderWrapperClass")}>
-                    {/* {msg("loginTitleHtml", realm.displayNameHtml)} */}
-                    <img src={logoPngUrl} width={170}/>
-                </div>
-            </div>
-            <div className={kcClsx("kcFormCardClass")}>
-                <header className={kcClsx("kcFormHeaderClass")}>
-                    {enabledLanguages.length > 1 && (
-                        <div className={kcClsx("kcLocaleMainClass")} id="kc-locale">
-                            <div id="kc-locale-wrapper" className={kcClsx("kcLocaleWrapperClass")}>
-                                <div id="kc-locale-dropdown" className={clsx("menu-button-links", kcClsx("kcLocaleDropDownClass"))}>
-                                    {/* <button
-                                        tabIndex={1}
-                                        id="kc-current-locale-link"
-                                        aria-label={msgStr("languages")}
-                                        aria-haspopup="true"
-                                        aria-expanded="false"
-                                        aria-controls="language-switch1"
-                                    >
-                                        {currentLanguage.label}
-                                    </button> */}
-                                    <ul
-                                        role="menu"
-                                        tabIndex={-1}
-                                        aria-labelledby="kc-current-locale-link"
-                                        aria-activedescendant=""
-                                        id="language-switch1"
-                                        className={kcClsx("kcLocaleListClass")}
-                                    >
-                                        {enabledLanguages.map(({ languageTag, label, href }, i) => (
-                                            <li key={languageTag} className={kcClsx("kcLocaleListItemClass")} role="none">
-                                                <a role="menuitem" id={`language-${i + 1}`} className={kcClsx("kcLocaleItemClass")} href={href}>
-                                                    {label}
-                                                </a>
-                                            </li>
-                                        ))}
-                                    </ul>
+        <div className={clsx(kcClsx("kcLoginClass"), "opex-auth-shell")}>
+            <main className="opex-auth-main">
+                <section className={clsx(kcClsx("kcFormCardClass"), "opex-auth-card")}>
+                    <header className={clsx(kcClsx("kcFormHeaderClass"), "opex-auth-card-header")}>
+                        {localeOptions.length > 1 && (
+                            <div className="opex-auth-topbar">
+                                <nav className="opex-auth-language-switch" aria-label={msgStr("languageSwitchLabel")}>
+                                    {localeOptions.map(({ languageTag, label, href }) => (
+                                        <a
+                                            key={languageTag}
+                                            href={href}
+                                            hrefLang={languageTag}
+                                            lang={languageTag}
+                                            onClick={() => {
+                                                if (typeof window !== "undefined") {
+                                                    window.localStorage.setItem(OPEX_AUTH_LOCALE_STORAGE_KEY, languageTag);
+                                                }
+                                            }}
+                                            className={clsx(
+                                                "opex-auth-language-switch-link",
+                                                currentLanguage.languageTag === languageTag && "opex-auth-language-switch-link--active"
+                                            )}
+                                            aria-current={currentLanguage.languageTag === languageTag ? "true" : undefined}
+                                        >
+                                            {label}
+                                        </a>
+                                    ))}
+                                </nav>
+                            </div>
+                        )}
+
+                        <div className="opex-auth-brand-lockup">
+                            <img src={logoUrl} alt="Opes Capital" className="opex-auth-logo" />
+                        </div>
+
+                        {onboardingProgressIndex !== null && (
+                            <div className="opex-auth-progress" aria-label={msgStr("progressAriaLabel")}>
+                                <div className="opex-auth-progress-meta">
+                                    <span className="opex-auth-progress-caption">
+                                        {msg("progressStepCounter", String(onboardingProgressIndex + 1), String(onboardingProgressSteps.length))}
+                                    </span>
+                                </div>
+                                <div className="opex-auth-progress-track">
+                                    {onboardingProgressSteps.map((step, index) => (
+                                        <div
+                                            key={step}
+                                            className={clsx(
+                                                "opex-auth-progress-node",
+                                                index < onboardingProgressIndex && "opex-auth-progress-node--complete",
+                                                index === onboardingProgressIndex && "opex-auth-progress-node--current"
+                                            )}
+                                        >
+                                            <span className="opex-auth-progress-dot" />
+                                            <span className="opex-auth-progress-label">{step}</span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
-                        </div>
-                    )}
-                    {(() => {
-                        const node = !(auth !== undefined && auth.showUsername && !auth.showResetCredentials) ? (
-                            <h1 id="kc-page-title">{headerNode}</h1>
+                        )}
+
+                        {!(auth !== undefined && auth.showUsername && !auth.showResetCredentials) ? (
+                            <div className="opex-auth-heading">{headerNode}</div>
                         ) : (
-                            <div id="kc-username" className={kcClsx("kcFormGroupClass")}>
+                            <div id="kc-username" className={clsx(kcClsx("kcFormGroupClass"), "opex-auth-username")}>
                                 <label id="kc-attempted-username">{auth.attemptedUsername}</label>
                                 <a id="reset-login" href={url.loginRestartFlowUrl} aria-label={msgStr("restartLoginTooltip")}>
-                                    <div className="kc-login-tooltip">
+                                    <div className="opex-auth-tooltip">
                                         <i className={kcClsx("kcResetFlowIcon")}></i>
-                                        <span className="kc-tooltip-text">{msg("restartLoginTooltip")}</span>
+                                        <span>{msg("restartLoginTooltip")}</span>
                                     </div>
                                 </a>
                             </div>
-                        );
+                        )}
 
-                        if (displayRequiredFields) {
-                            return (
-                                <div className={kcClsx("kcContentWrapperClass")}>
-                                    <div className={clsx(kcClsx("kcLabelWrapperClass"), "subtitle")}>
-                                        <span className="subtitle">
-                                            <span className="required">*</span>
-                                            {msg("requiredFields")}
-                                        </span>
+                        {displayRequiredFields && (
+                            <div className="opex-auth-required-note">
+                                <span className="required">*</span>
+                                {msg("requiredFields")}
+                            </div>
+                        )}
+                    </header>
+
+                    <div id="kc-content" className="opex-auth-card-content">
+                        <div id="kc-content-wrapper">
+                            {displayMessage && message !== undefined && (message.type !== "warning" || !isAppInitiatedAction) && (
+                                <div
+                                    className={clsx(
+                                        `alert-${message.type}`,
+                                        kcClsx("kcAlertClass"),
+                                        `pf-m-${message.type === "error" ? "danger" : message.type}`,
+                                        "opex-auth-alert"
+                                    )}
+                                >
+                                    <div className="pf-c-alert__icon">
+                                        {message.type === "success" && <span className={kcClsx("kcFeedbackSuccessIcon")}></span>}
+                                        {message.type === "warning" && <span className={kcClsx("kcFeedbackWarningIcon")}></span>}
+                                        {message.type === "error" && <span className={kcClsx("kcFeedbackErrorIcon")}></span>}
+                                        {message.type === "info" && <span className={kcClsx("kcFeedbackInfoIcon")}></span>}
                                     </div>
-                                    <div className="col-md-10">{node}</div>
-                                </div>
-                            );
-                        }
-
-                        return node;
-                    })()}
-                </header>
-                <div id="kc-content">
-                    <div id="kc-content-wrapper">
-                        {/* App-initiated actions should not see warning messages about the need to complete the action during login. */}
-                        {displayMessage && message !== undefined && (message.type !== "warning" || !isAppInitiatedAction) && (
-                            <div
-                                className={clsx(
-                                    `alert-${message.type}`,
-                                    kcClsx("kcAlertClass"),
-                                    `pf-m-${message?.type === "error" ? "danger" : message.type}`
-                                )}
-                            >
-                                <div className="pf-c-alert__icon">
-                                    {message.type === "success" && <span className={kcClsx("kcFeedbackSuccessIcon")}></span>}
-                                    {message.type === "warning" && <span className={kcClsx("kcFeedbackWarningIcon")}></span>}
-                                    {message.type === "error" && <span className={kcClsx("kcFeedbackErrorIcon")}></span>}
-                                    {message.type === "info" && <span className={kcClsx("kcFeedbackInfoIcon")}></span>}
-                                </div>
-                                <span
-                                    className={kcClsx("kcAlertTitleClass")}
-                                    dangerouslySetInnerHTML={{
-                                        __html: kcSanitize(message.summary)
-                                    }}
-                                />
-                            </div>
-                        )}
-                        {children}
-                        {auth !== undefined && auth.showTryAnotherWayLink && (
-                            <form id="kc-select-try-another-way-form" action={url.loginAction} method="post">
-                                <div className={kcClsx("kcFormGroupClass")}>
-                                    <input type="hidden" name="tryAnotherWay" value="on" />
-                                    <a
-                                        href="#"
-                                        id="try-another-way"
-                                        onClick={() => {
-                                            document.forms["kc-select-try-another-way-form" as never].requestSubmit();
-                                            return false;
+                                    <span
+                                        className={kcClsx("kcAlertTitleClass")}
+                                        dangerouslySetInnerHTML={{
+                                            __html: kcSanitize(message.summary)
                                         }}
-                                    >
-                                        {msg("doTryAnotherWay")}
-                                    </a>
+                                    />
                                 </div>
-                            </form>
-                        )}
-                        {socialProvidersNode}
-                        {displayInfo && (
-                            <div id="kc-info" className={kcClsx("kcSignUpClass")}>
-                                <div id="kc-info-wrapper" className={kcClsx("kcInfoAreaWrapperClass")}>
-                                    {infoNode}
+                            )}
+
+                            <div className="opex-auth-form-slot">{children}</div>
+
+                            {auth !== undefined && auth.showTryAnotherWayLink && (
+                                <form id="kc-select-try-another-way-form" action={url.loginAction} method="post">
+                                    <div className={kcClsx("kcFormGroupClass")}>
+                                        <input type="hidden" name="tryAnotherWay" value="on" />
+                                        <a
+                                            href="#"
+                                            id="try-another-way"
+                                            onClick={() => {
+                                                document.forms["kc-select-try-another-way-form" as never].requestSubmit();
+                                                return false;
+                                            }}
+                                        >
+                                            {msg("doTryAnotherWay")}
+                                        </a>
+                                    </div>
+                                </form>
+                            )}
+
+                            {displayInfo && (
+                                <div id="kc-info" className={clsx(kcClsx("kcSignUpClass"), "opex-auth-info")}>
+                                    <div id="kc-info-wrapper" className={kcClsx("kcInfoAreaWrapperClass")}>
+                                        {infoNode}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+
+                            {socialProvidersNode}
+                        </div>
                     </div>
-                </div>
-            </div>
+                </section>
+            </main>
         </div>
     );
+}
+
+function getOnboardingProgressSteps(msgStr: I18n["msgStr"]) {
+    return [
+        msgStr("progressStepAccount"),
+        msgStr("progressStepSecurity"),
+        msgStr("progressStepProfile"),
+        msgStr("progressStepLocation"),
+        msgStr("progressStepOccupation"),
+        msgStr("progressStepLegal")
+    ];
+}
+
+function getLocaleOrder(languageTag: string) {
+    switch (languageTag) {
+        case "it":
+            return 0;
+        case "en":
+            return 1;
+        default:
+            return 99;
+    }
+}
+
+function getOnboardingProgressIndex(pageId: KcContext["pageId"]): number | null {
+    switch (pageId) {
+        case "register.ftl":
+            return 0;
+        case "security-setup-choice.ftl":
+        case "login-config-totp.ftl":
+        case "webauthn-register.ftl":
+            return 1;
+        case "login-update-profile.ftl":
+            return 2;
+        case "country-selection.ftl":
+            return 3;
+        case "occupation.ftl":
+            return 4;
+        case "legal-acceptance.ftl":
+            return 5;
+        default:
+            return null;
+    }
 }

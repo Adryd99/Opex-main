@@ -1,19 +1,20 @@
-import {
+import type { PaginatedResponse } from '../../../../shared/types/app';
+import type { BankAccountRecord, TransactionRecord } from '../../../../shared/types/banking';
+import type {
   AggregatedBalanceRecord,
-  BankAccountRecord,
   ForecastHistoricalPoint,
   ForecastPoint,
   ForecastResponse,
-  PaginatedResponse,
+  TimeAggregatedPoint,
+  TimeAggregatedRecord
+} from '../../../../shared/types/finance';
+import type {
   TaxBufferActivityItem,
   TaxBufferDashboardResponse,
   TaxBufferDeadlineItem,
   TaxBufferLiabilityItem,
-  TaxBufferProviderItem,
-  TimeAggregatedPoint,
-  TimeAggregatedRecord,
-  TransactionRecord
-} from '../../../../shared/types';
+  TaxBufferProviderItem
+} from '../../../../shared/types/tax';
 import {
   findNumberCandidate,
   findStringCandidate,

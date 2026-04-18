@@ -11,24 +11,24 @@ import {
 import {
   persistOpenBankingConsentLocally,
   syncStoredLegalConsents
-} from '../../services/api/legalFallbacks';
+} from '../../shared/legal';
 import { extractBankPopupUrl, opexApi } from '../../services/api/opexApi';
 import {
   BANK_SYNC_COMPLETED_EVENT_KEY,
-  BankSyncStage,
-  DEFAULT_USER_PROFILE,
   normalizeText,
   resolveAccountProviderName,
   resolveBankAccountId,
-  toConnectionIcon,
-  toErrorMessage
-} from './controllerSupport';
+  toConnectionIcon
+} from './providerSupport';
+import { APP_TABS, type AppTab } from '../navigation';
+import { BankSyncStage, DEFAULT_USER_PROFILE } from './defaults';
+import { toErrorMessage } from './errors';
 import { BankAccountSettingsPayload, DashboardRefreshResult } from './types';
 
 const CONSENT_REQUIRED_ERROR = 'You must accept the current privacy notice and terms before connecting a bank.';
 
 type UseBankingFlowArgs = {
-  activeTab: string;
+  activeTab: AppTab;
   setActiveTab: (tab: string) => void;
   bankAccounts: BankAccountRecord[];
   legalPublicInfo: LegalPublicInfoRecord | null;
@@ -73,11 +73,11 @@ export const useBankingFlow = ({
     setBankSyncStage('idle');
 
     if (bank.isManual) {
-      setActiveTab('SETTINGS_BANK_SETUP');
+      setActiveTab(APP_TABS.SETTINGS_BANK_SETUP);
       return;
     }
 
-    setActiveTab('SETTINGS_BANK_REDIRECT');
+    setActiveTab(APP_TABS.SETTINGS_BANK_REDIRECT);
   }, [setActiveTab]);
 
   const selectConnectionAccountForSetup = useCallback((account: BankAccountRecord): boolean => {
@@ -117,7 +117,7 @@ export const useBankingFlow = ({
     setConnectionSetupAccounts(relatedAccounts.length > 0 ? relatedAccounts : [account]);
     setBankPopupUrl(null);
     setBankSyncStage('idle');
-    setActiveTab('SETTINGS_BANK_SETUP');
+    setActiveTab(APP_TABS.SETTINGS_BANK_SETUP);
   }, [bankAccounts, providerByConnectionId, selectConnectionAccountForSetup, setActiveTab]);
 
   const openBankPopup = useCallback((connectUrl: string, popupErrorMessage: string) => {
@@ -221,8 +221,8 @@ export const useBankingFlow = ({
 
       if (normalizeText(selectedBankAccount?.connectionId) === normalizedConnectionId) {
         resetSelection();
-        if (activeTab === 'SETTINGS_BANK_SETUP') {
-          setActiveTab('SETTINGS_OPEN_BANKING');
+        if (activeTab === APP_TABS.SETTINGS_BANK_SETUP) {
+          setActiveTab(APP_TABS.SETTINGS_OPEN_BANKING);
         }
       }
 
@@ -265,7 +265,7 @@ export const useBankingFlow = ({
       const firstNewAccount = newSaltedgeAccounts[0];
       if (!firstNewAccount) {
         resetSelection();
-        setActiveTab('DASHBOARD');
+        setActiveTab(APP_TABS.DASHBOARD);
         setBankPopupUrl(null);
         setBankSyncStage('idle');
         return;
@@ -293,11 +293,11 @@ export const useBankingFlow = ({
       });
       setConnectionSetupAccounts(accountsForNewConnection);
       if (!selectConnectionAccountForSetup(initialAccount)) {
-        setActiveTab('DASHBOARD');
+        setActiveTab(APP_TABS.DASHBOARD);
         return;
       }
 
-      setActiveTab('SETTINGS_BANK_SETUP');
+      setActiveTab(APP_TABS.SETTINGS_BANK_SETUP);
       setBankPopupUrl(null);
       setBankSyncStage('idle');
     } catch (error) {
@@ -322,7 +322,7 @@ export const useBankingFlow = ({
     try {
       await opexApi.createLocalBankAccount(payload);
       await refreshDashboardData();
-      setActiveTab('DASHBOARD');
+      setActiveTab(APP_TABS.DASHBOARD);
     } catch (error) {
       setErrorMessage(toErrorMessage(error));
       throw error;
@@ -353,7 +353,7 @@ export const useBankingFlow = ({
         });
       }
       await refreshDashboardData();
-      setActiveTab('SETTINGS_OPEN_BANKING');
+      setActiveTab(APP_TABS.SETTINGS_OPEN_BANKING);
     } catch (error) {
       setErrorMessage(toErrorMessage(error));
       throw error;

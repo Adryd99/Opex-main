@@ -20,20 +20,34 @@ public class User {
     private String id; // L'ID di Keycloak (es. 5f4e3b2a-...)
 
     private String email;
+    private Boolean emailVerified;
+    private OffsetDateTime registrationDate;
+    private OffsetDateTime verificationEmailLastSentAt;
     private String firstName;
     private String lastName;
+    private String displayName;
+    private String identityProvider;
 
     private String customerId;
     private LocalDate dob;
+    private String country;
     private String residence;
+    private String occupation;
+    private String preferredSecondFactor;
+    private Boolean secondFactorEnrollmentDeferred = false;
+    private String secondFactorMethod;
+    private OffsetDateTime secondFactorConfiguredAt;
     private String vatFrequency;
     private Boolean gdprAccepted = false;
+    private String legalVersion;
     private String privacyPolicyVersion;
     private OffsetDateTime privacyAcceptedAt;
     private String termsOfServiceVersion;
     private OffsetDateTime termsAcceptedAt;
     private String cookiePolicyVersion;
     private OffsetDateTime cookiePolicyAcknowledgedAt;
+    @Column(name = "strictly_necessary_cookies_acknowledged")
+    private Boolean strictlyNecessaryCookiesAcknowledged = false;
     private String openBankingNoticeVersion;
     private OffsetDateTime openBankingNoticeAcceptedAt;
     @Column(columnDefinition = "TEXT")
@@ -84,6 +98,7 @@ public class User {
         this.email = email;
         this.firstName = firstName;
         this.lastName = lastName;
+        this.displayName = ((firstName == null ? "" : firstName.trim()) + " " + (lastName == null ? "" : lastName.trim())).trim();
         this.isActive = true; // Quando si registra è ovviamente attivo
     }
 }

@@ -1,2 +1,8 @@
 .git
 .idea
+keycloakify/node_modules
+keycloakify/dist
+keycloakify/dist_keycloak
+keycloakify/.tools
+extensions/**/target
+themes/*.jar

@@ -8,7 +8,7 @@ import {
 
 type AuthStatus = 'loading' | 'authenticated' | 'error';
 
-export const useKeycloakAuth = () => {
+export const useKeycloakAuth = ({ suspend = false }: { suspend?: boolean } = {}) => {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -21,6 +21,10 @@ export const useKeycloakAuth = () => {
   }, []);
 
   useEffect(() => {
+    if (suspend) {
+      return;
+    }
+
     const initAuth = async () => {
       try {
         const resolution = await resolveKeycloakSession();
@@ -35,7 +39,7 @@ export const useKeycloakAuth = () => {
     };
 
     void initAuth();
-  }, []);
+  }, [suspend]);
 
   return {
     isAuthenticated: status === 'authenticated',

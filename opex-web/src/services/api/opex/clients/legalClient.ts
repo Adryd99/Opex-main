@@ -1,8 +1,9 @@
-import { RequiredLegalConsentPayload, UserProfile } from '../../../../shared/types';
+import type { RequiredLegalConsentPayload } from '../../../../shared/types/legal';
+import type { UserProfile } from '../../../../shared/types/user';
 import {
   DEFAULT_LEGAL_PUBLIC_INFO,
   persistRequiredLegalConsentsLocally
-} from '../../legalFallbacks';
+} from '../../../../shared/legal';
 import { assertOkResponse, fetchAuthorized, request } from '../http';
 import { normalizeLegalPublicInfo } from '../normalizers/legal';
 import { normalizeUserProfile } from '../normalizers/user';

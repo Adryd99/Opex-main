@@ -4,9 +4,11 @@ import com.opex.backend.banking.dto.AggregatedBalanceResponse;
 import com.opex.backend.banking.dto.ForecastResponse;
 import com.opex.backend.banking.dto.TimeAggregatedResponse;
 import com.opex.backend.banking.dto.TransactionRequest;
+import com.opex.backend.banking.dto.TransactionResponse;
 import com.opex.backend.banking.model.Transaction;
 import com.opex.backend.common.security.AuthenticatedUser;
 import com.opex.backend.banking.service.TransactionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -22,13 +24,13 @@ public class TransactionController {
     private final TransactionService transactionService;
 
     @GetMapping("/my-transactions")
-    public ResponseEntity<Page<Transaction>> getMyTransactions(
+    public ResponseEntity<Page<TransactionResponse>> getMyTransactions(
             AuthenticatedUser authenticatedUser,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         Page<Transaction> transactions = transactionService.getUserTransactions(authenticatedUser.userId(), page, size);
-        return ResponseEntity.ok(transactions);
+        return ResponseEntity.ok(transactions.map(TransactionResponse::from));
     }
 
     @GetMapping("/aggregated")
@@ -50,21 +52,25 @@ public class TransactionController {
     }
 
     @PostMapping("/local")
-    public ResponseEntity<Transaction> createLocalTransaction(
+    public ResponseEntity<TransactionResponse> createLocalTransaction(
             AuthenticatedUser authenticatedUser,
-            @RequestBody TransactionRequest request
+            @Valid @RequestBody TransactionRequest request
     ) {
-        return ResponseEntity.ok(transactionService.createLocalTransaction(authenticatedUser.userId(), request));
+        return ResponseEntity.ok(TransactionResponse.from(
+                transactionService.createLocalTransaction(authenticatedUser.userId(), request)
+        ));
     }
 
     @PatchMapping("/local/{transactionId}")
-    public ResponseEntity<Transaction> updateLocalTransaction(
+    public ResponseEntity<TransactionResponse> updateLocalTransaction(
             AuthenticatedUser authenticatedUser,
             @PathVariable String transactionId,
-            @RequestBody TransactionRequest request
+            @Valid @RequestBody TransactionRequest request
     ) {
         return ResponseEntity.ok(
-                transactionService.updateLocalTransaction(authenticatedUser.userId(), transactionId, request)
+                TransactionResponse.from(
+                        transactionService.updateLocalTransaction(authenticatedUser.userId(), transactionId, request)
+                )
         );
     }
 

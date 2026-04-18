@@ -1,9 +1,6 @@
-import {
-  AggregatedBalanceRecord,
-  BankAccountRecord,
-  ForecastResponse,
-  TaxRecord
-} from '../../../../shared/types';
+import type { BankAccountRecord } from '../../../../shared/types/banking';
+import type { AggregatedBalanceRecord, ForecastResponse } from '../../../../shared/types/finance';
+import type { TaxRecord } from '../../../../shared/types/tax';
 import { buildQuery, request } from '../http';
 import {
   normalizeAggregatedBalances,

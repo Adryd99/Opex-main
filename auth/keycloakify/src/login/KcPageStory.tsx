@@ -11,7 +11,36 @@ const kcContextExtension: KcContextExtension = {
         ...kcEnvDefaults
     }
 };
-const kcContextExtensionPerPage: KcContextExtensionPerPage = {};
+const kcContextExtensionPerPage: KcContextExtensionPerPage = {
+    "login-update-profile.ftl": {
+        profileBasicsShowFirstNameField: true,
+        profileBasicsShowLastNameField: true,
+        profileBasicsShowBirthDateField: true,
+        profileBasicsBrokeredGoogleLogin: false,
+        profileBasicsCurrentFirstName: "Daniele",
+        profileBasicsCurrentLastName: "Caporaletti",
+        profileBasicsCurrentBirthDate: "1990-01-01"
+    },
+    "security-setup-choice.ftl": {
+        currentSecuritySetupChoice: "later"
+    },
+    "country-selection.ftl": {
+        currentCountry: "IT",
+        allowedCountries: ["IT", "NL", "BE", "DE"]
+    },
+    "occupation.ftl": {
+        currentOccupation: "Freelance designer",
+        occupationMaxLength: 100
+    },
+    "legal-acceptance.ftl": {
+        privacyUrl: "http://localhost:3000/legal/privacy",
+        termsUrl: "http://localhost:3000/legal/terms",
+        cookiesUrl: "http://localhost:3000/legal/cookies",
+        legalApiUrl: "http://localhost:8080/api/legal/public",
+        currentCookieChoice: "accept",
+        strictlyNecessaryChecked: false
+    }
+};
 
 export const { getKcContextMock } = createGetKcContextMock({
     kcContextExtension,

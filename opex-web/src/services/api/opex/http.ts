@@ -3,6 +3,26 @@ import { runtimeEnv } from '../../runtimeEnv';
 const API_BASE_URL = runtimeEnv.VITE_API_BASE_URL ?? '';
 export const API_ORIGIN = runtimeEnv.VITE_API_ORIGIN ?? 'http://localhost:8080';
 
+type ApiErrorShape = {
+  message?: unknown;
+  error?: unknown;
+  title?: unknown;
+  detail?: unknown;
+  errors?: unknown;
+};
+
+export class ApiHttpError extends Error {
+  readonly status: number;
+  readonly body: unknown;
+
+  constructor(status: number, message: string, body: unknown) {
+    super(message);
+    this.name = 'ApiHttpError';
+    this.status = status;
+    this.body = body;
+  }
+}
+
 export const getStoredToken = (): string | null => {
   if (typeof window === 'undefined') {
     return null;
@@ -40,6 +60,57 @@ const parseMaybeJson = async <T>(response: Response): Promise<T> => {
   }
 
   return (await response.text()) as T;
+};
+
+const extractValidationMessage = (errors: unknown): string | null => {
+  if (!Array.isArray(errors)) {
+    return null;
+  }
+
+  for (const item of errors) {
+    if (!item || typeof item !== 'object') {
+      continue;
+    }
+
+    const record = item as Record<string, unknown>;
+    const field = typeof record.field === 'string' && record.field.trim().length > 0 ? record.field.trim() : null;
+    const messageCandidates = [record.message, record.defaultMessage, record.detail];
+
+    for (const candidate of messageCandidates) {
+      if (typeof candidate === 'string' && candidate.trim().length > 0) {
+        return field ? `${field}: ${candidate.trim()}` : candidate.trim();
+      }
+    }
+  }
+
+  return null;
+};
+
+export const resolveApiErrorMessage = (payload: unknown, status: number): string => {
+  if (typeof payload === 'string') {
+    const trimmed = payload.trim();
+    return trimmed.length > 0 ? trimmed : `Request failed with status ${status}`;
+  }
+
+  if (!payload || typeof payload !== 'object') {
+    return `Request failed with status ${status}`;
+  }
+
+  const record = payload as ApiErrorShape;
+  const directCandidates = [record.message, record.error, record.title, record.detail];
+
+  for (const candidate of directCandidates) {
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate.trim();
+    }
+  }
+
+  const validationMessage = extractValidationMessage(record.errors);
+  if (validationMessage) {
+    return validationMessage;
+  }
+
+  return `Request failed with status ${status}`;
 };
 
 export const joinBaseAndPath = (baseUrl: string, path: string): string => {
@@ -87,8 +158,9 @@ export const assertOkResponse = async (response: Response): Promise<void> => {
     return;
   }
 
-  const message = await parseMaybeJson<string>(response);
-  throw new Error(typeof message === 'string' ? message : `Request failed with status ${response.status}`);
+  const payload = await parseMaybeJson<unknown>(response);
+  const message = resolveApiErrorMessage(payload, response.status);
+  throw new ApiHttpError(response.status, message, payload);
 };
 
 export const requestWithBase = async <T>(

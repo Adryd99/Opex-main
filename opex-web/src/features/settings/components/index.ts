@@ -3,6 +3,7 @@ export { SettingsHeader } from './SettingsHeader';
 export { SettingsHelpSection } from './SettingsHelpSection';
 export { SettingsPreferencesSection } from './SettingsPreferencesSection';
 export { SettingsPrivacySection } from './SettingsPrivacySection';
+export { ProfileEditorForm } from './ProfileEditorForm';
 export { SettingsProfileSection } from './SettingsProfileSection';
 export { SettingsSecuritySection } from './SettingsSecuritySection';
 export { SettingsTabs } from './SettingsTabs';

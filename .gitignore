@@ -1,3 +1,10 @@
 .DS_Store
 .idea/
-deploy/cloud-run/local-secrets.txt
+.env
+deploy/cloud-run/env.api
+deploy/cloud-run/env.api.secrets
+deploy/cloud-run/env.auth
+deploy/cloud-run/env.auth.secrets
+deploy/cloud-run/env.web
+auth/extensions/**/target/
+auth/themes/keycloak-onboarding-actions.jar

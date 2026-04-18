@@ -35,11 +35,27 @@ No manual SQL import is needed for the first deploy.
 
 - `build-images.ps1`: builds and pushes all three images
 - `deploy-auth.ps1`: deploys Keycloak
+- `apply-auth-production-settings.ps1`: applies production realm settings to Keycloak via Admin API after deploy
 - `deploy-api.ps1`: deploys the API
 - `deploy-web.ps1`: deploys the frontend
-- `env.api.example`, `env.auth.example`, `env.web.example`: reference-only examples for non-secret values
+- `env.api.example`: template for non-secret API deploy values, used by `deploy-api.ps1` after copying it to `env.api`
+- `env.api.secrets.example`: template for API Secret Manager secret names, used by `deploy-api.ps1` after copying it to `env.api.secrets`
+- `env.auth.example`: reference template for auth values
+- `env.web.example`: template for frontend build/deploy values, used after copying it to `env.web`
 
-The `env.*.example` files are documentation only. The current deploy scripts do not read them automatically.
+For the backend API, the deploy script now reads:
+
+- `deploy/cloud-run/env.api`
+- `deploy/cloud-run/env.api.secrets`
+
+The `*.example` files are templates only and should be copied to the non-example filenames above.
+
+For the frontend web app, the production build/deploy now reads:
+
+- `deploy/cloud-run/env.web`
+
+There is intentionally no `env.web.secrets` file.
+The browser bundle must not contain passwords or secret tokens.
 
 ## Secrets Used By Default
 
@@ -49,6 +65,13 @@ The `env.*.example` files are documentation only. The current deploy scripts do 
 - `KC_ADMIN_PW`
 - `SALTEDGE_APP_ID`
 - `SALTEDGE_SECRET`
+
+Additional recommended auth secrets:
+
+- `OPEX_SMTP_USERNAME`
+- `OPEX_SMTP_PASSWORD`
+- `OPEX_GOOGLE_CLIENT_ID`
+- `OPEX_GOOGLE_CLIENT_SECRET`
 
 ## Short Runbook
 
@@ -60,7 +83,7 @@ gcloud auth login
 gcloud auth application-default login
 ```
 
-Set variables:
+Set global variables:
 
 ```powershell
 $PROJECT_ID = "opex-v1-493608"
@@ -89,6 +112,24 @@ Configure `gcloud`:
 gcloud config set project $PROJECT_ID
 gcloud config set run/region $REGION
 ```
+
+Prepare backend API deploy files:
+
+```powershell
+Copy-Item .\deploy\cloud-run\env.api.example .\deploy\cloud-run\env.api
+Copy-Item .\deploy\cloud-run\env.api.secrets.example .\deploy\cloud-run\env.api.secrets
+Copy-Item .\deploy\cloud-run\env.web.example .\deploy\cloud-run\env.web
+```
+
+Then edit:
+
+- `deploy/cloud-run/env.api`
+- `deploy/cloud-run/env.api.secrets`
+- `deploy/cloud-run/env.web`
+
+`env.api` contains non-secret backend settings.
+`env.api.secrets` contains only Secret Manager secret names. The secret values themselves must already exist in Secret Manager.
+`env.web` contains only non-secret frontend build/deploy settings. If a value is secret, it does not belong in the web app.
 
 Enable APIs:
 
@@ -233,12 +274,7 @@ Build images:
 
 ```powershell
 .\deploy\cloud-run\build-images.ps1 `
-  -ProjectId $PROJECT_ID `
-  -Region $REGION `
-  -Repository $REPOSITORY `
-  -AppDomain $APP_DOMAIN `
-  -ApiDomain $API_DOMAIN `
-  -AuthDomain $AUTH_DOMAIN
+  -WebConfigFile .\deploy\cloud-run\env.web
 ```
 
 Deploy services:
@@ -253,19 +289,34 @@ Deploy services:
   -AuthDomain $AUTH_DOMAIN `
   -DatabaseHost $CLOUD_SQL_PRIVATE_IP
 
-.\deploy\cloud-run\deploy-api.ps1 `
+.\deploy\cloud-run\apply-auth-production-settings.ps1 `
   -ProjectId $PROJECT_ID `
-  -Region $REGION `
-  -Network $NETWORK `
-  -Subnet $SUBNET `
-  -AppDomain $APP_DOMAIN `
-  -AuthDomain $AUTH_DOMAIN `
-  -DatabaseHost $CLOUD_SQL_PRIVATE_IP
+  -AuthDomain $AUTH_DOMAIN
+
+.\deploy\cloud-run\deploy-api.ps1 `
+  -ConfigFile .\deploy\cloud-run\env.api `
+  -SecretsFile .\deploy\cloud-run\env.api.secrets
 
 .\deploy\cloud-run\deploy-web.ps1 `
-  -ProjectId $PROJECT_ID `
-  -Region $REGION
+  -ConfigFile .\deploy\cloud-run\env.web
 ```
+
+If you also want SMTP and Google configured on the production realm, run:
+
+```powershell
+.\deploy\cloud-run\apply-auth-production-settings.ps1 `
+  -ProjectId $PROJECT_ID `
+  -AuthDomain $AUTH_DOMAIN `
+  -ApplySmtp `
+  -SmtpHost "smtp.gmail.com" `
+  -SmtpPort 587 `
+  -FromAddress "noreply@example.com" `
+  -FromDisplayName "Opex" `
+  -Encryption StartTLS `
+  -ApplyGoogleIdp
+```
+
+This script reads the sensitive values from Secret Manager and writes them to the Keycloak realm through the Admin API.
 
 If `gcloud beta` is missing:
 

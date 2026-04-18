@@ -1,4 +1,4 @@
-import { LegalDocumentRecord, LegalPublicInfoRecord } from '../../../../shared/types';
+import type { LegalDocumentRecord, LegalPublicInfoRecord } from '../../../../shared/types/legal';
 import { toRecord, toRecordList, toStringList, toStringValue } from './support';
 
 const normalizeLegalDocument = (

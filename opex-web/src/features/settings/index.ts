@@ -1,4 +1,3 @@
-export { EditProfilePage } from './pages/EditProfilePage';
 export { RenewConsentPage } from './pages/RenewConsentPage';
 export { ChangePasswordPage } from './pages/ChangePasswordPage';
 export { CategoriesPage } from './pages/CategoriesPage';

@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SaltEdgeApiServiceTest {
 
-    private final SaltEdgeApiService saltEdgeApiService = new SaltEdgeApiService();
+    private final SaltEdgeApiService saltEdgeApiService = new SaltEdgeApiService(new SaltEdgeProperties());
 
     @Test
     void normalizeConsentScopesReturnsDefaultsWhenScopesAreMissing() {

@@ -1,8 +1,13 @@
+import { useState } from 'react';
 import { X } from 'lucide-react';
-import { openLegalDocument } from '../../../shared/legal';
+
+import { LegalDocumentModal } from '../../legal';
+import type { LegalDocumentSlug } from '../../../shared/legal';
+import type { LegalPublicInfoRecord } from '../../../shared/types';
 
 type OpenBankingConsentModalProps = {
   isOpen: boolean;
+  legalPublicInfo: LegalPublicInfoRecord | null;
   openBankingNoticeVersion: string | null;
   acceptOpenBankingNotice: boolean;
   acceptSaltEdgeTransfer: boolean;
@@ -16,6 +21,7 @@ type OpenBankingConsentModalProps = {
 
 export const OpenBankingConsentModal = ({
   isOpen,
+  legalPublicInfo,
   openBankingNoticeVersion,
   acceptOpenBankingNotice,
   acceptSaltEdgeTransfer,
@@ -26,6 +32,8 @@ export const OpenBankingConsentModal = ({
   onAcceptSaltEdgeTransferChange,
   onSubmit
 }: OpenBankingConsentModalProps) => {
+  const [previewSlug, setPreviewSlug] = useState<LegalDocumentSlug | null>(null);
+
   if (!isOpen) {
     return null;
   }
@@ -104,9 +112,30 @@ export const OpenBankingConsentModal = ({
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-          <button type="button" onClick={() => openLegalDocument('open-banking')} className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark" disabled={isSubmittingOpenBankingConsent}>Open Banking Notice</button>
-          <button type="button" onClick={() => openLegalDocument('privacy')} className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark" disabled={isSubmittingOpenBankingConsent}>Privacy Notice</button>
-          <button type="button" onClick={() => openLegalDocument('terms')} className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark" disabled={isSubmittingOpenBankingConsent}>Terms</button>
+          <button
+            type="button"
+            onClick={() => setPreviewSlug('open-banking')}
+            className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
+            disabled={isSubmittingOpenBankingConsent || !legalPublicInfo}
+          >
+            Open Banking Notice
+          </button>
+          <button
+            type="button"
+            onClick={() => setPreviewSlug('privacy')}
+            className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
+            disabled={isSubmittingOpenBankingConsent || !legalPublicInfo}
+          >
+            Privacy Notice
+          </button>
+          <button
+            type="button"
+            onClick={() => setPreviewSlug('terms')}
+            className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
+            disabled={isSubmittingOpenBankingConsent || !legalPublicInfo}
+          >
+            Terms
+          </button>
         </div>
 
         {openBankingConsentError && (
@@ -122,6 +151,12 @@ export const OpenBankingConsentModal = ({
           </button>
         </div>
       </div>
+
+      <LegalDocumentModal
+        legalInfo={legalPublicInfo}
+        slug={previewSlug}
+        onClose={() => setPreviewSlug(null)}
+      />
     </div>
   );
 };
