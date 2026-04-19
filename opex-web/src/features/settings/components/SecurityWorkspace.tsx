@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { BadgeCheck, KeyRound, Loader2, RefreshCw, ShieldCheck, ShieldOff, Smartphone } from 'lucide-react';
 
 import type { UserSecurityStatus } from '../../../shared/types/user';
+import { userClient } from '../../../services/api/opex/clients/userClient';
 import { Badge, Button, Card } from '../../../shared/ui';
 import {
   clearKeycloakActionResult,
@@ -30,6 +31,8 @@ type SecurityWorkspaceProps = {
 };
 
 type ActionKind = 'totp' | 'webauthn' | 'recovery';
+type PrimaryMethodKind = 'totp' | 'webauthn';
+type PendingAction = ActionKind | `primary-${PrimaryMethodKind}`;
 
 const KEYCLOAK_ACTIONS = {
   totp: 'CONFIGURE_TOTP',
@@ -50,6 +53,9 @@ type SecurityActionCardProps = {
   statusBadges?: ReactNode;
   statusSummary: string;
   onClick: () => void;
+  secondaryButtonLabel?: string;
+  onSecondaryClick?: () => void;
+  isSecondaryLoading?: boolean;
 };
 
 const SecurityActionCard = ({
@@ -61,7 +67,10 @@ const SecurityActionCard = ({
   isLoading,
   statusBadges,
   statusSummary,
-  onClick
+  onClick,
+  secondaryButtonLabel,
+  onSecondaryClick,
+  isSecondaryLoading = false
 }: SecurityActionCardProps) => (
   <Card className="h-full rounded-[2rem]">
     <div className="flex h-full flex-col justify-between gap-6">
@@ -93,6 +102,16 @@ const SecurityActionCard = ({
         <Button fullWidth variant="outline" onClick={onClick} disabled={isLoading}>
           {isLoading ? 'Preparing...' : buttonLabel}
         </Button>
+        {secondaryButtonLabel && onSecondaryClick ? (
+          <Button
+            fullWidth
+            variant="ghost"
+            onClick={onSecondaryClick}
+            disabled={isSecondaryLoading}
+          >
+            {isSecondaryLoading ? 'Saving...' : secondaryButtonLabel}
+          </Button>
+        ) : null}
         <p className="text-xs text-gray-500 leading-relaxed">{helperText}</p>
       </div>
     </div>
@@ -121,7 +140,7 @@ export const SecurityWorkspace = ({
 }: SecurityWorkspaceProps) => {
   const { data, isLoading, errorMessage, refresh } = useUserSecurityStatus();
   const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<ActionKind | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
   useEffect(() => {
     const actionResult = readKeycloakActionResult();
@@ -170,6 +189,25 @@ export const SecurityWorkspace = ({
     }
   };
 
+  const setPrimaryMethod = async (method: PrimaryMethodKind) => {
+    setPendingAction(`primary-${method}`);
+    setActionMessage(null);
+
+    try {
+      await userClient.setPrimarySecondFactor(method);
+      setActionMessage(
+        method === 'totp'
+          ? 'Authenticator app set as the primary sign-in method.'
+          : 'Passkey or security key set as the primary sign-in method.'
+      );
+      await refresh();
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : 'Unable to update the primary sign-in method.');
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
   const renderLoadedState = (status: UserSecurityStatus) => {
     const overview = resolveSecurityOverview(status);
     const primaryMethodLabel = getSecurityMethodLabel(status.secondFactorMethod);
@@ -179,6 +217,8 @@ export const SecurityWorkspace = ({
       : status.recoveryCodesConfigured
         ? 'Exhausted'
         : 'Missing';
+    const normalizedPrimaryMethod = normalizeSecurityMethod(status.secondFactorMethod);
+    const canChooseBetweenInteractiveMethods = status.totpConfigured && status.webauthnConfigured;
 
     return (
       <div className={containerClassName || undefined}>
@@ -249,7 +289,7 @@ export const SecurityWorkspace = ({
                   <Badge variant={status.totpConfigured ? 'success' : 'neutral'}>
                     {status.totpConfigured ? 'Configured' : 'Not set'}
                   </Badge>
-                  {status.secondFactorMethod?.toLowerCase() === 'totp' ? <Badge variant="info">Primary</Badge> : null}
+                  {normalizedPrimaryMethod === 'totp' ? <Badge variant="info">Primary</Badge> : null}
                 </>
               )}
               statusSummary={
@@ -260,6 +300,13 @@ export const SecurityWorkspace = ({
               buttonLabel={status.totpConfigured ? 'Reconfigure authenticator app' : 'Set up authenticator app'}
               helperText="Best if you want a portable second factor that works across devices when you keep backup access."
               isLoading={pendingAction === 'totp'}
+              secondaryButtonLabel={
+                canChooseBetweenInteractiveMethods && normalizedPrimaryMethod !== 'totp'
+                  ? 'Set as primary'
+                  : undefined
+              }
+              isSecondaryLoading={pendingAction === 'primary-totp'}
+              onSecondaryClick={() => void setPrimaryMethod('totp')}
               onClick={() => void runAction('totp', onStartTotpSetup)}
             />
             <SecurityActionCard
@@ -271,7 +318,7 @@ export const SecurityWorkspace = ({
                   <Badge variant={status.webauthnConfigured ? 'success' : 'neutral'}>
                     {status.webauthnConfigured ? `${status.webauthnCredentialCount} enrolled` : 'Not set'}
                   </Badge>
-                  {status.secondFactorMethod?.toLowerCase() === 'webauthn' ? <Badge variant="info">Primary</Badge> : null}
+                  {normalizedPrimaryMethod === 'webauthn' ? <Badge variant="info">Primary</Badge> : null}
                 </>
               )}
               statusSummary={
@@ -282,6 +329,13 @@ export const SecurityWorkspace = ({
               buttonLabel={status.webauthnConfigured ? 'Add another credential' : 'Set up passkey or key'}
               helperText="Ideal if you want a hardware key or synced passkey as a stronger day-to-day sign-in option."
               isLoading={pendingAction === 'webauthn'}
+              secondaryButtonLabel={
+                canChooseBetweenInteractiveMethods && normalizedPrimaryMethod !== 'webauthn'
+                  ? 'Set as primary'
+                  : undefined
+              }
+              isSecondaryLoading={pendingAction === 'primary-webauthn'}
+              onSecondaryClick={() => void setPrimaryMethod('webauthn')}
               onClick={() => void runAction('webauthn', onStartWebAuthnSetup)}
             />
             <SecurityActionCard
@@ -391,5 +445,26 @@ const resolveActionLabel = (action: string | null): string => {
       return 'Password update';
     default:
       return 'Requested action';
+  }
+};
+
+const normalizeSecurityMethod = (method: string | null | undefined): 'totp' | 'webauthn' | 'recovery' | null => {
+  if (!method) {
+    return null;
+  }
+
+  switch (method.trim().toLowerCase()) {
+    case 'totp':
+      return 'totp';
+    case 'webauthn':
+    case 'passkey':
+    case 'security-key':
+      return 'webauthn';
+    case 'recovery':
+    case 'recovery-codes':
+    case 'recovery-authn-codes':
+      return 'recovery';
+    default:
+      return null;
   }
 };

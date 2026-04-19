@@ -40,36 +40,52 @@ export default function WebauthnAuthenticate(props: PageProps<Extract<KcContext,
                 <input type="hidden" id="error" name="error" />
             </form>
 
-            {authenticators && shouldDisplayAuthenticators && (
-                <section className="opex-auth-panel opex-auth-passkey-panel">
-                    <p className="opex-auth-panel-title">{msg("passkeyAuthAvailableTitle")}</p>
-                    <div className="opex-auth-method-list">
+            {authenticators && Object.keys(authenticators).length !== 0 && (
+                <>
+                    <form id="authn_select">
                         {authenticators.authenticators.map((authenticator, index) => (
-                            <div key={index} className="opex-auth-method-option opex-auth-passkey-option">
-                                <span className="opex-auth-passkey-icon" aria-hidden="true">
-                                    &#128273;
-                                </span>
-                                <span className="opex-auth-method-option-copy">
-                                    <strong className="opex-auth-method-option-title">{advancedMsg(authenticator.label)}</strong>
-                                    {authenticator.transports?.displayNameProperties?.length ? (
-                                        <span className="opex-auth-method-option-description">
-                                            {msg("passkeyAuthTransports")}:{" "}
-                                            {authenticator.transports.displayNameProperties.map((displayNameProperty, itemIndex, items) => (
-                                                <Fragment key={`${authenticator.credentialId}-${itemIndex}`}>
-                                                    {advancedMsg(displayNameProperty)}
-                                                    {itemIndex !== items.length - 1 && ", "}
-                                                </Fragment>
-                                            ))}
-                                        </span>
-                                    ) : null}
-                                    <span className="opex-auth-method-option-description">
-                                        {msg("passkeyAuthCreatedAt")}: {authenticator.createdAt}
-                                    </span>
-                                </span>
-                            </div>
+                            <input
+                                key={index}
+                                type="hidden"
+                                name="authn_use_chk"
+                                readOnly
+                                value={authenticator.credentialId}
+                            />
                         ))}
-                    </div>
-                </section>
+                    </form>
+
+                    {shouldDisplayAuthenticators && (
+                        <section className="opex-auth-panel opex-auth-passkey-panel">
+                            <p className="opex-auth-panel-title">{msg("passkeyAuthAvailableTitle")}</p>
+                            <div className="opex-auth-method-list">
+                                {authenticators.authenticators.map((authenticator, index) => (
+                                    <div key={index} className="opex-auth-method-option opex-auth-passkey-option">
+                                        <span className="opex-auth-passkey-icon" aria-hidden="true">
+                                            &#128273;
+                                        </span>
+                                        <span className="opex-auth-method-option-copy">
+                                            <strong className="opex-auth-method-option-title">{advancedMsg(authenticator.label)}</strong>
+                                            {authenticator.transports?.displayNameProperties?.length ? (
+                                                <span className="opex-auth-method-option-description">
+                                                    {msg("passkeyAuthTransports")}:{" "}
+                                                    {authenticator.transports.displayNameProperties.map((displayNameProperty, itemIndex, items) => (
+                                                        <Fragment key={`${authenticator.credentialId}-${itemIndex}`}>
+                                                            {advancedMsg(displayNameProperty)}
+                                                            {itemIndex !== items.length - 1 && ", "}
+                                                        </Fragment>
+                                                    ))}
+                                                </span>
+                                            ) : null}
+                                            <span className="opex-auth-method-option-description">
+                                                {msg("passkeyAuthCreatedAt")}: {authenticator.createdAt}
+                                            </span>
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
+                </>
             )}
 
             <div className="opex-auth-actions">

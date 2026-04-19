@@ -2,6 +2,7 @@ package com.opex.backend.user.service;
 
 import com.opex.backend.common.security.AuthenticatedUser;
 import com.opex.backend.user.dto.EmailVerificationStatusResponse;
+import com.opex.backend.user.dto.UserPrimarySecondFactorRequest;
 import com.opex.backend.user.dto.UserSecurityStatusResponse;
 import com.opex.backend.user.dto.UserUpdateRequest;
 import com.opex.backend.user.model.User;
@@ -17,6 +18,7 @@ public class UserService {
     private final UserEmailVerificationService userEmailVerificationService;
     private final UserLifecycleService userLifecycleService;
     private final UserSecurityStatusService userSecurityStatusService;
+    private final UserPrimarySecondFactorService userPrimarySecondFactorService;
 
     public User syncUserWithKeycloak(AuthenticatedUser authenticatedUser) {
         return userSyncService.syncUserWithKeycloak(authenticatedUser);
@@ -36,5 +38,12 @@ public class UserService {
 
     public UserSecurityStatusResponse getSecurityStatus(AuthenticatedUser authenticatedUser) {
         return userSecurityStatusService.getSecurityStatus(authenticatedUser);
+    }
+
+    public UserSecurityStatusResponse setPrimarySecondFactor(
+            AuthenticatedUser authenticatedUser,
+            UserPrimarySecondFactorRequest request
+    ) {
+        return userPrimarySecondFactorService.setPrimarySecondFactor(authenticatedUser, request.method());
     }
 }

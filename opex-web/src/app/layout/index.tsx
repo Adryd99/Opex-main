@@ -5,3 +5,4 @@ export { QuickActions } from './components/QuickActions';
 export { Sidebar } from './components/Sidebar';
 export { SubpageShell } from './components/SubpageShell';
 export { TopBar } from './components/TopBar';
+export { WorkspacePreparationScreen } from './components/WorkspacePreparationScreen';

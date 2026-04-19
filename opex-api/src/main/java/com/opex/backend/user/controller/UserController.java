@@ -2,6 +2,7 @@ package com.opex.backend.user.controller;
 
 import com.opex.backend.common.security.AuthenticatedUser;
 import com.opex.backend.user.dto.EmailVerificationStatusResponse;
+import com.opex.backend.user.dto.UserPrimarySecondFactorRequest;
 import com.opex.backend.user.dto.UserSecurityStatusResponse;
 import com.opex.backend.user.dto.UserResponse;
 import com.opex.backend.user.dto.UserUpdateRequest;
@@ -28,6 +29,14 @@ public class UserController {
     @GetMapping("/security")
     public ResponseEntity<UserSecurityStatusResponse> getSecurityStatus(AuthenticatedUser authenticatedUser) {
         return ResponseEntity.ok(userService.getSecurityStatus(authenticatedUser));
+    }
+
+    @PatchMapping("/security/primary-method")
+    public ResponseEntity<UserSecurityStatusResponse> setPrimarySecondFactor(
+            AuthenticatedUser authenticatedUser,
+            @Valid @RequestBody UserPrimarySecondFactorRequest request
+    ) {
+        return ResponseEntity.ok(userService.setPrimarySecondFactor(authenticatedUser, request));
     }
 
     @PatchMapping("/profile")

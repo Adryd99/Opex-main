@@ -60,6 +60,31 @@ function Copy-AuthenticationFlow {
         } | Out-Null
 }
 
+function Create-AuthenticationFlow {
+    param(
+        [string]$BaseUrl,
+        [string]$RealmName,
+        [string]$Token,
+        [string]$Alias,
+        [string]$Description
+    )
+
+    Invoke-KeycloakAdminApi `
+        -Method POST `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Path "authentication/flows" `
+        -Token $Token `
+        -Body @{
+            alias = $Alias
+            description = $Description
+            providerId = "basic-flow"
+            topLevel = $true
+            builtIn = $false
+        } `
+        -JsonDepth 10 | Out-Null
+}
+
 function Get-AuthenticationFlowExecutions {
     param(
         [string]$BaseUrl,
@@ -74,6 +99,183 @@ function Get-AuthenticationFlowExecutions {
         -RealmName $RealmName `
         -Path "authentication/flows/$([uri]::EscapeDataString($FlowAlias))/executions" `
         -Token $Token)
+}
+
+function Get-AuthenticationExecutionByProviderId {
+    param(
+        [string]$BaseUrl,
+        [string]$RealmName,
+        [string]$Token,
+        [string]$FlowAlias,
+        [string]$ProviderId
+    )
+
+    return Get-AuthenticationFlowExecutions `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $FlowAlias |
+        Where-Object { $_.providerId -eq $ProviderId } |
+        Select-Object -First 1
+}
+
+function Get-AuthenticationExecutionByDisplayName {
+    param(
+        [string]$BaseUrl,
+        [string]$RealmName,
+        [string]$Token,
+        [string]$FlowAlias,
+        [string]$DisplayName
+    )
+
+    return Get-AuthenticationFlowExecutions `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $FlowAlias |
+        Where-Object { $_.displayName -eq $DisplayName } |
+        Select-Object -First 1
+}
+
+function Ensure-AuthenticationFlow {
+    param(
+        [string]$BaseUrl,
+        [string]$RealmName,
+        [string]$Token,
+        [string]$Alias,
+        [string]$Description
+    )
+
+    $existingFlow = Get-AuthenticationFlowByAlias `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -Alias $Alias
+
+    if ($null -eq $existingFlow) {
+        Create-AuthenticationFlow `
+            -BaseUrl $BaseUrl `
+            -RealmName $RealmName `
+            -Token $Token `
+            -Alias $Alias `
+            -Description $Description
+    }
+}
+
+function Ensure-AuthenticationSubflow {
+    param(
+        [string]$BaseUrl,
+        [string]$RealmName,
+        [string]$Token,
+        [string]$ParentFlowAlias,
+        [string]$SubflowAlias,
+        [string]$Description
+    )
+
+    $existingSubflow = Get-AuthenticationExecutionByDisplayName `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $ParentFlowAlias `
+        -DisplayName $SubflowAlias
+
+    if ($null -ne $existingSubflow) {
+        return
+    }
+
+    Invoke-KeycloakAdminApi `
+        -Method POST `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Path "authentication/flows/$([uri]::EscapeDataString($ParentFlowAlias))/executions/flow" `
+        -Token $Token `
+        -Body @{
+            alias = $SubflowAlias
+            description = $Description
+            provider = "basic-flow"
+            type = "basic-flow"
+        } `
+        -JsonDepth 10 | Out-Null
+}
+
+function Ensure-AuthenticationExecution {
+    param(
+        [string]$BaseUrl,
+        [string]$RealmName,
+        [string]$Token,
+        [string]$FlowAlias,
+        [string]$ProviderId
+    )
+
+    $existingExecution = Get-AuthenticationExecutionByProviderId `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $FlowAlias `
+        -ProviderId $ProviderId
+
+    if ($null -ne $existingExecution) {
+        return
+    }
+
+    Invoke-KeycloakAdminApi `
+        -Method POST `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Path "authentication/flows/$([uri]::EscapeDataString($FlowAlias))/executions/execution" `
+        -Token $Token `
+        -Body @{
+            provider = $ProviderId
+        } `
+        -JsonDepth 5 | Out-Null
+}
+
+function Remove-AuthenticationExecution {
+    param(
+        [string]$BaseUrl,
+        [string]$RealmName,
+        [string]$Token,
+        [string]$ExecutionId
+    )
+
+    Invoke-KeycloakAdminApi `
+        -Method DELETE `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Path "authentication/executions/$ExecutionId" `
+        -Token $Token | Out-Null
+}
+
+function Remove-DuplicateAuthenticationExecutions {
+    param(
+        [string]$BaseUrl,
+        [string]$RealmName,
+        [string]$Token,
+        [string]$FlowAlias,
+        [string]$ProviderId
+    )
+
+    $matchingExecutions = @(Get-AuthenticationFlowExecutions `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $FlowAlias |
+        Where-Object { $_.providerId -eq $ProviderId })
+
+    if ($matchingExecutions.Count -le 1) {
+        return
+    }
+
+    $matchingExecutions |
+        Sort-Object priority, index |
+        Select-Object -Skip 1 |
+        ForEach-Object {
+            Remove-AuthenticationExecution `
+                -BaseUrl $BaseUrl `
+                -RealmName $RealmName `
+                -Token $Token `
+                -ExecutionId $_.id
+        }
 }
 
 function Set-AuthenticationExecutionRequirement {
@@ -179,76 +381,105 @@ function Ensure-GooglePostLogin2FaFlow {
         [string]$TargetFlowAlias
     )
 
-    $existingFlow = Get-AuthenticationFlowByAlias `
+    $conditionalSubflowAlias = "$TargetFlowAlias Conditional 2FA"
+
+    Ensure-AuthenticationFlow `
         -BaseUrl $BaseUrl `
         -RealmName $RealmName `
         -Token $Token `
-        -Alias $TargetFlowAlias
+        -Alias $TargetFlowAlias `
+        -Description "Google post-login 2FA flow"
 
-    if ($null -eq $existingFlow) {
-        Copy-AuthenticationFlow `
+    Ensure-AuthenticationSubflow `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -ParentFlowAlias $TargetFlowAlias `
+        -SubflowAlias $conditionalSubflowAlias `
+        -Description "Prompt for configured second-factor methods after Google sign-in"
+
+    Ensure-AuthenticationExecution `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $TargetFlowAlias `
+        -ProviderId "allow-access-authenticator"
+
+    Remove-DuplicateAuthenticationExecutions `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $TargetFlowAlias `
+        -ProviderId "allow-access-authenticator"
+
+    Set-AuthenticationExecutionRequirement `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $TargetFlowAlias `
+        -DisplayName $conditionalSubflowAlias `
+        -Requirement "CONDITIONAL"
+
+    Set-AuthenticationExecutionRequirement `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $TargetFlowAlias `
+        -DisplayName "Allow access" `
+        -Requirement "REQUIRED"
+
+    foreach ($providerId in @(
+        "conditional-user-configured",
+        "auth-otp-form",
+        "webauthn-authenticator",
+        "auth-recovery-authn-code-form"
+    )) {
+        Ensure-AuthenticationExecution `
             -BaseUrl $BaseUrl `
             -RealmName $RealmName `
             -Token $Token `
-            -SourceAlias "browser" `
-            -NewAlias $TargetFlowAlias
+            -FlowAlias $conditionalSubflowAlias `
+            -ProviderId $providerId
+
+        Remove-DuplicateAuthenticationExecutions `
+            -BaseUrl $BaseUrl `
+            -RealmName $RealmName `
+            -Token $Token `
+            -FlowAlias $conditionalSubflowAlias `
+            -ProviderId $providerId
     }
 
     Set-AuthenticationExecutionRequirement `
         -BaseUrl $BaseUrl `
         -RealmName $RealmName `
         -Token $Token `
-        -FlowAlias $TargetFlowAlias `
-        -DisplayName "Cookie" `
-        -Requirement "DISABLED"
-
-    Set-AuthenticationExecutionRequirement `
-        -BaseUrl $BaseUrl `
-        -RealmName $RealmName `
-        -Token $Token `
-        -FlowAlias $TargetFlowAlias `
-        -DisplayName "Kerberos" `
-        -Requirement "DISABLED"
-
-    Set-AuthenticationExecutionRequirement `
-        -BaseUrl $BaseUrl `
-        -RealmName $RealmName `
-        -Token $Token `
-        -FlowAlias $TargetFlowAlias `
-        -DisplayName "Identity Provider Redirector" `
-        -Requirement "DISABLED"
-
-    Set-AuthenticationExecutionRequirement `
-        -BaseUrl $BaseUrl `
-        -RealmName $RealmName `
-        -Token $Token `
-        -FlowAlias $TargetFlowAlias `
-        -DisplayName "Organization" `
-        -Requirement "DISABLED"
-
-    Set-AuthenticationExecutionRequirement `
-        -BaseUrl $BaseUrl `
-        -RealmName $RealmName `
-        -Token $Token `
-        -FlowAlias $TargetFlowAlias `
-        -DisplayName "forms" `
+        -FlowAlias $conditionalSubflowAlias `
+        -DisplayName "Condition - user configured" `
         -Requirement "REQUIRED"
 
     Set-AuthenticationExecutionRequirement `
         -BaseUrl $BaseUrl `
         -RealmName $RealmName `
         -Token $Token `
-        -FlowAlias $TargetFlowAlias `
-        -DisplayName "Username Password Form" `
-        -Requirement "DISABLED"
+        -FlowAlias $conditionalSubflowAlias `
+        -DisplayName "OTP Form" `
+        -Requirement "ALTERNATIVE"
 
     Set-AuthenticationExecutionRequirement `
         -BaseUrl $BaseUrl `
         -RealmName $RealmName `
         -Token $Token `
-        -FlowAlias $TargetFlowAlias `
-        -DisplayName "Browser - Conditional 2FA" `
-        -Requirement "CONDITIONAL"
+        -FlowAlias $conditionalSubflowAlias `
+        -DisplayName "WebAuthn Authenticator" `
+        -Requirement "ALTERNATIVE"
+
+    Set-AuthenticationExecutionRequirement `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $conditionalSubflowAlias `
+        -DisplayName "Recovery Authentication Code Form" `
+        -Requirement "ALTERNATIVE"
 }
 
 function Ensure-IdentityProviderMapper {
@@ -312,7 +543,7 @@ $token = Get-KeycloakAdminToken `
     -AdminRealm $AdminRealm
 
 $googleFirstBrokerFlowAlias = "opex-google-first-broker-login"
-$googlePostBrokerFlowAlias = "opex-google-post-login-browser-2fa"
+$googlePostBrokerFlowAlias = "opex-google-post-login-conditional-2fa"
 
 Ensure-GoogleFirstBrokerLoginFlow `
     -BaseUrl $KeycloakBaseUrl `
@@ -369,6 +600,9 @@ if ($null -eq $existingProvider) {
         -JsonDepth 10 | Out-Null
 }
 else {
+    $providerPayload.internalId = $existingProvider.internalId
+    $providerPayload.hideOnLogin = $existingProvider.hideOnLogin
+
     Invoke-KeycloakAdminApi `
         -Method PUT `
         -BaseUrl $KeycloakBaseUrl `

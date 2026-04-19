@@ -28,6 +28,14 @@ export const userClient = {
   getUserSecurityStatus: async (): Promise<UserSecurityStatus> =>
     normalizeUserSecurityStatus(await request<unknown>('/api/users/security')),
 
+  setPrimarySecondFactor: async (method: 'totp' | 'webauthn'): Promise<UserSecurityStatus> =>
+    normalizeUserSecurityStatus(
+      await request<unknown>('/api/users/security/primary-method', {
+        method: 'PATCH',
+        body: JSON.stringify({ method })
+      })
+    ),
+
   patchUserProfile: async (payload: UserProfilePatchPayload, fallback?: Partial<UserProfile>) =>
     normalizeUserProfile(
       await request<unknown>('/api/users/profile', {

@@ -16,7 +16,7 @@ import {
   isSubpageAppTab,
   resolveSettingsNavigationTarget
 } from './navigation';
-import { CenteredStatusCard, Sidebar, TopBar } from './layout';
+import { CenteredStatusCard, Sidebar, TopBar, WorkspacePreparationScreen } from './layout';
 import { Button } from '../shared/ui';
 import { AccountSetupPage, BankRedirectionPage } from '../features/banking';
 import { BudgetPage } from '../features/budget';
@@ -60,7 +60,6 @@ export const App = () => {
 
   const {
     isAuthenticated,
-    isLoading: isAuthLoading,
     errorMessage: authErrorMessage,
     login,
     logout
@@ -115,6 +114,31 @@ export const App = () => {
   const isSuccessRoute = window.location.pathname === '/success';
   const isEmbeddedWindow = window.self !== window.top;
   const activeLegalPublicInfo = legalPublicInfo ?? DEFAULT_LEGAL_PUBLIC_INFO;
+  const shouldShowWorkspacePreparation =
+    !authErrorMessage && (!isAuthenticated || isInitialSyncLoading);
+  const shouldKeepBootSplash = !legalDocumentSlug && shouldShowWorkspacePreparation;
+
+  useEffect(() => {
+    const bootSplash = document.getElementById('boot-splash');
+    if (!bootSplash) {
+      return;
+    }
+
+    if (shouldKeepBootSplash) {
+      bootSplash.classList.remove('boot-splash-hidden');
+      bootSplash.setAttribute('aria-hidden', 'false');
+      return;
+    }
+
+    bootSplash.classList.add('boot-splash-hidden');
+    bootSplash.setAttribute('aria-hidden', 'true');
+
+    const removalTimeout = window.setTimeout(() => {
+      bootSplash.remove();
+    }, 240);
+
+    return () => window.clearTimeout(removalTimeout);
+  }, [shouldKeepBootSplash]);
 
   useEffect(() => {
     if (normalizedPathname === '/security') {
@@ -162,15 +186,15 @@ export const App = () => {
     return <LegalCenterPage initialSlug={legalDocumentSlug} />;
   }
 
+  if (shouldShowWorkspacePreparation) {
+    return <WorkspacePreparationScreen />;
+  }
+
   if (!isAuthenticated) {
     return (
       <CenteredStatusCard
         title="Autenticazione Keycloak"
-        description={authErrorMessage ?? (
-          isAuthLoading
-            ? 'Verifica sessione in corso...'
-            : 'Reindirizzamento a Keycloak in corso...'
-        )}
+        description={authErrorMessage}
         actions={authErrorMessage ? (
           <Button onClick={() => void login()}>
             Riprova login
@@ -235,20 +259,6 @@ export const App = () => {
             Retry sync
           </Button>
         ) : undefined}
-      />
-    );
-  }
-
-  if (isInitialSyncLoading) {
-    return (
-      <CenteredStatusCard
-        title="Preparing your workspace"
-        icon={(
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-opex-teal/10 text-opex-teal flex items-center justify-center">
-            <Loader2 size={28} className="animate-spin" />
-          </div>
-        )}
-        description="We are syncing your profile and loading the latest data."
       />
     );
   }
