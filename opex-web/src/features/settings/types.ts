@@ -57,6 +57,7 @@ export type SettingsPageProps = {
 export type SettingsSectionId =
   | 'PROFILE'
   | 'BRANDING'
+  | 'TAXES'
   | 'BANKING'
   | 'PREFERENCES'
   | 'SECURITY'

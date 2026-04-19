@@ -8,4 +8,5 @@ export { ProfileEditorForm } from './ProfileEditorForm';
 export { SecurityWorkspace } from './SecurityWorkspace';
 export { SettingsProfileSection } from './SettingsProfileSection';
 export { SettingsSecuritySection } from './SettingsSecuritySection';
+export { SettingsTaxesSection } from './SettingsTaxesSection';
 export { SettingsTabs } from './SettingsTabs';

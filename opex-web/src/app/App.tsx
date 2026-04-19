@@ -290,7 +290,7 @@ export const App = () => {
     onNavigate: handleSettingsNavigate
   };
 
-  const renderSettingsPage = (initialSection: 'PROFILE' | 'BANKING' | 'SECURITY') => (
+  const renderSettingsPage = (initialSection: 'PROFILE' | 'BANKING' | 'SECURITY' | 'TAXES') => (
     <SettingsPage
       {...settingsPageProps}
       initialSection={initialSection}
@@ -355,7 +355,6 @@ export const App = () => {
             userProfile={userProfile}
             taxBufferDashboard={taxBufferDashboard}
             isLoading={isTaxBufferLoading}
-            onSaveTaxSetup={saveUserProfile}
           />
         );
       case APP_TABS.INVOICING:
@@ -376,6 +375,8 @@ export const App = () => {
         return <TransactionsPage onBack={() => setActiveTab(lastMainTab)} transactions={transactions} />;
       case APP_TABS.SETTINGS:
         return renderSettingsPage(settingsResumeSection === 'SECURITY' ? 'SECURITY' : 'PROFILE');
+      case APP_TABS.SETTINGS_TAXES:
+        return renderSettingsPage('TAXES');
 
       // Quick Action Pages
       case APP_TABS.QUICK_INCOME:

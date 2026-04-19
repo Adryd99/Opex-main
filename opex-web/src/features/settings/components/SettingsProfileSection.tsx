@@ -1,11 +1,11 @@
 import {
   AtSign,
   BadgeCheck,
+  BriefcaseBusiness,
   CalendarDays,
   Edit2,
   Globe,
   Lock,
-  Receipt,
   ShieldCheck,
   UserRound
 } from 'lucide-react';
@@ -39,6 +39,7 @@ export const SettingsProfileSection = ({
   const timeZoneLabel = getTimeZoneLabel();
   const managedByGoogle = userProfile.identityProvider?.toLowerCase() === 'google';
   const displayName = userProfile.displayName?.trim() || userProfile.name;
+  const occupationLabel = userProfile.occupation?.trim() || 'Missing';
   const initials = displayName.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase() || '?';
 
   return (
@@ -108,10 +109,10 @@ export const SettingsProfileSection = ({
                     icon={accountVerified ? ShieldCheck : AtSign}
                   />
                   <SummaryTile
-                    label="Residence"
-                    value={userProfile.residence || 'Missing'}
-                    detail={userProfile.occupation?.trim() || 'Occupation missing'}
-                    icon={Globe}
+                    label="Occupation"
+                    value={occupationLabel}
+                    detail={birthDateLabel === 'Not provided yet' ? 'Birth date missing' : birthDateLabel}
+                    icon={BriefcaseBusiness}
                   />
                 </div>
               </div>
@@ -125,7 +126,6 @@ export const SettingsProfileSection = ({
                   description="Core profile fields used across the application."
                 />
                 <div className="grid grid-cols-1 gap-5">
-                  <ProfileDetailItem label="Display Name" value={displayName || 'Not provided yet'} />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <ProfileDetailItem
                       label="First Name"
@@ -158,15 +158,13 @@ export const SettingsProfileSection = ({
               <div className="rounded-[1.75rem] border border-gray-100 bg-gray-50/80 p-5 space-y-5">
                 <SectionHeading
                   icon={Globe}
-                  title="Residence & Tax"
-                  description="Fields that drive tax setup, VAT cadence and completion status."
+                  title="Personal Details"
+                  description="Personal details used across your workspace and onboarding state."
                 />
                 <div className="grid grid-cols-1 gap-5">
                   <ProfileDetailItem
-                    label="Legal Residence"
-                    value={userProfile.residence || 'Not provided yet'}
-                    icon={Globe}
-                    isMuted={!userProfile.residence}
+                    label="Display Name"
+                    value={displayName || 'Not provided yet'}
                   />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <ProfileDetailItem
@@ -181,18 +179,11 @@ export const SettingsProfileSection = ({
                       isMuted={!userProfile.occupation?.trim()}
                     />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <ProfileDetailItem
-                      label="VAT Return Frequency"
-                      value={userProfile.vatFrequency}
-                      icon={Receipt}
-                    />
-                    <ProfileDetailItem
-                      label="Time Zone"
-                      value={timeZoneLabel}
-                      isMuted={!timeZoneLabel}
-                    />
-                  </div>
+                  <ProfileDetailItem
+                    label="Time Zone"
+                    value={timeZoneLabel}
+                    isMuted={!timeZoneLabel}
+                  />
                 </div>
               </div>
 

@@ -14,6 +14,7 @@ import {
   SettingsPrivacySection,
   SettingsProfileSection,
   SettingsSecuritySection,
+  SettingsTaxesSection,
   SettingsTabs
 } from '../components';
 
@@ -139,6 +140,13 @@ export const SettingsPage = ({
               openBankErrorMessage={openBankErrorMessage}
             />
           </div>
+        );
+      case 'TAXES':
+        return (
+          <SettingsTaxesSection
+            userProfile={userProfile}
+            onSaveProfile={onSaveProfile}
+          />
         );
       case 'PREFERENCES':
         return (

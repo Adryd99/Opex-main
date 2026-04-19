@@ -6,7 +6,7 @@ import { formatTaxDate, formatTaxMoney } from '../support';
 type TaxSidebarCardsProps = {
   userProfile: UserProfile;
   isTaxProfileConfigured: boolean;
-  setIsTaxSetupOpen: (value: boolean) => void;
+  onOpenTaxSettings: () => void;
   nextDeadlines: Array<{
     id?: string | number | null;
     title: string;
@@ -26,7 +26,7 @@ type TaxSidebarCardsProps = {
 export const TaxSidebarCards = ({
   userProfile,
   isTaxProfileConfigured,
-  setIsTaxSetupOpen,
+  onOpenTaxSettings,
   nextDeadlines,
   activity
 }: TaxSidebarCardsProps) => (
@@ -59,7 +59,7 @@ export const TaxSidebarCards = ({
           size="sm"
           fullWidth
           icon={Edit2}
-          onClick={() => setIsTaxSetupOpen(true)}
+          onClick={onOpenTaxSettings}
         >
           {isTaxProfileConfigured ? 'Update Tax Setup' : 'Complete Tax Setup'}
         </Button>

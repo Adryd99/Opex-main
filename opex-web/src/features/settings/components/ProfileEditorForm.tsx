@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BriefcaseBusiness, CalendarDays, Camera, Check, Globe2, Lock, UserRound, X } from 'lucide-react';
+import { BriefcaseBusiness, CalendarDays, Camera, Check, Lock, UserRound, X } from 'lucide-react';
 import { Badge, Button } from '../../../shared/ui';
 import { UserProfile } from '../../../shared/types';
 import { getAdultBirthDateMax, isAdultBirthDate } from '../support/profileCompletion';
@@ -24,10 +24,8 @@ export const ProfileEditorForm = ({
   const [firstName, setFirstName] = useState(userProfile.firstName ?? '');
   const [lastName, setLastName] = useState(userProfile.lastName ?? '');
   const [email, setEmail] = useState(userProfile.email);
-  const [residence, setResidence] = useState(userProfile.residence ?? '');
   const [dob, setDob] = useState(userProfile.dob ?? '');
   const [occupation, setOccupation] = useState(userProfile.occupation ?? '');
-  const [vatFrequency, setVatFrequency] = useState(userProfile.vatFrequency);
   const [logo, setLogo] = useState<string | null>(userProfile.logo ?? null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -64,10 +62,8 @@ export const ProfileEditorForm = ({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email,
-      residence,
       dob: dob || null,
       occupation: occupation.trim() || null,
-      vatFrequency,
       logo
     };
     setSaveError(null);
@@ -157,11 +153,6 @@ export const ProfileEditorForm = ({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Display Name</label>
-            <input value={displayName} onChange={event => setDisplayName(event.target.value)} className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none" />
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">First Name</label>
@@ -191,23 +182,21 @@ export const ProfileEditorForm = ({
         <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm space-y-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-opex-teal/10 text-opex-teal flex items-center justify-center">
-              <Globe2 size={18} />
+              <CalendarDays size={18} />
             </div>
             <div>
-              <p className="text-sm font-black text-gray-900">Residence & tax</p>
-              <p className="text-xs font-medium text-gray-500">These fields drive fiscal setup, VAT behaviour and profile completion.</p>
+              <p className="text-sm font-black text-gray-900">Personal details</p>
+              <p className="text-xs font-medium text-gray-500">Keep the profile details here and manage your tax profile from Settings &gt; Taxes.</p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Legal Residence</label>
-            <select value={residence} onChange={event => setResidence(event.target.value)} className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none appearance-none">
-              <option value="">Select your legal residence</option>
-              <option>Netherlands (NL)</option>
-              <option>Italy (IT)</option>
-              <option>Belgium (BE)</option>
-              <option>Germany (DE)</option>
-            </select>
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Display Name</label>
+            <input
+              value={displayName}
+              onChange={event => setDisplayName(event.target.value)}
+              className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -227,19 +216,6 @@ export const ProfileEditorForm = ({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">VAT Return Frequency</label>
-            <select
-              value={vatFrequency}
-              onChange={event => setVatFrequency(event.target.value)}
-              className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none appearance-none"
-            >
-              <option>Monthly</option>
-              <option>Quarterly</option>
-              <option>Yearly</option>
-            </select>
-            <p className="text-xs text-gray-400 font-medium">Used to generate Dutch VAT deadlines in Taxes.</p>
-          </div>
         </div>
       </div>
 

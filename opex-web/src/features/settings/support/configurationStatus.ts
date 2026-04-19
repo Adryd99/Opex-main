@@ -1,4 +1,5 @@
 import { LegalPublicInfoRecord, UserProfile, UserSecurityStatus } from '../../../shared/types';
+import { getMissingTaxProfileFields, hasTaxProfileConfigured } from '../../tax-profile';
 import { ConsentAuditItem, SettingsChecklistItem, VerificationEmailActionState } from '../types';
 import { formatConsentTimestamp } from '../utils';
 import { hasCompleteProfileDetails } from './profileCompletion';
@@ -68,6 +69,27 @@ const getSecurityChecklistDetail = (securityStatus?: UserSecurityStatus | null):
   return '2FA and recovery ready';
 };
 
+const getTaxProfileChecklistDetail = (userProfile: UserProfile): string | undefined => {
+  if (hasTaxProfileConfigured(userProfile)) {
+    return 'Tax profile ready';
+  }
+
+  const missingFields = getMissingTaxProfileFields(userProfile);
+  if (missingFields.length === 0) {
+    return undefined;
+  }
+
+  if (missingFields.length === 1) {
+    return `Missing ${missingFields[0]}`;
+  }
+
+  if (missingFields.length === 2) {
+    return `Missing ${missingFields[0]} and ${missingFields[1]}`;
+  }
+
+  return 'Missing fiscal residence, tax regime and activity type';
+};
+
 export const buildConfigurationChecklist = ({
   userProfile,
   verificationEmailAction,
@@ -112,10 +134,10 @@ export const buildConfigurationChecklist = ({
   {
     id: 5,
     label: 'Define tax profile',
-    completed: false,
-    cta: 'Review',
-    targetSection: 'PROFILE',
-    opensProfileEditor: true,
+    completed: hasTaxProfileConfigured(userProfile),
+    cta: 'Open',
+    detail: getTaxProfileChecklistDetail(userProfile),
+    targetSection: 'TAXES',
     action: null
   }
 ];

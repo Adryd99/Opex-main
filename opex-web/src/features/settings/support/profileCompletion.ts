@@ -35,6 +35,7 @@ export const hasCompleteProfileDetails = (userProfile: UserProfile): boolean =>
   && (
     Boolean((userProfile.country ?? '').trim())
     || Boolean((userProfile.residence ?? '').trim())
+    || Boolean((userProfile.fiscalResidence ?? '').trim())
   )
   && Boolean(userProfile.occupation?.trim())
   && isAdultBirthDate(userProfile.dob);
