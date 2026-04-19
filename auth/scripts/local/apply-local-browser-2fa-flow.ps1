@@ -25,6 +25,10 @@ $token = Get-KeycloakAdminToken `
     -Password $adminCredentials.AdminPassword `
     -AdminRealm $AdminRealm
 
+$recentAuthConfig = @{
+    max_auth_age = "900"
+}
+
 Set-RequiredActionConfiguration `
     -BaseUrl $KeycloakBaseUrl `
     -RealmName $Realm `
@@ -34,6 +38,7 @@ Set-RequiredActionConfiguration `
     -Enabled $true `
     -DefaultAction $false `
     -Priority 130 `
+    -Config $recentAuthConfig `
     -RegisterIfMissing
 
 $flowRequirements = @(

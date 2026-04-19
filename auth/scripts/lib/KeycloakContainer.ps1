@@ -95,17 +95,15 @@ function Restart-KeycloakComposeService {
     )
 
     if (Test-KeycloakContainerRunning -ContainerName $ContainerName) {
-        docker compose restart $ComposeServiceName
+        docker compose stop $ComposeServiceName
         if ($LASTEXITCODE -ne 0) {
-            throw "Failed to restart compose service '$ComposeServiceName'"
+            throw "Failed to stop compose service '$ComposeServiceName'"
         }
-
-        return
     }
 
-    docker compose up -d $ComposeServiceName
+    docker compose up -d --force-recreate $ComposeServiceName
     if ($LASTEXITCODE -ne 0) {
-        throw "Failed to start compose service '$ComposeServiceName'"
+        throw "Failed to recreate compose service '$ComposeServiceName'"
     }
 }
 

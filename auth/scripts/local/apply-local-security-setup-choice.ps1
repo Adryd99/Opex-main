@@ -24,6 +24,10 @@ $token = Get-KeycloakAdminToken `
     -Password $adminCredentials.AdminPassword `
     -AdminRealm $AdminRealm
 
+$recentAuthConfig = @{
+    max_auth_age = "900"
+}
+
 Remove-RequiredActionIfPresent `
     -BaseUrl $KeycloakBaseUrl `
     -RealmName $Realm `
@@ -61,6 +65,7 @@ $actionSpecs = @(
         Enabled = $true
         DefaultAction = $false
         Priority = 20
+        Config = $recentAuthConfig
     },
     @{
         Alias = "webauthn-register"
@@ -68,6 +73,7 @@ $actionSpecs = @(
         Enabled = $true
         DefaultAction = $false
         Priority = 30
+        Config = $recentAuthConfig
     },
     @{
         Alias = "VERIFY_EMAIL"
@@ -82,11 +88,16 @@ $actionSpecs = @(
         Enabled = $true
         DefaultAction = $false
         Priority = 35
+        Config = $recentAuthConfig
     }
 )
 
 foreach ($actionSpec in $actionSpecs) {
     $registerIfMissing = $actionSpec.ContainsKey("RegisterIfMissing") -and [bool]$actionSpec.RegisterIfMissing
+    $config = @{}
+    if ($actionSpec.ContainsKey("Config") -and $null -ne $actionSpec.Config) {
+        $config = $actionSpec.Config
+    }
 
     Set-RequiredActionConfiguration `
         -BaseUrl $KeycloakBaseUrl `
@@ -97,6 +108,7 @@ foreach ($actionSpec in $actionSpecs) {
         -Enabled $actionSpec.Enabled `
         -DefaultAction $actionSpec.DefaultAction `
         -Priority $actionSpec.Priority `
+        -Config $config `
         -RegisterIfMissing:$registerIfMissing
 }
 

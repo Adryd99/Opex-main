@@ -32,6 +32,13 @@ export default function Template(props: TemplateProps<KcContext, I18n>) {
     const { kcClsx } = getKcClsx({ doUseDefaultCss, classes });
     const { msg, msgStr, currentLanguage, enabledLanguages } = i18n;
     const { realm, auth, url, message, isAppInitiatedAction } = kcContext;
+    const isSecondaryAuthPage = [
+        "login-otp.ftl",
+        "login-recovery-authn-code-input.ftl",
+        "select-authenticator.ftl",
+        "login-passkeys-conditional-authenticate.ftl",
+        "webauthn-authenticate.ftl"
+    ].includes(kcContext.pageId);
     const onboardingProgressSteps = getOnboardingProgressSteps(msgStr);
     const localeOptions = enabledLanguages
         .filter(({ languageTag }) => ["it", "en"].includes(languageTag))
@@ -81,6 +88,7 @@ export default function Template(props: TemplateProps<KcContext, I18n>) {
 
     const { isReadyToRender } = useInitialize({ kcContext, doUseDefaultCss });
     const onboardingProgressIndex = getOnboardingProgressIndex(kcContext.pageId);
+    const showOnboardingProgress = onboardingProgressIndex !== null && !isAppInitiatedAction;
 
     if (!isReadyToRender) {
         return null;
@@ -122,7 +130,7 @@ export default function Template(props: TemplateProps<KcContext, I18n>) {
                             <img src={logoUrl} alt="Opes Capital" className="opex-auth-logo" />
                         </div>
 
-                        {onboardingProgressIndex !== null && (
+                        {showOnboardingProgress && (
                             <div className="opex-auth-progress" aria-label={msgStr("progressAriaLabel")}>
                                 <div className="opex-auth-progress-meta">
                                     <span className="opex-auth-progress-caption">
@@ -149,6 +157,27 @@ export default function Template(props: TemplateProps<KcContext, I18n>) {
 
                         {!(auth !== undefined && auth.showUsername && !auth.showResetCredentials) ? (
                             <div className="opex-auth-heading">{headerNode}</div>
+                        ) : isSecondaryAuthPage ? (
+                            <>
+                                <div className="opex-auth-heading">{headerNode}</div>
+                                <div id="kc-username" className={clsx(kcClsx("kcFormGroupClass"), "opex-auth-context-card")}>
+                                    <div className="opex-auth-context-copy">
+                                        <span className="opex-auth-context-label">{msg("signedInAs")}</span>
+                                        <strong id="kc-attempted-username" className="opex-auth-context-value">
+                                            {auth.attemptedUsername}
+                                        </strong>
+                                    </div>
+                                    <a
+                                        id="reset-login"
+                                        className="opex-auth-context-action"
+                                        href={url.loginRestartFlowUrl}
+                                        aria-label={msgStr("restartLoginTooltip")}
+                                    >
+                                        <i className={kcClsx("kcResetFlowIcon")}></i>
+                                        <span>{msg("restartLoginTooltip")}</span>
+                                    </a>
+                                </div>
+                            </>
                         ) : (
                             <div id="kc-username" className={clsx(kcClsx("kcFormGroupClass"), "opex-auth-username")}>
                                 <label id="kc-attempted-username">{auth.attemptedUsername}</label>
@@ -199,14 +228,15 @@ export default function Template(props: TemplateProps<KcContext, I18n>) {
 
                             {auth !== undefined && auth.showTryAnotherWayLink && (
                                 <form id="kc-select-try-another-way-form" action={url.loginAction} method="post">
-                                    <div className={kcClsx("kcFormGroupClass")}>
+                                    <div className={clsx(kcClsx("kcFormGroupClass"), "opex-auth-try-another-way")}>
                                         <input type="hidden" name="tryAnotherWay" value="on" />
                                         <a
                                             href="#"
                                             id="try-another-way"
-                                            onClick={() => {
+                                            className="opex-auth-inline-link"
+                                            onClick={event => {
+                                                event.preventDefault();
                                                 document.forms["kc-select-try-another-way-form" as never].requestSubmit();
-                                                return false;
                                             }}
                                         >
                                             {msg("doTryAnotherWay")}

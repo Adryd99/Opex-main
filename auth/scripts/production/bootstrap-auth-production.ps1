@@ -124,6 +124,7 @@ Write-StepHeader -Title "Applica setting realm via Admin API"
 Invoke-AuthScript -ScriptPath (Join-Path $localScriptsDir "apply-local-languages.ps1") -Arguments $adminApiArgs
 Invoke-AuthScript -ScriptPath (Join-Path $localScriptsDir "apply-local-login-settings.ps1") -Arguments $adminApiArgs
 Invoke-AuthScript -ScriptPath (Join-Path $localScriptsDir "apply-local-browser-2fa-flow.ps1") -Arguments $adminApiArgs
+Invoke-AuthScript -ScriptPath (Join-Path $localScriptsDir "apply-local-password-update.ps1") -Arguments $adminApiArgs
 Invoke-AuthScript -ScriptPath (Join-Path $localScriptsDir "apply-local-user-profile-settings.ps1") -Arguments @{
     KeycloakBaseUrl = $KeycloakBaseUrl
     AdminRealm = $AdminRealm

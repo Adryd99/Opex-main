@@ -32,13 +32,18 @@ Entrambi gli script buildano i jar senza toccare Keycloak, a meno che tu non pas
   orchestration locale completa: build tema, build provider, singolo restart di Keycloak e apply dei setting locali del realm
 - [apply-local-languages.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-languages.ps1)
 - [apply-local-login-settings.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-login-settings.ps1)
+  applica login settings del realm, incluso `resetPasswordAllowed` e la password policy locale di default:
+  `length(10) and lowerCase(1) and upperCase(1) and digits(1) and specialChars(1) and notUsername(undefined) and passwordHistory(3)`
 - [apply-local-browser-2fa-flow.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-browser-2fa-flow.ps1)
-  riallinea sia `Browser - Conditional 2FA` sia `First broker login - Conditional 2FA` con OTP, WebAuthn e recovery code come alternative reali
+  riallinea sia `Browser - Conditional 2FA` sia `First broker login - Conditional 2FA` con OTP, WebAuthn e recovery code come alternative reali, mantenendo `CONFIGURE_RECOVERY_AUTHN_CODES` riutilizzabile via AIA per `900` secondi dall'ultima autenticazione
+- [apply-local-password-update.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-password-update.ps1)
+  registra la required action custom `OPEX_UPDATE_PASSWORD` usata da `Settings > Security` per il cambio password con campo password attuale
 - [apply-local-security-setup-choice.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-security-setup-choice.ps1)
-  registra anche `CONFIGURE_RECOVERY_AUTHN_CODES` con priorita immediatamente successiva a `OPTIONAL_CONFIGURE_TOTP` e `OPTIONAL_WEBAUTHN_REGISTER`
+  registra anche `CONFIGURE_RECOVERY_AUTHN_CODES` con priorita immediatamente successiva a `OPTIONAL_CONFIGURE_TOTP` e `OPTIONAL_WEBAUTHN_REGISTER`, e imposta `CONFIGURE_TOTP`, `webauthn-register` e `CONFIGURE_RECOVERY_AUTHN_CODES` con una finestra AIA `max_auth_age` di `900` secondi
 - [apply-local-user-profile-settings.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-user-profile-settings.ps1)
 - [apply-local-smtp-settings.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-smtp-settings.ps1)
 - [apply-local-google-idp.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-google-idp.ps1)
+  applica il provider Google locale, il first broker flow con linking via password e un `post login flow` dedicato per riattivare il blocco 2FA dopo il ritorno dal broker
 - [apply-local-security-setup-choice.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-security-setup-choice.ps1)
 - [apply-local-profile-basics.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-profile-basics.ps1)
 - [apply-local-country-selection.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-country-selection.ps1)
@@ -95,6 +100,21 @@ Per includere anche SMTP reale e Google IDP:
   -GoogleClientId "<GOOGLE_CLIENT_ID>" `
   -GoogleClientSecret "<GOOGLE_CLIENT_SECRET>"
 ```
+
+In alternativa, per il locale puoi salvare queste chiavi nel file root `.env`:
+
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_ENCRYPTION`
+- `SMTP_USE_AUTHENTICATION`
+- `SMTP_USERNAME`
+- `SMTP_PASSWORD`
+- `SMTP_FROM_ADDRESS`
+- `SMTP_FROM_DISPLAY_NAME`
+
+Se presenti, `bootstrap-auth-local.ps1` le usera automaticamente anche senza parametri espliciti.
 
 ## Bootstrap produzione
 

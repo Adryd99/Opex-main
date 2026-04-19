@@ -105,6 +105,7 @@ function Set-RequiredActionConfiguration {
         [Parameter(Mandatory = $true)]
         [int]$Priority,
         [string]$ProviderId = $Alias,
+        [hashtable]$Config,
         [switch]$RegisterIfMissing
     )
 
@@ -123,6 +124,14 @@ function Set-RequiredActionConfiguration {
             -Name $Name
     }
 
+    $resolvedConfig = @{}
+    if ($PSBoundParameters.ContainsKey("Config")) {
+        $resolvedConfig = $Config
+    }
+    elseif ($null -ne $existingAction.config) {
+        $resolvedConfig = $existingAction.config
+    }
+
     $payload = @{
         alias = $Alias
         name = $Name
@@ -130,7 +139,7 @@ function Set-RequiredActionConfiguration {
         enabled = $Enabled
         defaultAction = $DefaultAction
         priority = $Priority
-        config = @{}
+        config = $resolvedConfig
     }
 
     Invoke-KeycloakAdminApi `

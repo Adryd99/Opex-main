@@ -171,6 +171,86 @@ function Ensure-GoogleFirstBrokerLoginFlow {
         -Requirement "REQUIRED"
 }
 
+function Ensure-GooglePostLogin2FaFlow {
+    param(
+        [string]$BaseUrl,
+        [string]$RealmName,
+        [string]$Token,
+        [string]$TargetFlowAlias
+    )
+
+    $existingFlow = Get-AuthenticationFlowByAlias `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -Alias $TargetFlowAlias
+
+    if ($null -eq $existingFlow) {
+        Copy-AuthenticationFlow `
+            -BaseUrl $BaseUrl `
+            -RealmName $RealmName `
+            -Token $Token `
+            -SourceAlias "browser" `
+            -NewAlias $TargetFlowAlias
+    }
+
+    Set-AuthenticationExecutionRequirement `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $TargetFlowAlias `
+        -DisplayName "Cookie" `
+        -Requirement "DISABLED"
+
+    Set-AuthenticationExecutionRequirement `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $TargetFlowAlias `
+        -DisplayName "Kerberos" `
+        -Requirement "DISABLED"
+
+    Set-AuthenticationExecutionRequirement `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $TargetFlowAlias `
+        -DisplayName "Identity Provider Redirector" `
+        -Requirement "DISABLED"
+
+    Set-AuthenticationExecutionRequirement `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $TargetFlowAlias `
+        -DisplayName "Organization" `
+        -Requirement "DISABLED"
+
+    Set-AuthenticationExecutionRequirement `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $TargetFlowAlias `
+        -DisplayName "forms" `
+        -Requirement "REQUIRED"
+
+    Set-AuthenticationExecutionRequirement `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $TargetFlowAlias `
+        -DisplayName "Username Password Form" `
+        -Requirement "DISABLED"
+
+    Set-AuthenticationExecutionRequirement `
+        -BaseUrl $BaseUrl `
+        -RealmName $RealmName `
+        -Token $Token `
+        -FlowAlias $TargetFlowAlias `
+        -DisplayName "Browser - Conditional 2FA" `
+        -Requirement "CONDITIONAL"
+}
+
 function Ensure-IdentityProviderMapper {
     param(
         [string]$BaseUrl,
@@ -232,6 +312,7 @@ $token = Get-KeycloakAdminToken `
     -AdminRealm $AdminRealm
 
 $googleFirstBrokerFlowAlias = "opex-google-first-broker-login"
+$googlePostBrokerFlowAlias = "opex-google-post-login-browser-2fa"
 
 Ensure-GoogleFirstBrokerLoginFlow `
     -BaseUrl $KeycloakBaseUrl `
@@ -239,6 +320,12 @@ Ensure-GoogleFirstBrokerLoginFlow `
     -Token $token `
     -SourceFlowAlias "first broker login" `
     -TargetFlowAlias $googleFirstBrokerFlowAlias
+
+Ensure-GooglePostLogin2FaFlow `
+    -BaseUrl $KeycloakBaseUrl `
+    -RealmName $Realm `
+    -Token $token `
+    -TargetFlowAlias $googlePostBrokerFlowAlias
 
 $providerPayload = @{
     alias = $Alias
@@ -251,6 +338,7 @@ $providerPayload = @{
     authenticateByDefault = $false
     linkOnly = $false
     firstBrokerLoginFlowAlias = $googleFirstBrokerFlowAlias
+    postBrokerLoginFlowAlias = $googlePostBrokerFlowAlias
     updateProfileFirstLoginMode = "off"
     config = @{
         syncMode = "FORCE"
@@ -344,6 +432,7 @@ Ensure-IdentityProviderMapper `
 
 Write-Host "Applied local Google identity provider '$Alias' to realm '$Realm'." -ForegroundColor Green
 Write-Host "Ensured first broker login flow '$googleFirstBrokerFlowAlias' with password-based linking only." -ForegroundColor DarkGray
+Write-Host "Ensured post login flow '$googlePostBrokerFlowAlias' so brokered Google logins still pass through Opex 2FA when configured." -ForegroundColor DarkGray
 Write-Host "Ensured identity provider mappers 'google-first-name' and 'google-last-name' with forced sync to the Keycloak user profile." -ForegroundColor DarkGray
 Write-Host "Ensured identity provider mapper 'google-picture' -> user attribute 'profilePicture'." -ForegroundColor DarkGray
 Write-Host "Authorized redirect URI for local testing: http://localhost:8081/realms/$Realm/broker/$Alias/endpoint" -ForegroundColor DarkGray

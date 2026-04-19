@@ -1,4 +1,5 @@
 com.opex.keycloak.onboarding.requiredactions.SecuritySetupChoiceRequiredAction
+com.opex.keycloak.onboarding.requiredactions.OpexUpdatePasswordRequiredAction
 com.opex.keycloak.onboarding.requiredactions.OptionalConfigureTotpRequiredAction
 com.opex.keycloak.onboarding.requiredactions.OptionalWebAuthnRegisterFactory
 com.opex.keycloak.onboarding.requiredactions.ProfileBasicsRequiredAction

@@ -64,13 +64,15 @@ export default function WebauthnRegister(props: PageProps<Extract<KcContext, { p
                         value={msgStr("doRegisterSecurityKey")}
                     />
 
-                    <button
-                        type="submit"
-                        className={clsx(kcClsx("kcButtonClass", "kcButtonLargeClass"), "opex-auth-secondary-button")}
-                        form="kc-webauthn-back-form"
-                    >
-                        {msg("onboardingBack")}
-                    </button>
+                    {!isAppInitiatedAction && (
+                        <button
+                            type="submit"
+                            className={clsx(kcClsx("kcButtonClass", "kcButtonLargeClass"), "opex-auth-secondary-button")}
+                            form="kc-webauthn-back-form"
+                        >
+                            {msg("onboardingBack")}
+                        </button>
+                    )}
 
                     {!isSetRetry && isAppInitiatedAction && (
                         <form action={url.loginAction} className={kcClsx("kcFormClass")} id="kc-webauthn-settings-form" method="post">
@@ -86,10 +88,11 @@ export default function WebauthnRegister(props: PageProps<Extract<KcContext, { p
                         </form>
                     )}
                 </div>
-
-                <form action={url.loginAction} className={kcClsx("kcFormClass")} id="kc-webauthn-back-form" method="post">
-                    <input type="hidden" name="backToSecurityChoice" value="true" />
-                </form>
+                {!isAppInitiatedAction && (
+                    <form action={url.loginAction} className={kcClsx("kcFormClass")} id="kc-webauthn-back-form" method="post">
+                        <input type="hidden" name="backToSecurityChoice" value="true" />
+                    </form>
+                )}
             </div>
         </Template>
     );

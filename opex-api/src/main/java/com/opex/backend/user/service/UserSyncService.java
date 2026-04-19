@@ -6,6 +6,7 @@ import com.opex.backend.user.model.User;
 import com.opex.backend.user.repository.UserRepository;
 import com.opex.backend.user.service.support.KeycloakProfileSnapshot;
 import com.opex.backend.user.service.support.KeycloakUserGateway;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,15 +29,18 @@ import static com.opex.backend.user.service.support.UserValueSupport.toResidence
 public class UserSyncService {
 
     private static final Logger log = LoggerFactory.getLogger(UserSyncService.class);
+    private static final int USER_SYNC_LOCK_NAMESPACE = 2048;
 
     private final UserRepository userRepository;
     private final KeycloakUserGateway keycloakUserGateway;
     private final UserProfileImageService userProfileImageService;
     private final AppProperties appProperties;
+    private final EntityManager entityManager;
 
     @Transactional
     public User syncUserWithKeycloak(AuthenticatedUser authenticatedUser) {
         String keycloakId = authenticatedUser.userId();
+        acquireUserSyncLock(keycloakId);
         Optional<User> existingUser = userRepository.findById(keycloakId);
         KeycloakProfileSnapshot snapshot = keycloakUserGateway.loadProfileSnapshot(authenticatedUser);
         User user = existingUser.orElseGet(() -> new User(
@@ -66,6 +70,13 @@ public class UserSyncService {
         }
 
         return user;
+    }
+
+    private void acquireUserSyncLock(String keycloakId) {
+        entityManager.createNativeQuery("select pg_advisory_xact_lock(:namespace, hashtext(:userId))")
+                .setParameter("namespace", USER_SYNC_LOCK_NAMESPACE)
+                .setParameter("userId", keycloakId)
+                .getSingleResult();
     }
 
     private boolean applyPrimaryIdentity(User user, KeycloakProfileSnapshot snapshot) {

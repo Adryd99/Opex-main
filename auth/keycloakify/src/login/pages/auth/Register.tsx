@@ -9,6 +9,7 @@ import type { UserProfileFormFieldsProps } from "keycloakify/login/UserProfileFo
 import type { PageProps } from "keycloakify/login/pages/PageProps";
 import type { KcContext } from "../../KcContext";
 import type { I18n } from "../../i18n";
+import { PasswordRequirements } from "../../components/PasswordRequirements";
 import { SocialProviders } from "../../components/SocialProviders";
 
 type RegisterProps = PageProps<Extract<KcContext, { pageId: "register.ftl" }>, I18n> & {
@@ -33,7 +34,8 @@ export default function Register(props: RegisterProps) {
         recaptchaSiteKey,
         recaptchaAction,
         termsAcceptanceRequired,
-        realm
+        realm,
+        passwordPolicies
     } = kcContext;
     const social = ("social" in kcContext ? kcContext.social : undefined) as
         | {
@@ -55,12 +57,14 @@ export default function Register(props: RegisterProps) {
     const [password, setPassword] = useState("");
     const [passwordConfirm, setPasswordConfirm] = useState("");
     const [areTermsAccepted, setAreTermsAccepted] = useState(false);
+    const [hasEditedPasswordSinceError, setHasEditedPasswordSinceError] = useState(false);
 
     const isPasswordMatch = password !== "" && password === passwordConfirm;
     const emailHasError = messagesPerField.existsError("email", "username");
     const usernameHasError = messagesPerField.existsError("username");
     const passwordHasError = messagesPerField.existsError("password");
     const passwordConfirmHasError = messagesPerField.existsError("password-confirm") || (passwordConfirm !== "" && !isPasswordMatch);
+    const passwordServerError = messagesPerField.existsError("password") ? messagesPerField.getFirstError("password") : undefined;
     const isFormSubmittable = useMemo(() => {
         const hasIdentity = realm.registrationEmailAsUsername ? email.trim() !== "" : email.trim() !== "" && username.trim() !== "";
 
@@ -170,20 +174,16 @@ export default function Register(props: RegisterProps) {
                                 className={kcClsx("kcInputClass")}
                                 placeholder={msgStr("registerPasswordPlaceholder")}
                                 value={password}
-                                onChange={event => setPassword(event.target.value)}
+                                onChange={event => {
+                                    setPassword(event.target.value);
+                                    if (passwordHasError || messagesPerField.existsError("password-confirm")) {
+                                        setHasEditedPasswordSinceError(true);
+                                    }
+                                }}
                                 aria-invalid={messagesPerField.existsError("password")}
                                 required
                             />
                         </PasswordField>
-                        {messagesPerField.existsError("password") && (
-                            <span
-                                className={kcClsx("kcInputErrorMessageClass")}
-                                aria-live="polite"
-                                dangerouslySetInnerHTML={{
-                                    __html: kcSanitize(messagesPerField.getFirstError("password"))
-                                }}
-                            />
-                        )}
                     </div>
 
                     <div className={clsx(kcClsx("kcFormGroupClass"), "opex-auth-field", passwordConfirmHasError && "opex-auth-field--error")}>
@@ -199,29 +199,29 @@ export default function Register(props: RegisterProps) {
                                 className={kcClsx("kcInputClass")}
                                 placeholder={msgStr("registerPasswordConfirmPlaceholder")}
                                 value={passwordConfirm}
-                                onChange={event => setPasswordConfirm(event.target.value)}
+                                onChange={event => {
+                                    setPasswordConfirm(event.target.value);
+                                    if (passwordHasError || messagesPerField.existsError("password-confirm")) {
+                                        setHasEditedPasswordSinceError(true);
+                                    }
+                                }}
                                 aria-invalid={messagesPerField.existsError("password-confirm") || (passwordConfirm !== "" && !isPasswordMatch)}
                                 required
                             />
                         </PasswordField>
-                        {messagesPerField.existsError("password-confirm") ? (
-                            <span
-                                className={kcClsx("kcInputErrorMessageClass")}
-                                aria-live="polite"
-                                dangerouslySetInnerHTML={{
-                                    __html: kcSanitize(messagesPerField.getFirstError("password-confirm"))
-                                }}
-                            />
-                        ) : (
-                            passwordConfirm !== "" &&
-                            !isPasswordMatch && (
-                                <span className={kcClsx("kcInputErrorMessageClass")} aria-live="polite">
-                                    {msg("registerPasswordsMustMatch")}
-                                </span>
-                            )
-                        )}
                     </div>
                 </div>
+
+                <PasswordRequirements
+                    i18n={i18n}
+                    passwordPolicies={passwordPolicies}
+                    password={password}
+                    passwordConfirm={passwordConfirm}
+                    identifier={realm.registrationEmailAsUsername ? email : username || email}
+                    isVisible={passwordHasError || messagesPerField.existsError("password-confirm")}
+                    serverErrorHtml={passwordServerError}
+                    hasEditedSinceError={hasEditedPasswordSinceError}
+                />
 
                 {termsAcceptanceRequired && (
                     <TermsAcceptance

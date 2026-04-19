@@ -12,6 +12,9 @@ const kcContextExtension: KcContextExtension = {
     }
 };
 const kcContextExtensionPerPage: KcContextExtensionPerPage = {
+    "login-update-password.ftl": {
+        opexCurrentPasswordRequired: true
+    },
     "login-update-profile.ftl": {
         profileBasicsShowFirstNameField: true,
         profileBasicsShowLastNameField: true,

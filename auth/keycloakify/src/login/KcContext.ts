@@ -10,6 +10,9 @@ export type KcContextExtension = {
 };
 
 export type KcContextExtensionPerPage = {
+    "login-update-password.ftl": {
+        opexCurrentPasswordRequired?: boolean;
+    };
     "login-update-profile.ftl": {
         profileBasicsShowFirstNameField?: boolean;
         profileBasicsShowLastNameField?: boolean;

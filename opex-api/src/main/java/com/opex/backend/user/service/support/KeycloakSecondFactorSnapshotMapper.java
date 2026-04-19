@@ -16,6 +16,8 @@ import java.util.Locale;
 public class KeycloakSecondFactorSnapshotMapper {
 
     private static final String RECOVERY_AUTHN_CODES_REQUIRED_ACTION = "CONFIGURE_RECOVERY_AUTHN_CODES";
+    private static final String OTP_CREDENTIAL_TYPE = "otp";
+    private static final String TOTP_SUBTYPE = "totp";
     private static final String WEBAUTHN_CREDENTIAL_TYPE = "webauthn";
     private static final String RECOVERY_CODES_CREDENTIAL_TYPE = "recovery-authn-codes";
 
@@ -38,7 +40,7 @@ public class KeycloakSecondFactorSnapshotMapper {
         }
 
         OffsetDateTime totpConfiguredAt = credentials.stream()
-                .filter(credential -> hasType(credential, CredentialRepresentation.TOTP))
+                .filter(this::isTotpCredential)
                 .map(CredentialRepresentation::getCreatedDate)
                 .map(UserValueSupport::toOffsetDateTime)
                 .reduce(this::latestOffsetDateTime)
@@ -89,6 +91,22 @@ public class KeycloakSecondFactorSnapshotMapper {
         return type != null && expectedType.equalsIgnoreCase(type);
     }
 
+    private boolean isTotpCredential(CredentialRepresentation credentialRepresentation) {
+        if (credentialRepresentation == null) {
+            return false;
+        }
+
+        if (hasType(credentialRepresentation, CredentialRepresentation.TOTP)) {
+            return true;
+        }
+
+        if (!hasType(credentialRepresentation, OTP_CREDENTIAL_TYPE)) {
+            return false;
+        }
+
+        return hasCredentialSubType(credentialRepresentation, TOTP_SUBTYPE);
+    }
+
     private Boolean hasRequiredAction(UserRepresentation userRepresentation, String requiredAction) {
         if (userRepresentation == null || userRepresentation.getRequiredActions() == null) {
             return false;
@@ -124,6 +142,25 @@ public class KeycloakSecondFactorSnapshotMapper {
             return remainingCodes.asInt(0);
         } catch (Exception ignored) {
             return 0;
+        }
+    }
+
+    private boolean hasCredentialSubType(CredentialRepresentation credentialRepresentation, String expectedSubType) {
+        if (credentialRepresentation == null || expectedSubType == null) {
+            return false;
+        }
+
+        String credentialDataRaw = credentialRepresentation.getCredentialData();
+        if (credentialDataRaw == null || credentialDataRaw.isBlank()) {
+            return false;
+        }
+
+        try {
+            JsonNode credentialData = objectMapper.readTree(credentialDataRaw);
+            JsonNode subType = credentialData.get("subType");
+            return subType != null && !subType.isNull() && expectedSubType.equalsIgnoreCase(subType.asText());
+        } catch (Exception ignored) {
+            return false;
         }
     }
 }

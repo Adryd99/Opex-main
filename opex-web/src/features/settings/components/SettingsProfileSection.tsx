@@ -1,173 +1,225 @@
-import { Check, CircleDashed, Edit2, Globe, Receipt } from 'lucide-react';
-import { useState } from 'react';
+import {
+  AtSign,
+  BadgeCheck,
+  CalendarDays,
+  Edit2,
+  Globe,
+  Lock,
+  Receipt,
+  ShieldCheck,
+  UserRound
+} from 'lucide-react';
 import { Badge, Button, Card } from '../../../shared/ui';
 import { UserProfile } from '../../../shared/types';
-import { SettingsChecklistItem } from '../types';
 import { ProfileEditorForm } from './ProfileEditorForm';
 
 type SettingsProfileSectionProps = {
   userProfile: UserProfile;
-  checklistItems: SettingsChecklistItem[];
-  completedCount: number;
+  isEditingProfile: boolean;
+  onEditingProfileChange: (isEditing: boolean) => void;
   onSaveProfile: (profile: UserProfile) => Promise<void>;
 };
 
-type ProfileRow = {
+type ProfileDetailItemProps = {
   label: string;
   value: string;
   icon?: typeof Globe;
+  isMuted?: boolean;
 };
 
 export const SettingsProfileSection = ({
   userProfile,
-  checklistItems,
-  completedCount,
+  isEditingProfile,
+  onEditingProfileChange,
   onSaveProfile
 }: SettingsProfileSectionProps) => {
-  const totalItems = checklistItems.length;
   const registrationDateLabel = formatRegistrationDate(userProfile.registrationDate);
   const accountVerified = Boolean(userProfile.emailVerified);
   const birthDateLabel = formatBirthDate(userProfile.dob);
   const timeZoneLabel = getTimeZoneLabel();
   const managedByGoogle = userProfile.identityProvider?.toLowerCase() === 'google';
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-
-  const profileRows: ProfileRow[] = [
-    {
-      label: 'Display Name',
-      value: userProfile.displayName?.trim() || userProfile.name || 'Not provided yet'
-    },
-    {
-      label: 'First Name',
-      value: userProfile.firstName?.trim() || 'Not provided yet'
-    },
-    {
-      label: 'Last Name',
-      value: userProfile.lastName?.trim() || 'Not provided yet'
-    },
-    {
-      label: 'Email',
-      value: userProfile.email || 'Not provided yet'
-    },
-    {
-      label: 'Legal Residence',
-      value: userProfile.residence || 'Not provided yet',
-      icon: Globe
-    },
-    {
-      label: 'Birth Date',
-      value: birthDateLabel
-    },
-    {
-      label: 'Occupation',
-      value: userProfile.occupation?.trim() || 'Not provided yet'
-    },
-    {
-      label: 'Time Zone',
-      value: timeZoneLabel
-    },
-    {
-      label: 'VAT Return Frequency',
-      value: userProfile.vatFrequency,
-      icon: Receipt
-    }
-  ];
+  const displayName = userProfile.displayName?.trim() || userProfile.name;
+  const initials = displayName.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase() || '?';
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <Card title="Configuration Status" action={<Badge variant="info">{completedCount}/{totalItems} Completed</Badge>}>
-        <div className="py-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-            {checklistItems.map((item) => (
-              <div key={item.id} className={`flex min-h-[132px] flex-col justify-between gap-5 p-5 rounded-[1.75rem] border transition-all ${item.completed ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-100'}`}>
-                <div className="flex items-start gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${item.completed ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                    {item.completed ? <Check size={18} /> : <CircleDashed size={18} className="animate-spin-slow" />}
-                  </div>
-                  <div className="space-y-2">
-                    <p className={`text-sm font-black leading-tight ${item.completed ? 'text-green-800' : 'text-gray-700'}`}>{item.label}</p>
-                    <p className="text-xs font-medium text-gray-400">
-                      {item.completed ? 'Completed' : 'Pending'}
-                    </p>
-                    {item.detail && (
-                      <p className="text-xs font-medium text-opex-teal">{item.detail}</p>
-                    )}
-                  </div>
-                </div>
-                {!item.completed && (item.action || item.opensProfileEditor) && (
-                  <button
-                    type="button"
-                    onClick={item.opensProfileEditor ? () => setIsEditingProfile(true) : () => void item.action?.()}
-                    disabled={item.actionDisabled}
-                    className="self-start text-[10px] font-black text-opex-teal uppercase tracking-widest hover:underline px-2 py-1 disabled:text-gray-300 disabled:no-underline"
-                  >
-                    {item.cta}
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
-
       <Card
-        title="Profile Details"
+        title="Profile"
         action={isEditingProfile
-          ? <Button variant="ghost" size="sm" onClick={() => setIsEditingProfile(false)}>Cancel</Button>
-          : <Button variant="ghost" size="sm" icon={Edit2} onClick={() => setIsEditingProfile(true)}>Edit</Button>
+          ? <Button variant="ghost" size="sm" onClick={() => onEditingProfileChange(false)}>Cancel</Button>
+          : <Button variant="ghost" size="sm" icon={Edit2} onClick={() => onEditingProfileChange(true)}>Edit</Button>
         }
       >
         {isEditingProfile ? (
           <ProfileEditorForm
             userProfile={userProfile}
             onSaveProfile={onSaveProfile}
-            onCancel={() => setIsEditingProfile(false)}
-            onSaved={() => setIsEditingProfile(false)}
+            onCancel={() => onEditingProfileChange(false)}
+            onSaved={() => onEditingProfileChange(false)}
           />
         ) : (
-            <div className="space-y-8">
-            <div className="flex flex-col md:flex-row gap-10">
-              <div className="shrink-0">
-                <div className="w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-opex-teal/10 flex items-center justify-center">
-                  {userProfile.logo
-                    ? <img src={userProfile.logo} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    : <span className="text-3xl font-black text-opex-teal select-none">
-                      {userProfile.name.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase() || '?'}
-                    </span>
-                  }
-                </div>
-              </div>
+          <div className="space-y-6">
+            <div className="rounded-[2rem] border border-gray-100 bg-gradient-to-br from-white via-gray-50 to-opex-teal/5 p-6 md:p-8">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-col gap-5 md:flex-row md:items-center">
+                  <div className="shrink-0">
+                    <div className="w-28 h-28 rounded-[2rem] overflow-hidden border-4 border-white shadow-2xl bg-opex-teal/10 flex items-center justify-center">
+                      {userProfile.logo
+                        ? <img src={userProfile.logo} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        : <span className="text-3xl font-black text-opex-teal select-none">{initials}</span>
+                      }
+                    </div>
+                  </div>
 
-              <div className="flex-1 flex flex-col justify-center gap-3">
-                <div className="space-y-1">
-                  <p className="text-xl font-black text-gray-900 tracking-tight">{userProfile.displayName?.trim() || userProfile.name}</p>
-                  <p className="text-sm font-semibold text-gray-500">
-                    {managedByGoogle ? 'Email, first name and last name are managed by Google.' : 'Profile information is managed directly inside Opex.'}
-                  </p>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-gray-400">Personal Profile</p>
+                      <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{displayName}</h2>
+                      <p className="text-sm font-medium text-gray-500 max-w-2xl">
+                        {managedByGoogle
+                          ? 'Your Google identity manages email, first name and last name. The rest of your workspace details stay editable in Opex.'
+                          : 'This section groups the personal, residency and tax details that drive your Opex workspace.'}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant={accountVerified ? 'success' : 'warning'}>
+                        {accountVerified ? 'Account verified' : 'Verification pending'}
+                      </Badge>
+                      <Badge variant="info">
+                        {managedByGoogle ? 'Google-managed identity' : 'Managed in Opex'}
+                      </Badge>
+                      {registrationDateLabel && <Badge variant="neutral">{registrationDateLabel}</Badge>}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant={accountVerified ? 'success' : 'neutral'}>
-                    {accountVerified ? 'Account Verified' : 'Verification Pending'}
-                  </Badge>
-                  {registrationDateLabel && <Badge variant="info">{registrationDateLabel}</Badge>}
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:w-[440px]">
+                  <SummaryTile
+                    label="Profile owner"
+                    value={displayName}
+                    detail={managedByGoogle ? 'Synced from Google' : 'Local workspace identity'}
+                    icon={UserRound}
+                  />
+                  <SummaryTile
+                    label="Email status"
+                    value={accountVerified ? 'Verified' : 'Pending'}
+                    detail={userProfile.email}
+                    icon={accountVerified ? ShieldCheck : AtSign}
+                  />
+                  <SummaryTile
+                    label="Residence"
+                    value={userProfile.residence || 'Missing'}
+                    detail={userProfile.occupation?.trim() || 'Occupation missing'}
+                    icon={Globe}
+                  />
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-12 gap-y-6 pt-2">
-              {profileRows.map((row) => {
-                const Icon = row.icon;
-
-                return (
-                  <div key={row.label} className="space-y-1.5">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{row.label}</label>
-                    <p className="font-bold text-gray-700 flex items-center gap-2 min-h-[24px]">
-                      {Icon && <Icon size={14} className="shrink-0" />}
-                      <span>{row.value}</span>
+            <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_1.2fr_0.9fr] gap-5">
+              <div className="rounded-[1.75rem] border border-gray-100 bg-gray-50/80 p-5 space-y-5">
+                <SectionHeading
+                  icon={UserRound}
+                  title="Identity"
+                  description="Core profile fields used across the application."
+                />
+                <div className="grid grid-cols-1 gap-5">
+                  <ProfileDetailItem label="Display Name" value={displayName || 'Not provided yet'} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <ProfileDetailItem
+                      label="First Name"
+                      value={userProfile.firstName?.trim() || 'Not provided yet'}
+                      isMuted={!userProfile.firstName?.trim()}
+                    />
+                    <ProfileDetailItem
+                      label="Last Name"
+                      value={userProfile.lastName?.trim() || 'Not provided yet'}
+                      isMuted={!userProfile.lastName?.trim()}
+                    />
+                  </div>
+                  <ProfileDetailItem
+                    label="Email"
+                    value={userProfile.email || 'Not provided yet'}
+                    icon={AtSign}
+                    isMuted={!userProfile.email}
+                  />
+                </div>
+                {managedByGoogle && (
+                  <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 flex items-start gap-3">
+                    <Lock size={16} className="mt-0.5 text-amber-600 shrink-0" />
+                    <p className="text-sm font-medium text-amber-800">
+                      Email, first name and last name are managed by Google and cannot be changed here.
                     </p>
                   </div>
-                );
-              })}
+                )}
+              </div>
+
+              <div className="rounded-[1.75rem] border border-gray-100 bg-gray-50/80 p-5 space-y-5">
+                <SectionHeading
+                  icon={Globe}
+                  title="Residence & Tax"
+                  description="Fields that drive tax setup, VAT cadence and completion status."
+                />
+                <div className="grid grid-cols-1 gap-5">
+                  <ProfileDetailItem
+                    label="Legal Residence"
+                    value={userProfile.residence || 'Not provided yet'}
+                    icon={Globe}
+                    isMuted={!userProfile.residence}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <ProfileDetailItem
+                      label="Birth Date"
+                      value={birthDateLabel}
+                      icon={CalendarDays}
+                      isMuted={birthDateLabel === 'Not provided yet'}
+                    />
+                    <ProfileDetailItem
+                      label="Occupation"
+                      value={userProfile.occupation?.trim() || 'Not provided yet'}
+                      isMuted={!userProfile.occupation?.trim()}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <ProfileDetailItem
+                      label="VAT Return Frequency"
+                      value={userProfile.vatFrequency}
+                      icon={Receipt}
+                    />
+                    <ProfileDetailItem
+                      label="Time Zone"
+                      value={timeZoneLabel}
+                      isMuted={!timeZoneLabel}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[1.75rem] border border-gray-100 bg-white p-5 space-y-5 shadow-sm">
+                <SectionHeading
+                  icon={BadgeCheck}
+                  title="Account Status"
+                  description="High-level account and profile state."
+                />
+                <div className="space-y-4">
+                  <StatusRow
+                    label="Verification"
+                    value={accountVerified ? 'Completed' : 'Pending'}
+                    variant={accountVerified ? 'success' : 'warning'}
+                  />
+                  <StatusRow
+                    label="Identity source"
+                    value={managedByGoogle ? 'Google' : 'Opex'}
+                    variant="info"
+                  />
+                  <StatusRow
+                    label="Registration"
+                    value={registrationDateLabel ?? 'Not available'}
+                    variant="neutral"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -175,6 +227,80 @@ export const SettingsProfileSection = ({
     </div>
   );
 };
+
+const SectionHeading = ({
+  icon: Icon,
+  title,
+  description
+}: {
+  icon: typeof Globe;
+  title: string;
+  description: string;
+}) => (
+  <div className="flex items-start gap-3">
+    <div className="w-10 h-10 rounded-2xl bg-white text-opex-teal flex items-center justify-center border border-gray-100 shadow-sm">
+      <Icon size={18} />
+    </div>
+    <div>
+      <p className="text-sm font-black text-gray-900">{title}</p>
+      <p className="text-xs font-medium text-gray-500">{description}</p>
+    </div>
+  </div>
+);
+
+const SummaryTile = ({
+  label,
+  value,
+  detail,
+  icon: Icon
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  icon: typeof Globe;
+}) => (
+  <div className="min-w-0 rounded-[1.5rem] border border-white/80 bg-white/90 px-4 py-4 shadow-sm backdrop-blur-sm">
+    <div className="flex items-center gap-2 text-gray-400">
+      <Icon size={14} className="shrink-0" />
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] leading-snug break-words [overflow-wrap:anywhere]">{label}</p>
+    </div>
+    <p className="mt-3 min-w-0 text-sm font-black text-gray-900 leading-tight break-words [overflow-wrap:anywhere]">{value}</p>
+    <p className="mt-1 min-w-0 text-xs font-medium text-gray-500 leading-relaxed break-words [overflow-wrap:anywhere]">{detail}</p>
+  </div>
+);
+
+const ProfileDetailItem = ({
+  label,
+  value,
+  icon: Icon,
+  isMuted = false
+}: ProfileDetailItemProps) => (
+  <div className="space-y-1.5">
+    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</label>
+    <p className={`min-h-[24px] flex items-center gap-2 text-sm font-bold ${isMuted ? 'text-gray-400' : 'text-gray-800'}`}>
+      {Icon && <Icon size={14} className="shrink-0" />}
+      <span>{value}</span>
+    </p>
+  </div>
+);
+
+const StatusRow = ({
+  label,
+  value,
+  variant
+}: {
+  label: string;
+  value: string;
+  variant: 'neutral' | 'success' | 'warning' | 'info';
+}) => (
+  <div className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+    <div>
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{label}</p>
+      <p className="mt-1 text-sm font-bold text-gray-800">{value}</p>
+    </div>
+    <Badge variant={variant}>{value}</Badge>
+  </div>
+);
 
 const formatRegistrationDate = (value: string | null | undefined): string | null => {
   if (!value?.trim()) {

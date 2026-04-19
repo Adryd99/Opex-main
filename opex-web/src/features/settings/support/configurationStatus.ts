@@ -1,4 +1,4 @@
-import { LegalPublicInfoRecord, UserProfile } from '../../../shared/types';
+import { LegalPublicInfoRecord, UserProfile, UserSecurityStatus } from '../../../shared/types';
 import { ConsentAuditItem, SettingsChecklistItem, VerificationEmailActionState } from '../types';
 import { formatConsentTimestamp } from '../utils';
 import { hasCompleteProfileDetails } from './profileCompletion';
@@ -42,17 +42,43 @@ export const buildConsentAuditItems = (userProfile: UserProfile): ConsentAuditIt
 type BuildConfigurationChecklistArgs = {
   userProfile: UserProfile;
   verificationEmailAction: VerificationEmailActionState;
+  securityStatus?: UserSecurityStatus | null;
+};
+
+const isSecuritySetupComplete = (securityStatus?: UserSecurityStatus | null): boolean =>
+  Boolean(
+    securityStatus?.secondFactorMethod
+    && securityStatus.hasFallbackSecondFactor
+    && securityStatus.recoveryCodesAvailable
+  );
+
+const getSecurityChecklistDetail = (securityStatus?: UserSecurityStatus | null): string | undefined => {
+  if (!securityStatus?.secondFactorMethod) {
+    return undefined;
+  }
+
+  if (!securityStatus.hasFallbackSecondFactor) {
+    return 'Backup access missing';
+  }
+
+  if (!securityStatus.recoveryCodesAvailable) {
+    return 'Recovery codes still missing';
+  }
+
+  return '2FA and recovery ready';
 };
 
 export const buildConfigurationChecklist = ({
   userProfile,
-  verificationEmailAction
+  verificationEmailAction,
+  securityStatus
 }: BuildConfigurationChecklistArgs): SettingsChecklistItem[] => [
   {
     id: 1,
     label: 'Complete profile details',
     completed: hasCompleteProfileDetails(userProfile),
     cta: 'Review',
+    targetSection: 'PROFILE',
     opensProfileEditor: true,
     action: null
   },
@@ -61,29 +87,35 @@ export const buildConfigurationChecklist = ({
     label: 'Verify email',
     completed: Boolean(userProfile.emailVerified),
     cta: verificationEmailAction.cta,
+    targetSection: 'PROFILE',
     detail: verificationEmailAction.detail,
     actionDisabled: verificationEmailAction.actionDisabled,
     action: verificationEmailAction.requestVerificationEmail
   },
   {
     id: 3,
-    label: 'Connect first bank account',
-    completed: false,
-    cta: '',
+    label: 'Set up 2FA and recovery',
+    completed: isSecuritySetupComplete(securityStatus),
+    cta: 'Open',
+    targetSection: 'SECURITY',
+    detail: getSecurityChecklistDetail(securityStatus),
     action: null
   },
   {
     id: 4,
-    label: 'Define tax profile',
+    label: 'Connect first bank account',
     completed: false,
-    cta: '',
+    cta: 'Open',
+    targetSection: 'BANKING',
     action: null
   },
   {
     id: 5,
-    label: 'Review account security',
+    label: 'Define tax profile',
     completed: false,
-    cta: '',
+    cta: 'Review',
+    targetSection: 'PROFILE',
+    opensProfileEditor: true,
     action: null
   }
 ];

@@ -87,6 +87,7 @@ export type SettingsChecklistItem = {
   label: string;
   completed: boolean;
   cta: string;
+  targetSection?: SettingsSectionId;
   detail?: string;
   actionDisabled?: boolean;
   opensProfileEditor?: boolean;

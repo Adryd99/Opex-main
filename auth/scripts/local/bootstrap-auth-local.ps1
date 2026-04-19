@@ -30,6 +30,7 @@ $libDir = Join-Path (Split-Path -Parent $PSScriptRoot) "lib"
 
 $repoRoot = Get-AuthRepoRoot -ScriptRoot $PSScriptRoot
 $localAdminConfig = Get-LocalKeycloakAdminConfig -ScriptRoot $PSScriptRoot
+$envFilePath = Get-AuthEnvFilePath -ScriptRoot $PSScriptRoot
 $buildScriptsDir = Join-Path $repoRoot "auth\scripts\build"
 $localScriptsDir = Join-Path $repoRoot "auth\scripts\local"
 
@@ -70,6 +71,22 @@ function Test-SmtpConfigRequested {
         $PSBoundParameters.ContainsKey("Password")
 }
 
+function Convert-ToNullableBoolean {
+    param(
+        [string]$Value
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return $null
+    }
+
+    switch ($Value.Trim().ToLowerInvariant()) {
+        "true" { return $true }
+        "false" { return $false }
+        default { throw "Invalid boolean value '$Value'. Expected true or false." }
+    }
+}
+
 function Test-GoogleIdpConfigRequested {
     return $ApplyGoogleIdp -or
         $PSBoundParameters.ContainsKey("GoogleClientId") -or
@@ -98,6 +115,61 @@ function Assert-GoogleBootstrapParameters {
 
 $runSmtpSetup = Test-SmtpConfigRequested
 $runGoogleIdpSetup = Test-GoogleIdpConfigRequested
+
+if (-not $runSmtpSetup) {
+    $envSmtpHost = Get-OptionalEnvValue -Path $envFilePath -Key "SMTP_HOST"
+    $envSmtpPort = Get-OptionalEnvValue -Path $envFilePath -Key "SMTP_PORT"
+    $envSmtpEncryption = Get-OptionalEnvValue -Path $envFilePath -Key "SMTP_ENCRYPTION"
+    $envSmtpUseAuthentication = Get-OptionalEnvValue -Path $envFilePath -Key "SMTP_USE_AUTHENTICATION"
+    $envSmtpUsername = Get-OptionalEnvValue -Path $envFilePath -Key "SMTP_USERNAME"
+    $envSmtpPassword = Get-OptionalEnvValue -Path $envFilePath -Key "SMTP_PASSWORD"
+    $envSmtpFromAddress = Get-OptionalEnvValue -Path $envFilePath -Key "SMTP_FROM_ADDRESS"
+    $envSmtpFromDisplayName = Get-OptionalEnvValue -Path $envFilePath -Key "SMTP_FROM_DISPLAY_NAME"
+
+    if (-not [string]::IsNullOrWhiteSpace($envSmtpHost) -and -not [string]::IsNullOrWhiteSpace($envSmtpFromAddress)) {
+        $SmtpHost = $envSmtpHost
+
+        if (-not [string]::IsNullOrWhiteSpace($envSmtpPort)) {
+            $SmtpPort = [int]$envSmtpPort
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($envSmtpEncryption)) {
+            $Encryption = $envSmtpEncryption
+        }
+
+        $parsedUseAuthentication = Convert-ToNullableBoolean -Value $envSmtpUseAuthentication
+        if ($null -ne $parsedUseAuthentication) {
+            $UseAuthentication = $parsedUseAuthentication
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($envSmtpUsername)) {
+            $Username = $envSmtpUsername
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($envSmtpPassword)) {
+            $Password = $envSmtpPassword
+        }
+
+        $FromAddress = $envSmtpFromAddress
+
+        if (-not [string]::IsNullOrWhiteSpace($envSmtpFromDisplayName)) {
+            $FromDisplayName = $envSmtpFromDisplayName
+        }
+
+        $runSmtpSetup = $true
+    }
+}
+
+if (-not $runGoogleIdpSetup) {
+    $envGoogleClientId = Get-OptionalEnvValue -Path $envFilePath -Key "GOOGLE_CLIENT_ID"
+    $envGoogleClientSecret = Get-OptionalEnvValue -Path $envFilePath -Key "GOOGLE_CLIENT_SECRET"
+
+    if (-not [string]::IsNullOrWhiteSpace($envGoogleClientId) -and -not [string]::IsNullOrWhiteSpace($envGoogleClientSecret)) {
+        $GoogleClientId = $envGoogleClientId
+        $GoogleClientSecret = $envGoogleClientSecret
+        $runGoogleIdpSetup = $true
+    }
+}
 
 if ($runSmtpSetup) {
     Assert-SmtpBootstrapParameters
@@ -164,6 +236,7 @@ if (-not $SkipRealmSetup) {
     Invoke-AuthScript -ScriptPath (Join-Path $localScriptsDir "apply-local-languages.ps1") -Arguments $adminApiArgs
     Invoke-AuthScript -ScriptPath (Join-Path $localScriptsDir "apply-local-login-settings.ps1") -Arguments $adminApiArgs
     Invoke-AuthScript -ScriptPath (Join-Path $localScriptsDir "apply-local-browser-2fa-flow.ps1") -Arguments $adminApiArgs
+    Invoke-AuthScript -ScriptPath (Join-Path $localScriptsDir "apply-local-password-update.ps1") -Arguments $adminApiArgs
     Invoke-AuthScript -ScriptPath (Join-Path $localScriptsDir "apply-local-user-profile-settings.ps1") -Arguments @{
         KeycloakBaseUrl = $KeycloakBaseUrl
         AdminRealm = "master"
@@ -204,7 +277,7 @@ if (-not $SkipRealmSetup) {
             }
     }
     else {
-        Write-Host "Skipping SMTP setup. Provide SMTP parameters to include it." -ForegroundColor Yellow
+        Write-Host "Skipping SMTP setup. Provide SMTP parameters or set SMTP_* values in .env to include it." -ForegroundColor Yellow
     }
 
     if ($runGoogleIdpSetup) {
@@ -222,7 +295,7 @@ if (-not $SkipRealmSetup) {
             }
     }
     else {
-        Write-Host "Skipping Google IDP setup. Provide Google client credentials to include it." -ForegroundColor Yellow
+        Write-Host "Skipping Google IDP setup. Provide Google client credentials or set GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in .env to include it." -ForegroundColor Yellow
     }
 }
 else {

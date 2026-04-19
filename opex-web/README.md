@@ -36,23 +36,25 @@ The local root `.env` is **not** used by Vite. The frontend reads local override
 
 - [http://localhost:3000](http://localhost:3000)
 
-## Hidden Security Route
+## Security Tab
 
-Esiste una route tecnica non esposta nella navigazione standard:
+La gestione 2FA e recovery vive adesso direttamente dentro `Settings > Security`.
 
-- [http://localhost:3000/security](http://localhost:3000/security)
-
-Questa pagina:
+Questa sezione:
 
 - legge lo stato reale 2FA/recovery da `GET /api/users/security`
+- usa la required action Keycloak custom `OPEX_UPDATE_PASSWORD` per il cambio password con:
+  - password attuale
+  - nuova password
+  - conferma nuova password
 - avvia i flow Keycloak tramite Application Initiated Actions per:
   - `CONFIGURE_TOTP`
   - `webauthn-register`
   - `CONFIGURE_RECOVERY_AUTHN_CODES`
 - mostra il metodo primario effettivo derivato dalle credenziali reali disponibili in Keycloak
-- e pensata come base futura per l'integrazione in `Settings > Security`
+- mantiene anche la card per `Change Password`
 
-Per ora resta volutamente nascosta e non compare nella sidebar o nei tab delle impostazioni.
+La vecchia route tecnica `/security` non e piu parte del flow normale del frontend e viene ricondotta alla tab `Settings > Security`.
 
 ## Source Layout
 

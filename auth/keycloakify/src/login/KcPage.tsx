@@ -12,16 +12,23 @@ const UserProfileFormFields = lazy(() => import("./components/UserProfileFormFie
 const Login = lazy(() => import("./pages/auth/Login"));
 const LoginIdpLinkConfirm = lazy(() => import("./pages/auth/LoginIdpLinkConfirm"));
 const LoginIdpLinkEmail = lazy(() => import("./pages/auth/LoginIdpLinkEmail"));
+const LoginOtp = lazy(() => import("./pages/auth/LoginOtp"));
+const LoginPasskeysConditionalAuthenticate = lazy(() => import("./pages/auth/LoginPasskeysConditionalAuthenticate"));
+const LoginRecoveryAuthnCodeConfig = lazy(() => import("./pages/auth/LoginRecoveryAuthnCodeConfig"));
+const LoginRecoveryAuthnCodeInput = lazy(() => import("./pages/auth/LoginRecoveryAuthnCodeInput"));
 const LoginConfigTotp = lazy(() => import("./pages/onboarding/LoginConfigTotp"));
 const LoginResetPassword = lazy(() => import("./pages/auth/LoginResetPassword"));
+const LoginUpdatePassword = lazy(() => import("./pages/auth/LoginUpdatePassword"));
 const LoginUpdateProfile = lazy(() => import("./pages/onboarding/LoginUpdateProfile"));
 const LoginVerifyEmail = lazy(() => import("./pages/auth/LoginVerifyEmail"));
 const LegalAcceptance = lazy(() => import("./pages/onboarding/LegalAcceptance"));
 const LogoutConfirm = lazy(() => import("./pages/system/LogoutConfirm"));
 const Occupation = lazy(() => import("./pages/onboarding/Occupation"));
 const Register = lazy(() => import("./pages/auth/Register"));
+const SelectAuthenticator = lazy(() => import("./pages/auth/SelectAuthenticator"));
 const SecuritySetupChoice = lazy(() => import("./pages/onboarding/SecuritySetupChoice"));
 const Terms = lazy(() => import("./pages/system/Terms"));
+const WebauthnAuthenticate = lazy(() => import("./pages/auth/WebauthnAuthenticate"));
 const WebauthnRegister = lazy(() => import("./pages/onboarding/WebauthnRegister"));
 
 const doMakeUserConfirmPassword = true;
@@ -78,8 +85,48 @@ export default function KcPage(props: { kcContext: KcContext }) {
                         />
                     );
 
+                    case "login-otp.ftl": return (
+                        <LoginOtp
+                            {...{ kcContext, i18n, classes }}
+                            Template={Template}
+                            doUseDefaultCss={true}
+                        />
+                    );
+
+                    case "login-passkeys-conditional-authenticate.ftl": return (
+                        <LoginPasskeysConditionalAuthenticate
+                            {...{ kcContext, i18n, classes }}
+                            Template={Template}
+                            doUseDefaultCss={true}
+                        />
+                    );
+
                     case "login-reset-password.ftl": return (
                         <LoginResetPassword
+                            {...{ kcContext, i18n, classes }}
+                            Template={Template}
+                            doUseDefaultCss={true}
+                        />
+                    );
+
+                    case "login-recovery-authn-code-config.ftl": return (
+                        <LoginRecoveryAuthnCodeConfig
+                            {...{ kcContext, i18n, classes }}
+                            Template={Template}
+                            doUseDefaultCss={true}
+                        />
+                    );
+
+                    case "login-recovery-authn-code-input.ftl": return (
+                        <LoginRecoveryAuthnCodeInput
+                            {...{ kcContext, i18n, classes }}
+                            Template={Template}
+                            doUseDefaultCss={true}
+                        />
+                    );
+
+                    case "login-update-password.ftl": return (
+                        <LoginUpdatePassword
                             {...{ kcContext, i18n, classes }}
                             Template={Template}
                             doUseDefaultCss={true}
@@ -144,6 +191,14 @@ export default function KcPage(props: { kcContext: KcContext }) {
                         />
                     );
 
+                    case "select-authenticator.ftl": return (
+                        <SelectAuthenticator
+                            {...{ kcContext, i18n, classes }}
+                            Template={Template}
+                            doUseDefaultCss={true}
+                        />
+                    );
+
                     case "legal-acceptance.ftl": return (
                         <LegalAcceptance
                             {...{ kcContext, i18n, classes }}
@@ -170,6 +225,14 @@ export default function KcPage(props: { kcContext: KcContext }) {
 
                     case "webauthn-register.ftl": return (
                         <WebauthnRegister
+                            {...{ kcContext, i18n, classes }}
+                            Template={Template}
+                            doUseDefaultCss={true}
+                        />
+                    );
+
+                    case "webauthn-authenticate.ftl": return (
+                        <WebauthnAuthenticate
                             {...{ kcContext, i18n, classes }}
                             Template={Template}
                             doUseDefaultCss={true}

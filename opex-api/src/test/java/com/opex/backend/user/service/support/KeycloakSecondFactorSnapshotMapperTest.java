@@ -28,8 +28,11 @@ class KeycloakSecondFactorSnapshotMapperTest {
         UserRepresentation userRepresentation = new UserRepresentation();
 
         CredentialRepresentation totpCredential = new CredentialRepresentation();
-        totpCredential.setType(CredentialRepresentation.TOTP);
+        totpCredential.setType("otp");
         totpCredential.setCreatedDate(1_710_000_000_000L);
+        totpCredential.setCredentialData("""
+                {"subType":"totp","digits":6,"counter":0,"period":30,"algorithm":"HmacSHA1"}
+                """);
 
         CredentialRepresentation webauthnCredential = new CredentialRepresentation();
         webauthnCredential.setType("webauthn");
@@ -55,6 +58,25 @@ class KeycloakSecondFactorSnapshotMapperTest {
         assertEquals(OffsetDateTime.parse("2024-10-27T03:33:20Z"), snapshot.recoveryCodesConfiguredAt());
         assertEquals(7, snapshot.recoveryCodesRemainingCount());
         assertFalse(snapshot.recoveryCodesSetupPending());
+    }
+
+    @Test
+    void mapsTotpWhenKeycloakReturnsOtpCredentialWithTotpSubtype() {
+        UserRepresentation userRepresentation = new UserRepresentation();
+
+        CredentialRepresentation totpCredential = new CredentialRepresentation();
+        totpCredential.setType("otp");
+        totpCredential.setCreatedDate(1_770_000_000_000L);
+        totpCredential.setCredentialData("""
+                {"subType":"totp","digits":6,"counter":0,"period":30,"algorithm":"HmacSHA1"}
+                """);
+
+        KeycloakSecondFactorSnapshot snapshot = mapper.from(userRepresentation, List.of(totpCredential));
+
+        assertTrue(snapshot.totpConfigured());
+        assertEquals(OffsetDateTime.parse("2026-02-02T02:40:00Z"), snapshot.totpConfiguredAt());
+        assertEquals(0, snapshot.webauthnCredentialCount());
+        assertFalse(snapshot.recoveryCodesConfigured());
     }
 
     @Test

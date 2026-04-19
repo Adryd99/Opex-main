@@ -148,14 +148,16 @@ export default function LoginConfigTotp(props: PageProps<Extract<KcContext, { pa
                             value={msgStr("doSubmit")}
                         />
 
-                        <button
-                            type="submit"
-                            className={clsx(kcClsx("kcButtonClass", "kcButtonLargeClass"), "opex-auth-secondary-button")}
-                            name="backToSecurityChoice"
-                            value="true"
-                        >
-                            {msg("onboardingBack")}
-                        </button>
+                        {!isAppInitiatedAction && (
+                            <button
+                                type="submit"
+                                className={clsx(kcClsx("kcButtonClass", "kcButtonLargeClass"), "opex-auth-secondary-button")}
+                                name="backToSecurityChoice"
+                                value="true"
+                            >
+                                {msg("onboardingBack")}
+                            </button>
+                        )}
 
                         {isAppInitiatedAction && (
                             <button

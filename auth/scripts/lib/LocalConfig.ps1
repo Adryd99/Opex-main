@@ -46,6 +46,29 @@ function Get-EnvValue {
     return $value
 }
 
+function Get-OptionalEnvValue {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [string]$Key
+    )
+
+    $line = Get-Content $Path | Where-Object { $_ -match "^\s*$([regex]::Escape($Key))=" } | Select-Object -First 1
+
+    if ($null -eq $line) {
+        return $null
+    }
+
+    $value = $line.Substring($line.IndexOf("=") + 1).Trim()
+
+    if ($value.StartsWith('"') -and $value.EndsWith('"')) {
+        return $value.Trim('"')
+    }
+
+    return $value
+}
+
 function Get-LocalKeycloakAdminConfig {
     param(
         [Parameter(Mandatory = $true)]

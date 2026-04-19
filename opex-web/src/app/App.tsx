@@ -32,14 +32,17 @@ import { LegalCenterPage, resolveLegalCenterSlug } from '../features/legal';
 import { PostBankConnectionGdprPage } from '../features/onboarding';
 import {
   CategoriesPage,
-  ChangePasswordPage,
   NotificationDetailsPage,
   RecurringPage,
   RenewConsentPage,
-  SecurityPage,
   SettingsPage,
   SupportPage
 } from '../features/settings';
+import {
+  clearPendingSettingsReturnSection,
+  readPendingSettingsReturnSection,
+  writePendingSettingsReturnSection
+} from '../features/settings/support/securityNavigation';
 import { TaxesPage } from '../features/taxes';
 import { DEFAULT_LEGAL_PUBLIC_INFO } from '../shared/legal';
 import { useAppController } from './useAppController';
@@ -48,7 +51,12 @@ import { useKeycloakAuth } from '../services/auth/useKeycloakAuth';
 export const App = () => {
   const legalDocumentSlug = resolveLegalCenterSlug(window.location.pathname);
   const normalizedPathname = window.location.pathname.replace(/\/+$/, '') || '/';
-  const isSecurityRoute = normalizedPathname === '/security';
+  const pendingSettingsReturnSection = readPendingSettingsReturnSection();
+  const shouldResumeSettingsSecurity = pendingSettingsReturnSection === 'SECURITY';
+  const [settingsResumeSection, setSettingsResumeSection] = useState<'SECURITY' | null>(
+    shouldResumeSettingsSecurity ? 'SECURITY' : null
+  );
+  const [settingsResumeApplied, setSettingsResumeApplied] = useState(false);
 
   const {
     isAuthenticated,
@@ -107,6 +115,39 @@ export const App = () => {
   const isSuccessRoute = window.location.pathname === '/success';
   const isEmbeddedWindow = window.self !== window.top;
   const activeLegalPublicInfo = legalPublicInfo ?? DEFAULT_LEGAL_PUBLIC_INFO;
+
+  useEffect(() => {
+    if (normalizedPathname === '/security') {
+      setSettingsResumeSection('SECURITY');
+      setSettingsResumeApplied(false);
+      writePendingSettingsReturnSection('SECURITY');
+      window.history.replaceState({}, document.title, '/');
+    }
+  }, [normalizedPathname]);
+
+  useEffect(() => {
+    if (settingsResumeSection === 'SECURITY' && !settingsResumeApplied && activeTab !== APP_TABS.SETTINGS) {
+      setActiveTab(APP_TABS.SETTINGS);
+    }
+  }, [activeTab, setActiveTab, settingsResumeApplied, settingsResumeSection]);
+
+  useEffect(() => {
+    if (settingsResumeSection !== 'SECURITY' || settingsResumeApplied || activeTab !== APP_TABS.SETTINGS) {
+      return;
+    }
+
+    clearPendingSettingsReturnSection();
+    setSettingsResumeApplied(true);
+  }, [activeTab, settingsResumeApplied, settingsResumeSection]);
+
+  useEffect(() => {
+    if (settingsResumeSection === null || !settingsResumeApplied || activeTab === APP_TABS.SETTINGS) {
+      return;
+    }
+
+    setSettingsResumeSection(null);
+    setSettingsResumeApplied(false);
+  }, [activeTab, settingsResumeApplied, settingsResumeSection]);
 
   useEffect(() => {
     if (!isAuthenticated || !isSuccessRoute || successSyncRequestedRef.current || isEmbeddedWindow) {
@@ -212,21 +253,6 @@ export const App = () => {
     );
   }
 
-  if (isSecurityRoute) {
-    return (
-      <SecurityPage
-        onBack={() => {
-          const canGoBackWithinApp = document.referrer.startsWith(window.location.origin);
-          if (canGoBackWithinApp && window.history.length > 1) {
-            window.history.back();
-            return;
-          }
-          window.location.assign('/');
-        }}
-      />
-    );
-  }
-
   const handleSettingsNavigate = (value: string) => {
     handleNavigate(resolveSettingsNavigationTarget(value));
   };
@@ -254,7 +280,7 @@ export const App = () => {
     onNavigate: handleSettingsNavigate
   };
 
-  const renderSettingsPage = (initialSection: 'PROFILE' | 'BANKING') => (
+  const renderSettingsPage = (initialSection: 'PROFILE' | 'BANKING' | 'SECURITY') => (
     <SettingsPage
       {...settingsPageProps}
       initialSection={initialSection}
@@ -339,7 +365,7 @@ export const App = () => {
       case APP_TABS.ALL_ACTIVITY:
         return <TransactionsPage onBack={() => setActiveTab(lastMainTab)} transactions={transactions} />;
       case APP_TABS.SETTINGS:
-        return renderSettingsPage('PROFILE');
+        return renderSettingsPage(settingsResumeSection === 'SECURITY' ? 'SECURITY' : 'PROFILE');
 
       // Quick Action Pages
       case APP_TABS.QUICK_INCOME:
@@ -400,8 +426,6 @@ export const App = () => {
         ) : null;
       case APP_TABS.SETTINGS_RENEW_CONSENT:
         return <RenewConsentPage onBack={() => setActiveTab(APP_TABS.SETTINGS)} />;
-      case APP_TABS.SETTINGS_CHANGE_PASSWORD:
-        return <ChangePasswordPage onBack={() => setActiveTab(APP_TABS.SETTINGS)} />;
       case APP_TABS.SETTINGS_CATEGORIES:
         return <CategoriesPage onBack={() => setActiveTab(APP_TABS.SETTINGS)} />;
       case APP_TABS.SETTINGS_NOTIFICATIONS:

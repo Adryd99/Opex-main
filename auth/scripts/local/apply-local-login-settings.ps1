@@ -4,7 +4,8 @@ param(
     [string]$AdminRealm = "master",
     [string]$AdminUsername,
     [string]$AdminPassword,
-    [bool]$ResetPasswordAllowed = $true
+    [bool]$ResetPasswordAllowed = $true,
+    [string]$PasswordPolicy = "length(10) and lowerCase(1) and upperCase(1) and digits(1) and specialChars(1) and notUsername(undefined) and passwordHistory(3)"
 )
 
 $ErrorActionPreference = "Stop"
@@ -32,6 +33,7 @@ $realmRepresentation = Invoke-KeycloakAdminApi `
     -Token $token
 
 $realmRepresentation | Add-Member -NotePropertyName "resetPasswordAllowed" -NotePropertyValue $ResetPasswordAllowed -Force
+$realmRepresentation | Add-Member -NotePropertyName "passwordPolicy" -NotePropertyValue $PasswordPolicy -Force
 
 Invoke-KeycloakAdminApi `
     -Method PUT `
@@ -43,3 +45,4 @@ Invoke-KeycloakAdminApi `
 
 Write-Host "Applied login settings to realm '$Realm'." -ForegroundColor Green
 Write-Host "resetPasswordAllowed: $ResetPasswordAllowed" -ForegroundColor DarkGray
+Write-Host "passwordPolicy: $PasswordPolicy" -ForegroundColor DarkGray

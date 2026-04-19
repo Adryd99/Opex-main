@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { AddBankPage } from '../../banking';
 import { useEmailVerificationState } from '../hooks/useEmailVerificationState';
+import { useUserSecurityStatus } from '../hooks/useUserSecurityStatus';
 import { buildConfigurationChecklist, buildConsentAuditItems, hasCurrentRequiredConsents } from '../support/configurationStatus';
 import { SETTINGS_SECTIONS } from '../support/sections';
 import { SettingsPageProps, SettingsSectionId } from '../types';
 import {
   SettingsBrandingSection,
+  SettingsConfigurationStatus,
   SettingsHeader,
   SettingsHelpSection,
   SettingsPreferencesSection,
@@ -39,6 +41,8 @@ export const SettingsPage = ({
   const [theme, setTheme] = useState(() => localStorage.getItem('app-theme') || 'light');
   const [isExportingData, setIsExportingData] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const { data: securityStatus } = useUserSecurityStatus();
   const { verificationEmailAction } = useEmailVerificationState({
     emailVerified: Boolean(userProfile.emailVerified),
     onRequestEmailVerification
@@ -47,10 +51,12 @@ export const SettingsPage = ({
   const consentAuditItems = buildConsentAuditItems(userProfile);
   const checklistItems = buildConfigurationChecklist({
     userProfile,
-    verificationEmailAction
+    verificationEmailAction,
+    securityStatus
   });
 
   const completedCount = checklistItems.filter((item) => item.completed).length;
+  const [isConfigurationCollapsed, setIsConfigurationCollapsed] = useState(true);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -64,6 +70,23 @@ export const SettingsPage = ({
   useEffect(() => {
     setActiveSection(initialSection as SettingsSectionId);
   }, [initialSection]);
+
+  const handleChecklistItemSelect = (item: typeof checklistItems[number]) => {
+    if (item.opensProfileEditor) {
+      setActiveSection('PROFILE');
+      setIsEditingProfile(true);
+      return;
+    }
+
+    if (item.action) {
+      void item.action();
+      return;
+    }
+
+    if (item.targetSection) {
+      setActiveSection(item.targetSection);
+    }
+  };
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -84,8 +107,8 @@ export const SettingsPage = ({
         return (
           <SettingsProfileSection
             userProfile={userProfile}
-            checklistItems={checklistItems}
-            completedCount={completedCount}
+            isEditingProfile={isEditingProfile}
+            onEditingProfileChange={setIsEditingProfile}
             onSaveProfile={onSaveProfile}
           />
         );
@@ -126,7 +149,7 @@ export const SettingsPage = ({
           />
         );
       case 'SECURITY':
-        return <SettingsSecuritySection onNavigate={onNavigate} />;
+        return <SettingsSecuritySection />;
       case 'PRIVACY':
         return (
           <SettingsPrivacySection
@@ -153,6 +176,13 @@ export const SettingsPage = ({
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       <SettingsHeader onNavigate={onNavigate} />
       <SettingsTabs sections={SETTINGS_SECTIONS} activeSection={activeSection} onSectionChange={setActiveSection} />
+      <SettingsConfigurationStatus
+        checklistItems={checklistItems}
+        completedCount={completedCount}
+        isCollapsed={isConfigurationCollapsed}
+        onToggleCollapsed={() => setIsConfigurationCollapsed((current) => !current)}
+        onSelectItem={handleChecklistItemSelect}
+      />
 
       <div className="flex flex-col gap-8">
         <div className="flex-1 w-full space-y-8">

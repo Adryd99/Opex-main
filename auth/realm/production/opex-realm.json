@@ -34,6 +34,7 @@
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
+  "passwordPolicy": "length(10) and lowerCase(1) and upperCase(1) and digits(1) and specialChars(1) and notUsername(undefined) and passwordHistory(3)",
   "editUsernameAllowed": false,
   "bruteForceProtected": false,
   "permanentLockout": false,
@@ -2450,7 +2451,9 @@
       "enabled": true,
       "defaultAction": false,
       "priority": 20,
-      "config": {}
+      "config": {
+        "max_auth_age": "900"
+      }
     },
     {
       "alias": "webauthn-register",
@@ -2459,7 +2462,9 @@
       "enabled": true,
       "defaultAction": false,
       "priority": 30,
-      "config": {}
+      "config": {
+        "max_auth_age": "900"
+      }
     },
     {
       "alias": "PROFILE_BASICS",
@@ -2504,6 +2509,15 @@
       "enabled": true,
       "defaultAction": false,
       "priority": 80,
+      "config": {}
+    },
+    {
+      "alias": "OPEX_UPDATE_PASSWORD",
+      "name": "Opex update password",
+      "providerId": "OPEX_UPDATE_PASSWORD",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 85,
       "config": {}
     },
     {
@@ -2594,7 +2608,9 @@
       "enabled": true,
       "defaultAction": false,
       "priority": 130,
-      "config": {}
+      "config": {
+        "max_auth_age": "900"
+      }
     },
     {
       "alias": "update_user_locale",

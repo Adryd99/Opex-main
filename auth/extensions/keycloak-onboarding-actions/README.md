@@ -54,6 +54,7 @@ Le classi effettivamente registrate su Keycloak stanno in:
 Provider attuali:
 
 - `SECURITY_SETUP_CHOICE`
+- `OPEX_UPDATE_PASSWORD`
 - `PROFILE_BASICS`
 - `COUNTRY_SELECTION`
 - `OCCUPATION`
@@ -133,6 +134,7 @@ Dopo aver applicato tutti gli script locali:
 - `CONFIGURE_TOTP` disponibile ma non default
 - `webauthn-register` disponibile ma non default
 - `CONFIGURE_RECOVERY_AUTHN_CODES` disponibile, abilitata e con priorita subito successiva al setup TOTP/WebAuthn
+- `OPEX_UPDATE_PASSWORD` disponibile come required action avviabile da `kc_action`, con validazione della password attuale prima del cambio password
 - il browser login flow espone `OTP Form`, `WebAuthn Authenticator` e `Recovery Authentication Code Form` come alternative dentro `Browser - Conditional 2FA`
 - seguono `PROFILE_BASICS`, `COUNTRY_SELECTION`, `OCCUPATION`, `LEGAL_ACCEPTANCE`
 - `UPDATE_PROFILE` non viene piu usato come default action

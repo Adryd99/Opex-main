@@ -917,6 +917,79 @@ input[type="checkbox"] {
   color: var(--opex-text-soft);
 }
 
+.opex-auth-password-note {
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #fbfbf9;
+}
+
+.opex-auth-password-note .opex-auth-panel-title {
+  font-size: 15px;
+}
+
+.opex-auth-password-note .opex-auth-panel-copy {
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.opex-auth-password-note .opex-auth-checkbox-control {
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+}
+
+.opex-auth-password-requirements {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--opex-danger-border);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(194, 65, 12, 0.06), rgba(194, 65, 12, 0.03));
+}
+
+.opex-auth-password-requirements-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--opex-danger-ink);
+}
+
+.opex-auth-password-requirements-list {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+
+.opex-auth-password-requirement {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.opex-auth-password-requirement-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  min-width: 14px;
+  margin-top: 1px;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--opex-danger-ink);
+}
+
+.opex-auth-password-requirement-label {
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  font-weight: 700;
+  color: var(--opex-danger-ink);
+}
+
 .opex-auth-stack {
   display: grid;
   gap: 16px;
@@ -987,6 +1060,191 @@ input[type="checkbox"] {
 .opex-auth-actions {
   display: grid;
   gap: 12px;
+}
+
+.opex-auth-recovery-stack {
+  display: grid;
+  gap: 20px;
+}
+
+.opex-auth-recovery-alert {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid rgba(202, 138, 4, 0.22);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.05));
+}
+
+.opex-auth-recovery-alert-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #b45309;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.opex-auth-recovery-alert-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.opex-auth-recovery-alert-title,
+.opex-auth-recovery-alert-body {
+  margin: 0;
+}
+
+.opex-auth-recovery-alert-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #854d0e;
+}
+
+.opex-auth-recovery-alert-body {
+  font-size: 13px;
+  line-height: 1.65;
+  font-weight: 600;
+  color: rgba(133, 77, 14, 0.82);
+}
+
+.opex-auth-recovery-sheet {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid var(--opex-line);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(252, 252, 249, 0.94));
+  box-shadow: 0 20px 44px -34px rgba(12, 33, 49, 0.26);
+}
+
+.opex-auth-recovery-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.opex-auth-recovery-sheet-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.opex-auth-recovery-sheet-copy h2,
+.opex-auth-recovery-sheet-copy p {
+  margin: 0;
+}
+
+.opex-auth-recovery-sheet-copy h2 {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: var(--opex-dark);
+}
+
+.opex-auth-recovery-sheet-copy p {
+  max-width: 420px;
+  font-size: 13px;
+  line-height: 1.65;
+  font-weight: 600;
+  color: var(--opex-text-soft);
+}
+
+.opex-auth-recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.opex-auth-recovery-action {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--opex-line);
+  border-radius: 999px;
+  background: rgba(12, 33, 49, 0.03);
+  color: var(--opex-dark);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: transform 150ms ease, border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+@media (hover: hover) {
+  .opex-auth-recovery-action:hover {
+    background: rgba(12, 33, 49, 0.055);
+    border-color: var(--opex-line-strong);
+    transform: translateY(-1px);
+    box-shadow: 0 18px 28px -26px rgba(12, 33, 49, 0.34);
+  }
+}
+
+.opex-auth-recovery-action:focus-visible {
+  outline: none;
+  border-color: rgba(12, 33, 49, 0.24);
+  box-shadow: 0 0 0 3px rgba(12, 33, 49, 0.08);
+}
+
+.opex-auth-recovery-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 14px;
+  margin: 0;
+  padding: 0;
+}
+
+.opex-auth-recovery-code {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 15px 16px;
+  border: 1px solid rgba(215, 220, 225, 0.94);
+  border-radius: 18px;
+  background: #f8f8f5;
+}
+
+.opex-auth-recovery-code-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: rgba(12, 33, 49, 0.62);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.opex-auth-recovery-code-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--opex-dark);
+}
+
+.opex-auth-recovery-options {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--opex-line);
+  border-radius: 24px;
+  background: #ffffff;
 }
 
 .opex-auth-primary-link {
@@ -1369,6 +1627,154 @@ button.opex-auth-option-card {
   color: var(--opex-text-soft);
 }
 
+.opex-auth-context-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--opex-line);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 247, 243, 0.96));
+}
+
+.opex-auth-context-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.opex-auth-context-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(12, 33, 49, 0.45);
+}
+
+.opex-auth-context-value {
+  display: block;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--opex-dark);
+  overflow-wrap: anywhere;
+}
+
+.opex-auth-context-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 10px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--opex-line);
+  text-decoration: none;
+  color: var(--opex-dark);
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.opex-auth-inline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--opex-dark);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.opex-auth-try-another-way {
+  padding-top: 12px;
+}
+
+.opex-auth-method-list {
+  display: grid;
+  gap: 12px;
+}
+
+.opex-auth-method-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.opex-auth-method-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 68px;
+  padding: 16px 18px;
+  border: 1px solid var(--opex-line);
+  border-radius: 20px;
+  background: #ffffff;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.opex-auth-method-option--button {
+  text-align: left;
+}
+
+.opex-auth-method-input:checked + .opex-auth-method-option {
+  border-color: rgba(32, 137, 90, 0.32);
+  background: linear-gradient(180deg, rgba(240, 251, 244, 0.95), rgba(255, 255, 255, 0.98));
+  box-shadow: 0 0 0 1px rgba(32, 137, 90, 0.16);
+}
+
+.opex-auth-method-option-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.opex-auth-method-option-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--opex-dark);
+}
+
+.opex-auth-method-option-description {
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 600;
+  color: var(--opex-text-soft);
+}
+
+.opex-auth-method-option-arrow {
+  font-size: 20px;
+  font-weight: 700;
+  color: rgba(12, 33, 49, 0.42);
+}
+
+.opex-auth-passkey-panel {
+  gap: 16px;
+}
+
+.opex-auth-passkey-option {
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-height: 84px;
+  padding: 18px 20px;
+  cursor: default;
+}
+
+.opex-auth-passkey-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  border-radius: 14px;
+  background: rgba(12, 33, 49, 0.06);
+  color: var(--opex-dark);
+  font-size: 18px;
+}
+
 .opex-auth-legal-link-card {
   display: grid;
   gap: 8px;
@@ -1490,6 +1896,23 @@ button.opex-auth-option-card {
     grid-template-columns: 1fr;
   }
 
+  .opex-auth-recovery-sheet {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .opex-auth-recovery-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .opex-auth-recovery-actions {
+    width: 100%;
+  }
+
+  .opex-auth-recovery-action {
+    flex: 1 1 calc(50% - 10px);
+  }
+
   .opex-auth-legal-links {
     grid-template-columns: 1fr;
   }
@@ -1545,5 +1968,10 @@ button.opex-auth-option-card {
 
   .opex-auth-social-label {
     font-size: 1.06rem;
+  }
+
+  .opex-auth-context-card {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

@@ -34,6 +34,21 @@ $userProfileConfig = Invoke-KeycloakAdminApi `
     -Path "users/profile" `
     -Token $token
 
+$attributes = @($userProfileConfig.attributes)
+
+foreach ($attribute in $attributes) {
+    if ($null -eq $attribute) {
+        continue
+    }
+
+    if ($attribute.name -in @("firstName", "lastName")) {
+        $requiredProperty = $attribute.PSObject.Properties["required"]
+        if ($null -ne $requiredProperty) {
+            $attribute.PSObject.Properties.Remove("required")
+        }
+    }
+}
+
 $userProfileConfig | Add-Member `
     -NotePropertyName unmanagedAttributePolicy `
     -NotePropertyValue "ENABLED" `

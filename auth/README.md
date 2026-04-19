@@ -71,6 +71,16 @@ Il tema in [keycloakify](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakif
 - pagine custom del flow
 - componenti React e CSS
 
+Tra le pagine custom gestite dal tema rientra anche `login-update-password.ftl`, usata dal cambio password reale lanciato dall'app via Keycloak AIA.
+
+Quando il cambio password parte da `Settings > Security`, Opex usa la required action custom `OPEX_UPDATE_PASSWORD`, che mostra:
+
+- password attuale
+- nuova password
+- conferma nuova password
+
+riusando gli stessi controlli password custom del tema.
+
 Il tema **non** deve contenere logica server-side del flow.
 
 README dedicato:
@@ -144,12 +154,14 @@ Questo comando:
 - ricarica Keycloak una volta sola
 - aspetta che Keycloak sia `healthy`
 - applica i setting locali del realm
+- applica anche la password policy base del realm:
+  `length(10) and lowerCase(1) and upperCase(1) and digits(1) and specialChars(1) and notUsername(undefined) and passwordHistory(3)`
 - riallinea il browser flow 2FA con `OTP Form`, `WebAuthn Authenticator` e `Recovery Authentication Code Form` come alternative
 - mantiene `CONFIGURE_RECOVERY_AUTHN_CODES` subito dopo il setup TOTP/WebAuthn nel blocco onboarding
 - applica il flow onboarding locale
 - applica i token mappers
 
-SMTP e Google IDP restano opzionali e si attivano solo passando i parametri richiesti.
+SMTP e Google IDP restano opzionali e si attivano passando i parametri richiesti oppure salvando i rispettivi valori `SMTP_*` e `GOOGLE_*` nel file root `.env` locale.
 
 ## 2FA State
 
@@ -157,12 +169,14 @@ Lo stato attuale del sistema 2FA e questo:
 
 - il browser flow principale usa `OTP Form`, `WebAuthn Authenticator` e `Recovery Authentication Code Form` come alternative nello stesso blocco 2FA
 - anche il subflow `First broker login - Conditional 2FA` usa gli stessi tre metodi come alternative, quindi il ramo broker/social login e allineato al browser flow principale
+- il provider Google locale usa anche un `Post login flow` dedicato (`opex-google-post-login-2fa`) che riapplica lo stesso blocco 2FA dopo il ritorno dall'identity provider
 - l'onboarding puo portare a:
   - setup TOTP
   - setup WebAuthn
   - setup recovery codes subito dopo il completamento del secondo fattore principale
 - il backend espone uno stato dedicato per il frontend tramite `GET /api/users/security`
-- il frontend ha una route nascosta `/security` che usa dati reali e lancia i flow Keycloak via AIA
+- il frontend usa direttamente `Settings > Security` per leggere dati reali e lanciare i flow Keycloak via AIA
+- le AIA usate da `Settings > Security` per `CONFIGURE_TOTP`, `webauthn-register` e `CONFIGURE_RECOVERY_AUTHN_CODES` riusano una finestra di autenticazione recente di `900` secondi prima di richiedere una nuova login Keycloak
 - il metodo 2FA mostrato al frontend viene derivato dalle credenziali reali Keycloak, non solo dagli attributi custom scritti in onboarding
 
 ## Bootstrap produzione

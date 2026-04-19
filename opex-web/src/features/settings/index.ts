@@ -1,9 +1,7 @@
 export { RenewConsentPage } from './pages/RenewConsentPage';
-export { ChangePasswordPage } from './pages/ChangePasswordPage';
 export { CategoriesPage } from './pages/CategoriesPage';
 export { NotificationDetailsPage } from './pages/NotificationDetailsPage';
 export { RecurringPage } from './pages/RecurringPage';
-export { SecurityPage } from './pages/SecurityPage';
 export { SettingsPage } from './pages/SettingsPage';
 export { SupportPage } from './pages/SupportPage';
 
