@@ -2,53 +2,54 @@ import { UserProfile } from '../../shared/types';
 
 type TaxSetupOption = {
   value: string;
-  label: string;
-  description: string;
+  label?: string;
+  labelKey?: string;
+  descriptionKey: string;
   meta?: string;
 };
 
 export const TAX_REGIME_OPTIONS: TaxSetupOption[] = [
   {
     value: 'Forfettario',
-    label: 'Forfettario',
-    description: 'Flat 5% or 15% tax rate'
+    labelKey: 'settings:taxForm.regime.forfettarioLabel',
+    descriptionKey: 'settings:taxForm.regime.forfettarioDescription'
   },
   {
     value: 'Ordinario',
-    label: 'Ordinario',
-    description: 'Standard IRPEF brackets'
+    labelKey: 'settings:taxForm.regime.ordinarioLabel',
+    descriptionKey: 'settings:taxForm.regime.ordinarioDescription'
   }
 ];
 
 export const TAX_ACTIVITY_OPTIONS: TaxSetupOption[] = [
   {
     value: 'Professional / Consultant',
-    label: 'Professional / Consultant',
-    description: 'Freelancers, digital services',
+    labelKey: 'settings:taxForm.activity.professionalLabel',
+    descriptionKey: 'settings:taxForm.activity.professionalDescription',
     meta: '78%'
   },
   {
     value: 'Retail & E-commerce',
-    label: 'Retail & E-commerce',
-    description: 'Online shops, reselling',
+    labelKey: 'settings:taxForm.activity.retailLabel',
+    descriptionKey: 'settings:taxForm.activity.retailDescription',
     meta: '40%'
   },
   {
     value: 'Food & Hospitality',
-    label: 'Food & Hospitality',
-    description: 'Restaurants, bars',
+    labelKey: 'settings:taxForm.activity.foodLabel',
+    descriptionKey: 'settings:taxForm.activity.foodDescription',
     meta: '40%'
   },
   {
     value: 'Construction & Real Estate',
-    label: 'Construction & Real Estate',
-    description: 'Renovation, property',
+    labelKey: 'settings:taxForm.activity.constructionLabel',
+    descriptionKey: 'settings:taxForm.activity.constructionDescription',
     meta: '86%'
   },
   {
     value: 'Other Activities',
-    label: 'Other Activities',
-    description: 'Other or unsure',
+    labelKey: 'settings:taxForm.activity.otherLabel',
+    descriptionKey: 'settings:taxForm.activity.otherDescription',
     meta: '67%'
   }
 ];
@@ -57,27 +58,27 @@ export const TAX_RESIDENCE_OPTIONS: TaxSetupOption[] = [
   {
     value: 'Italy (IT)',
     label: 'IT',
-    description: 'Italy'
+    descriptionKey: 'settings:taxForm.residence.italy'
   },
   {
     value: 'Netherlands (NL)',
     label: 'NL',
-    description: 'Netherlands'
+    descriptionKey: 'settings:taxForm.residence.netherlands'
   },
   {
     value: 'Belgium (BE)',
     label: 'BE',
-    description: 'Belgium'
+    descriptionKey: 'settings:taxForm.residence.belgium'
   },
   {
     value: 'Germany (DE)',
     label: 'DE',
-    description: 'Germany'
+    descriptionKey: 'settings:taxForm.residence.germany'
   },
   {
     value: 'Other',
     label: 'Other',
-    description: 'Other country'
+    descriptionKey: 'settings:taxForm.residence.other'
   }
 ];
 

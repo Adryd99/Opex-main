@@ -1,4 +1,6 @@
 import { Download, Mail, ShieldCheck, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
 import { openLegalDocument } from '../../../shared/legal';
 import { Badge, Button, Card } from '../../../shared/ui';
 import { LegalPublicInfoRecord, UserProfile } from '../../../shared/types';
@@ -29,9 +31,11 @@ export const SettingsPrivacySection = ({
   onExportingDataChange,
   onDeletingAccountChange
 }: SettingsPrivacySectionProps) => {
+  const { t } = useTranslation('settings');
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <Card title="GDPR & Data">
+      <Card title={t('privacy.title')}>
         <div className="space-y-6">
           <div className="rounded-[2rem] border border-gray-100 bg-gray-50 p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-start gap-4">
@@ -39,16 +43,14 @@ export const SettingsPrivacySection = ({
                 <ShieldCheck size={22} />
               </div>
               <div>
-                <p className="text-base font-black text-gray-900">Consent Status</p>
+                <p className="text-base font-black text-gray-900">{t('privacy.consentStatus')}</p>
                 <p className="text-xs text-gray-500 font-medium">
-                  {hasCurrentRequiredConsents
-                    ? 'Current privacy notice and service terms are accepted for this account.'
-                    : 'One or more required legal documents still need acceptance or renewal.'}
+                  {hasCurrentRequiredConsents ? t('privacy.consentCurrent') : t('privacy.consentMissing')}
                 </p>
               </div>
             </div>
             <Badge variant={hasCurrentRequiredConsents ? 'success' : 'warning'}>
-              {hasCurrentRequiredConsents ? 'Current' : 'Update Required'}
+              {hasCurrentRequiredConsents ? t('privacy.current') : t('privacy.updateRequired')}
             </Badge>
           </div>
 
@@ -58,9 +60,9 @@ export const SettingsPrivacySection = ({
               onClick={() => openLegalDocument('privacy')}
               className="rounded-[1.75rem] border border-gray-100 bg-white px-5 py-5 text-left transition-all hover:border-opex-teal/20 hover:shadow-sm"
             >
-              <p className="text-sm font-black text-gray-900">Privacy Notice</p>
+              <p className="text-sm font-black text-gray-900">{t('privacy.privacyNotice')}</p>
               <p className="mt-2 text-xs font-medium leading-relaxed text-gray-500">
-                v{legalPublicInfo?.privacyPolicy.version || 'n/a'} - Open the current notice in a new tab.
+                {t('privacy.privacyNoticeDescription', { version: legalPublicInfo?.privacyPolicy.version || 'n/a' })}
               </p>
             </button>
             <button
@@ -68,9 +70,9 @@ export const SettingsPrivacySection = ({
               onClick={() => openLegalDocument('terms')}
               className="rounded-[1.75rem] border border-gray-100 bg-white px-5 py-5 text-left transition-all hover:border-opex-teal/20 hover:shadow-sm"
             >
-              <p className="text-sm font-black text-gray-900">Terms Of Service</p>
+              <p className="text-sm font-black text-gray-900">{t('privacy.termsOfService')}</p>
               <p className="mt-2 text-xs font-medium leading-relaxed text-gray-500">
-                v{legalPublicInfo?.termsOfService.version || 'n/a'} - Review the contractual rules for the app.
+                {t('privacy.termsDescription', { version: legalPublicInfo?.termsOfService.version || 'n/a' })}
               </p>
             </button>
             <button
@@ -78,9 +80,9 @@ export const SettingsPrivacySection = ({
               onClick={() => openLegalDocument('cookies')}
               className="rounded-[1.75rem] border border-gray-100 bg-white px-5 py-5 text-left transition-all hover:border-opex-teal/20 hover:shadow-sm"
             >
-              <p className="text-sm font-black text-gray-900">Cookie Notice</p>
+              <p className="text-sm font-black text-gray-900">{t('privacy.cookieNotice')}</p>
               <p className="mt-2 text-xs font-medium leading-relaxed text-gray-500">
-                v{legalPublicInfo?.cookiePolicy.version || 'n/a'} - See which browser storage keys are used.
+                {t('privacy.cookieDescription', { version: legalPublicInfo?.cookiePolicy.version || 'n/a' })}
               </p>
             </button>
             <button
@@ -88,9 +90,9 @@ export const SettingsPrivacySection = ({
               onClick={() => openLegalDocument('open-banking')}
               className="rounded-[1.75rem] border border-gray-100 bg-white px-5 py-5 text-left transition-all hover:border-opex-teal/20 hover:shadow-sm"
             >
-              <p className="text-sm font-black text-gray-900">Open Banking Notice</p>
+              <p className="text-sm font-black text-gray-900">{t('privacy.openBankingNotice')}</p>
               <p className="mt-2 text-xs font-medium leading-relaxed text-gray-500">
-                v{legalPublicInfo?.openBankingNotice.version || 'n/a'} - Review banking-specific processing terms.
+                {t('privacy.openBankingDescription', { version: legalPublicInfo?.openBankingNotice.version || 'n/a' })}
               </p>
             </button>
           </div>
@@ -99,10 +101,10 @@ export const SettingsPrivacySection = ({
             <div className="rounded-[2rem] border border-gray-100 bg-white p-6">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-base font-black text-gray-900">Consent Audit</p>
-                  <p className="mt-1 text-xs font-medium text-gray-500">Recorded versions and timestamps currently stored for your account.</p>
+                  <p className="text-base font-black text-gray-900">{t('privacy.consentAudit')}</p>
+                  <p className="mt-1 text-xs font-medium text-gray-500">{t('privacy.consentAuditDescription')}</p>
                 </div>
-                <Badge variant="info">{consentAuditItems.length} Entries</Badge>
+                <Badge variant="info">{t('privacy.entries', { count: consentAuditItems.length })}</Badge>
               </div>
               <div className="mt-5 space-y-3">
                 {consentAuditItems.map((item) => (
@@ -118,9 +120,9 @@ export const SettingsPrivacySection = ({
             </div>
 
             <div className="rounded-[2rem] border border-gray-100 bg-white p-6">
-              <p className="text-base font-black text-gray-900">Data Rights</p>
+              <p className="text-base font-black text-gray-900">{t('privacy.dataRights')}</p>
               <p className="mt-1 text-xs font-medium text-gray-500">
-                Export your data, review the processor setup or close the account from here.
+                {t('privacy.dataRightsDescription')}
               </p>
 
               <div className="mt-5 space-y-3">
@@ -137,7 +139,7 @@ export const SettingsPrivacySection = ({
                       .finally(() => onExportingDataChange(false));
                   }}
                 >
-                  {isExportingData ? 'Preparing Export...' : 'Download My Data'}
+                  {isExportingData ? t('privacy.preparingExport') : t('privacy.downloadMyData')}
                 </Button>
                 <Button
                   fullWidth
@@ -151,7 +153,7 @@ export const SettingsPrivacySection = ({
                     }
                   }}
                 >
-                  Contact Privacy Team
+                  {t('privacy.contactPrivacyTeam')}
                 </Button>
                 <Button
                   fullWidth
@@ -160,7 +162,7 @@ export const SettingsPrivacySection = ({
                   className="py-5 rounded-[1.5rem]"
                   disabled={isDeletingAccount}
                   onClick={() => {
-                    const confirmed = window.confirm('Delete your Opex account now? This will disable your local profile and log you out.');
+                    const confirmed = window.confirm(t('privacy.deleteAccountConfirm'));
                     if (!confirmed) {
                       return;
                     }
@@ -171,16 +173,16 @@ export const SettingsPrivacySection = ({
                       .finally(() => onDeletingAccountChange(false));
                   }}
                 >
-                  {isDeletingAccount ? 'Closing Account...' : 'Delete Account'}
+                  {isDeletingAccount ? t('privacy.closingAccount') : t('privacy.deleteAccount')}
                 </Button>
               </div>
 
               <div className="mt-6 rounded-[1.5rem] bg-gray-50 px-4 py-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-gray-400">Open Banking Scopes</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-gray-400">{t('privacy.openBankingScopes')}</p>
                 <p className="mt-2 text-sm font-medium leading-relaxed text-gray-500">
                   {(userProfile.openBankingConsentScopes ?? []).length > 0
                     ? (userProfile.openBankingConsentScopes ?? []).join(', ')
-                    : 'No open-banking scope accepted yet.'}
+                    : t('privacy.noScopes')}
                 </p>
               </div>
             </div>

@@ -96,7 +96,8 @@ export const buildAggregatedSummary = (
 
 const aggregateTransactionsByPeriod = (
   visibleTransactions: TransactionRecord[],
-  period: 'month' | 'quarter' | 'year'
+  period: 'month' | 'quarter' | 'year',
+  language: string
 ): TimeAggregatedPoint[] => {
   const grouped = new Map<string, TimeAggregatedRecord['byMonth'][number]>();
 
@@ -120,7 +121,7 @@ const aggregateTransactionsByPeriod = (
 
     grouped.set(key, {
       key,
-      label: formatPeriodLabel(date, period),
+      label: formatPeriodLabel(date, period, language),
       income: amount > 0 ? amount : 0,
       expenses: amount < 0 ? amount : 0,
       connectionId: null
@@ -133,11 +134,12 @@ const aggregateTransactionsByPeriod = (
 };
 
 export const buildTimeAggregatedSummary = (
-  visibleTransactions: TransactionRecord[]
+  visibleTransactions: TransactionRecord[],
+  language: string
 ): TimeAggregatedRecord => ({
-  byMonth: aggregateTransactionsByPeriod(visibleTransactions, 'month'),
-  byQuarter: aggregateTransactionsByPeriod(visibleTransactions, 'quarter'),
-  byYear: aggregateTransactionsByPeriod(visibleTransactions, 'year')
+  byMonth: aggregateTransactionsByPeriod(visibleTransactions, 'month', language),
+  byQuarter: aggregateTransactionsByPeriod(visibleTransactions, 'quarter', language),
+  byYear: aggregateTransactionsByPeriod(visibleTransactions, 'year', language)
 });
 
 export const createProviderMatcher = (

@@ -1,67 +1,63 @@
 import type { UserSecurityStatus } from '../../../shared/types/user';
+import { formatDateTimeForLanguage } from '../../../i18n/formatting';
+type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
 type SecurityActionType = 'totp' | 'webauthn' | 'recovery';
 
-const METHOD_LABELS: Record<SecurityActionType, string> = {
-  totp: 'Authenticator app',
-  webauthn: 'Passkey or security key',
-  recovery: 'Recovery codes'
-};
-
-export const getSecurityMethodLabel = (method?: string | null): string => {
+export const getSecurityMethodLabel = (method: string | null | undefined, t: TranslateFn): string => {
   if (!method) {
-    return 'Not configured';
+    return t('settings:securityWorkspace.methods.notConfigured');
   }
 
   const normalizedMethod = method.trim().toLowerCase();
   if (normalizedMethod === 'totp') {
-    return METHOD_LABELS.totp;
+    return t('settings:securityWorkspace.methods.totp');
   }
   if (normalizedMethod === 'webauthn' || normalizedMethod === 'passkey' || normalizedMethod === 'security-key') {
-    return METHOD_LABELS.webauthn;
+    return t('settings:securityWorkspace.methods.webauthn');
   }
   if (normalizedMethod.startsWith('recovery')) {
-    return METHOD_LABELS.recovery;
+    return t('settings:securityWorkspace.methods.recovery');
   }
 
   return method;
 };
 
-export const getAvailableMethodLabels = (status: UserSecurityStatus): string[] =>
-  status.availableSecondFactorMethods.map(getSecurityMethodLabel);
+export const getAvailableMethodLabels = (status: UserSecurityStatus, t: TranslateFn): string[] =>
+  status.availableSecondFactorMethods.map((method) => getSecurityMethodLabel(method, t));
 
-export const getRecommendedActionLabel = (status: UserSecurityStatus): string => {
+export const getRecommendedActionLabel = (status: UserSecurityStatus, t: TranslateFn): string => {
   if (!status.totpConfigured) {
-    return 'Add an authenticator app';
+    return t('settings:securityWorkspace.recommendations.totp');
   }
   if (!status.webauthnConfigured) {
-    return 'Add a passkey or security key';
+    return t('settings:securityWorkspace.recommendations.webauthn');
   }
   if (!status.recoveryCodesAvailable) {
-    return 'Generate recovery codes';
+    return t('settings:securityWorkspace.recommendations.recovery');
   }
 
-  return 'Review your security setup';
+  return t('settings:securityWorkspace.recommendations.review');
 };
 
-export const getRecoverySummary = (status: UserSecurityStatus): string => {
+export const getRecoverySummary = (status: UserSecurityStatus, t: TranslateFn): string => {
   if (status.recoveryCodesSetupPending) {
-    return 'Setup started but not completed yet.';
+    return t('settings:securityWorkspace.recoverySummary.pending');
   }
   if (!status.recoveryCodesConfigured) {
-    return 'No recovery codes generated yet.';
+    return t('settings:securityWorkspace.recoverySummary.none');
   }
   if (!status.recoveryCodesAvailable) {
-    return 'Generated, but all codes are exhausted.';
+    return t('settings:securityWorkspace.recoverySummary.exhausted');
   }
   if (status.recoveryCodesRemainingCount === 1) {
-    return '1 code remaining.';
+    return t('settings:securityWorkspace.recoverySummary.one');
   }
 
-  return `${status.recoveryCodesRemainingCount} codes remaining.`;
+  return t('settings:securityWorkspace.recoverySummary.many', { count: status.recoveryCodesRemainingCount });
 };
 
-export const formatConfiguredAt = (value?: string | null): string | null => {
+export const formatConfiguredAt = (value?: string | null, language = 'en'): string | null => {
   if (!value) {
     return null;
   }
@@ -71,10 +67,10 @@ export const formatConfiguredAt = (value?: string | null): string | null => {
     return null;
   }
 
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateTimeForLanguage(language, parsedDate, {
     dateStyle: 'medium',
     timeStyle: 'short'
-  }).format(parsedDate);
+  });
 };
 
 export const getSecurityActionHelper = (action: SecurityActionType): string => {

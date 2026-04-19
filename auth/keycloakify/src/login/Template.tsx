@@ -1,5 +1,5 @@
 import "./main.css";
-import logoUrl from "./assets/Opes_compact.png";
+import logoUrl from "./assets/Opes_compact_dark.png";
 import { useEffect } from "react";
 import { clsx } from "keycloakify/tools/clsx";
 import { kcSanitize } from "keycloakify/lib/kcSanitize";

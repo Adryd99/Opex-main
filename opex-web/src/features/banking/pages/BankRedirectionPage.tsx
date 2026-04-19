@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Loader2, RefreshCw, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
 import { Button } from '../../../shared/ui';
 import { BankOption } from '../../../shared/types';
 
@@ -18,6 +20,7 @@ export const BankRedirectionPage = ({
   syncStage: 'idle' | 'opening_widget' | 'waiting_success_redirect' | 'syncing_success';
   errorMessage: string | null;
 }) => {
+  const { t } = useTranslation('banking');
   const hasAutoStartedRef = useRef(false);
 
   useEffect(() => {
@@ -31,14 +34,14 @@ export const BankRedirectionPage = ({
 
   const loadingDescription =
     syncStage === 'opening_widget'
-      ? 'Generating Salt Edge connection URL...'
+      ? t('redirection.openingWidget')
       : syncStage === 'waiting_success_redirect'
-        ? 'A new browser tab has been opened. Complete the flow there and you will be redirected to /success.'
+        ? t('redirection.waitingRedirect')
         : syncStage === 'syncing_success'
-          ? 'Synchronization in progress.'
+          ? t('redirection.syncingSuccess')
           : isSyncing
-            ? 'Please wait...'
-            : 'Waiting for next step...';
+            ? t('redirection.waiting')
+            : t('redirection.waitingNextStep');
 
   return (
     <div className="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center p-4 md:p-8 text-center space-y-6 md:space-y-8 animate-in fade-in duration-500">
@@ -51,20 +54,20 @@ export const BankRedirectionPage = ({
         </div>
       </div>
       <div className="space-y-3">
-        <h2 className="text-2xl font-black text-gray-900">Connecting to {bank.name}</h2>
+        <h2 className="text-2xl font-black text-gray-900">{t('redirection.title', { bank: bank.name })}</h2>
         <p className="text-gray-500 max-w-xs mx-auto font-medium">{loadingDescription}</p>
       </div>
       <div className="w-48 h-1.5 bg-gray-100 rounded-full overflow-hidden">
         <div className="h-full bg-opex-teal animate-progress-fast"></div>
       </div>
       <Button size="sm" variant="outline" onClick={onBack} icon={X} disabled={isSyncing || syncStage === 'syncing_success'}>
-        Back
+        {t('redirection.back')}
       </Button>
       {errorMessage && (
         <div className="max-w-md space-y-4">
           <p className="text-sm text-red-600 font-medium">{errorMessage}</p>
           <Button size="sm" variant="outline" onClick={() => void onComplete().catch(() => undefined)} icon={RefreshCw}>
-            Retry
+            {t('redirection.retry')}
           </Button>
         </div>
       )}

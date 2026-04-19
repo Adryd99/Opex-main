@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, LayoutGrid } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import {
   BANK_PROVIDERS_KEY,
@@ -10,14 +11,15 @@ import {
 import { loadProviderOptions, type ProviderOption } from '../support';
 
 export const AccountSelector = ({ compact = false }: { compact?: boolean }) => {
+  const { t, i18n } = useTranslation('app');
   const [isOpen, setIsOpen] = useState(false);
   const [selectedProviderName, setSelectedProviderName] = useState<string>(
     typeof window === 'undefined' ? '' : window.localStorage.getItem(SELECTED_PROVIDER_KEY) ?? ''
   );
   const [providerOptions, setProviderOptions] = useState<ProviderOption[]>(() =>
     typeof window === 'undefined'
-      ? loadProviderOptions(null)
-      : loadProviderOptions(window.localStorage.getItem(BANK_PROVIDERS_KEY))
+      ? loadProviderOptions(null, t)
+      : loadProviderOptions(window.localStorage.getItem(BANK_PROVIDERS_KEY), t)
   );
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -38,7 +40,7 @@ export const AccountSelector = ({ compact = false }: { compact?: boolean }) => {
     };
 
     const updateProviders = () => {
-      setProviderOptions(loadProviderOptions(window.localStorage.getItem(BANK_PROVIDERS_KEY)));
+      setProviderOptions(loadProviderOptions(window.localStorage.getItem(BANK_PROVIDERS_KEY), t));
     };
 
     const handleStorage = (event: StorageEvent) => {
@@ -59,7 +61,11 @@ export const AccountSelector = ({ compact = false }: { compact?: boolean }) => {
       window.removeEventListener(BANK_PROVIDERS_UPDATED_EVENT, updateProviders);
       window.removeEventListener(PROVIDER_SELECTION_UPDATED_EVENT, updateSelectedProvider);
     };
-  }, []);
+  }, [t]);
+
+  useEffect(() => {
+    setProviderOptions(loadProviderOptions(window.localStorage.getItem(BANK_PROVIDERS_KEY), t));
+  }, [i18n.resolvedLanguage, t]);
 
   useEffect(() => {
     if (!selectedProviderName) {
@@ -98,7 +104,7 @@ export const AccountSelector = ({ compact = false }: { compact?: boolean }) => {
       {isOpen && (
         <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
           <div className="px-4 py-2 border-b border-gray-50 mb-1">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Select Account</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('accountSelector.selectAccount')}</p>
           </div>
           {providerOptions.map((account) => (
             <button

@@ -1,3 +1,5 @@
+import { formatDateTimeForLanguage } from '../../i18n/formatting';
+
 export const resizeImageToBase64 = (file: File, maxPx = 512, quality = 0.82): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -33,9 +35,13 @@ export const resizeImageToBase64 = (file: File, maxPx = 512, quality = 0.82): Pr
     reader.readAsDataURL(file);
   });
 
-export const formatConsentTimestamp = (value: string | null | undefined): string => {
+export const formatConsentTimestamp = (
+  value: string | null | undefined,
+  language: string,
+  emptyLabel = '—'
+): string => {
   if (!value) {
-    return 'Not recorded';
+    return emptyLabel;
   }
 
   const parsed = new Date(value);
@@ -43,7 +49,7 @@ export const formatConsentTimestamp = (value: string | null | undefined): string
     return value;
   }
 
-  return parsed.toLocaleString('it-IT', {
+  return formatDateTimeForLanguage(language, parsed, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { BadgeCheck, KeyRound, Loader2, RefreshCw, ShieldCheck, ShieldOff, Smartphone } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import type { UserSecurityStatus } from '../../../shared/types/user';
 import { userClient } from '../../../services/api/opex/clients/userClient';
@@ -52,6 +53,9 @@ type SecurityActionCardProps = {
   isLoading: boolean;
   statusBadges?: ReactNode;
   statusSummary: string;
+  statusLabel: string;
+  preparingLabel: string;
+  savingLabel: string;
   onClick: () => void;
   secondaryButtonLabel?: string;
   onSecondaryClick?: () => void;
@@ -67,6 +71,9 @@ const SecurityActionCard = ({
   isLoading,
   statusBadges,
   statusSummary,
+  statusLabel,
+  preparingLabel,
+  savingLabel,
   onClick,
   secondaryButtonLabel,
   onSecondaryClick,
@@ -93,14 +100,14 @@ const SecurityActionCard = ({
         </div>
 
         <div className="rounded-[1.5rem] border border-gray-100 bg-gray-50 px-4 py-4">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-400">Status</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-400">{statusLabel}</p>
           <p className="mt-2 text-sm font-semibold text-gray-700 leading-relaxed">{statusSummary}</p>
         </div>
       </div>
 
       <div className="space-y-3">
         <Button fullWidth variant="outline" onClick={onClick} disabled={isLoading}>
-          {isLoading ? 'Preparing...' : buttonLabel}
+          {isLoading ? preparingLabel : buttonLabel}
         </Button>
         {secondaryButtonLabel && onSecondaryClick ? (
           <Button
@@ -109,7 +116,7 @@ const SecurityActionCard = ({
             onClick={onSecondaryClick}
             disabled={isSecondaryLoading}
           >
-            {isSecondaryLoading ? 'Saving...' : secondaryButtonLabel}
+            {isSecondaryLoading ? savingLabel : secondaryButtonLabel}
           </Button>
         ) : null}
         <p className="text-xs text-gray-500 leading-relaxed">{helperText}</p>
@@ -133,11 +140,13 @@ export const SecurityWorkspace = ({
   redirectPath = '/',
   returnToSettingsSection = null,
   containerClassName = '',
-  description = 'Review your second-factor status, recovery readiness and available actions in one place.',
+  description,
   onStartTotpSetup,
   onStartWebAuthnSetup,
   onManageRecoveryCodes
 }: SecurityWorkspaceProps) => {
+  const { t } = useTranslation('settings');
+  const resolvedDescription = description ?? t('securityWorkspace.descriptionDefault');
   const { data, isLoading, errorMessage, refresh } = useUserSecurityStatus();
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
@@ -149,12 +158,12 @@ export const SecurityWorkspace = ({
     }
 
     if (actionResult.status === 'success') {
-      setActionMessage(resolveActionStatusMessage(actionResult.action, actionResult.status));
+      setActionMessage(resolveActionStatusMessage(actionResult.action, actionResult.status, t));
       void refresh();
     } else if (actionResult.status === 'cancelled') {
-      setActionMessage(resolveActionStatusMessage(actionResult.action, actionResult.status));
+      setActionMessage(resolveActionStatusMessage(actionResult.action, actionResult.status, t));
     } else {
-      setActionMessage(resolveActionStatusMessage(actionResult.action, 'error'));
+      setActionMessage(resolveActionStatusMessage(actionResult.action, 'error', t));
     }
 
     if (returnToSettingsSection) {
@@ -162,7 +171,7 @@ export const SecurityWorkspace = ({
     }
 
     clearKeycloakActionResult();
-  }, [refresh]);
+  }, [refresh, t]);
 
   const runAction = async (
     action: ActionKind,
@@ -183,7 +192,7 @@ export const SecurityWorkspace = ({
         });
       }
     } catch (error) {
-      setActionMessage(error instanceof Error ? error.message : 'Unable to start the requested action.');
+      setActionMessage(error instanceof Error ? error.message : t('securityWorkspace.actionError'));
     } finally {
       setPendingAction(null);
     }
@@ -197,26 +206,26 @@ export const SecurityWorkspace = ({
       await userClient.setPrimarySecondFactor(method);
       setActionMessage(
         method === 'totp'
-          ? 'Authenticator app set as the primary sign-in method.'
-          : 'Passkey or security key set as the primary sign-in method.'
+          ? t('securityWorkspace.setPrimaryTotpSuccess')
+          : t('securityWorkspace.setPrimaryWebauthnSuccess')
       );
       await refresh();
     } catch (error) {
-      setActionMessage(error instanceof Error ? error.message : 'Unable to update the primary sign-in method.');
+      setActionMessage(error instanceof Error ? error.message : t('securityWorkspace.setPrimaryError'));
     } finally {
       setPendingAction(null);
     }
   };
 
   const renderLoadedState = (status: UserSecurityStatus) => {
-    const overview = resolveSecurityOverview(status);
-    const primaryMethodLabel = getSecurityMethodLabel(status.secondFactorMethod);
-    const recommendedAction = getRecommendedActionLabel(status);
+    const overview = resolveSecurityOverview(status, t);
+    const primaryMethodLabel = getSecurityMethodLabel(status.secondFactorMethod, t);
+    const recommendedAction = getRecommendedActionLabel(status, t);
     const recoveryStatusLabel = status.recoveryCodesAvailable
-      ? 'Available'
+      ? t('securityWorkspace.available')
       : status.recoveryCodesConfigured
-        ? 'Exhausted'
-        : 'Missing';
+        ? t('securityWorkspace.exhausted')
+        : t('profile.missing');
     const normalizedPrimaryMethod = normalizeSecurityMethod(status.secondFactorMethod);
     const canChooseBetweenInteractiveMethods = status.totpConfigured && status.webauthnConfigured;
 
@@ -232,17 +241,17 @@ export const SecurityWorkspace = ({
                       {status.hasFallbackSecondFactor ? <ShieldCheck size={22} /> : <ShieldOff size={22} />}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-gray-500 uppercase tracking-[0.2em]">Security</p>
-                      <h1 className="text-2xl md:text-3xl font-black text-gray-900">Account protection</h1>
+                      <p className="text-sm font-bold text-gray-500 uppercase tracking-[0.2em]">{t('securityWorkspace.security')}</p>
+                      <h1 className="text-2xl md:text-3xl font-black text-gray-900">{t('securityWorkspace.accountProtection')}</h1>
                     </div>
                   </div>
                   <p className="text-sm text-gray-600 max-w-2xl leading-relaxed">
-                    {description}
+                    {resolvedDescription}
                   </p>
                 </div>
                 <div className="flex items-start lg:justify-end">
                   <Button variant="ghost" size="sm" onClick={() => void refresh()} icon={isLoading ? Loader2 : RefreshCw}>
-                    Refresh
+                    {t('securityWorkspace.refresh')}
                   </Button>
                 </div>
               </div>
@@ -253,15 +262,15 @@ export const SecurityWorkspace = ({
                     <p className="text-lg font-black text-gray-900">{overview.title}</p>
                     <p className="max-w-2xl text-sm leading-relaxed text-gray-600">{overview.description}</p>
                     <p className="text-sm font-semibold text-opex-dark">
-                      Recommended next step: {recommendedAction}.
+                      {t('securityWorkspace.recommendedNextStep', { action: recommendedAction })}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 lg:max-w-xs lg:justify-end">
                     <Badge variant={status.secondFactorMethod ? 'success' : 'warning'}>{primaryMethodLabel}</Badge>
                     <Badge variant={status.hasFallbackSecondFactor ? 'success' : 'warning'}>
-                      {status.hasFallbackSecondFactor ? 'Backup ready' : 'Backup missing'}
+                      {status.hasFallbackSecondFactor ? t('securityWorkspace.backupReady') : t('securityWorkspace.backupMissing')}
                     </Badge>
-                    {status.recoveryCodesSetupPending ? <Badge variant="info">Setup pending</Badge> : null}
+                    {status.recoveryCodesSetupPending ? <Badge variant="info">{t('securityWorkspace.setupPending')}</Badge> : null}
                   </div>
                 </div>
               </div>
@@ -281,28 +290,31 @@ export const SecurityWorkspace = ({
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <SecurityActionCard
-              title="Add authenticator app"
-              description="Use one-time codes from an authenticator app on your phone."
+              title={t('securityWorkspace.actionCard.totpTitle')}
+              description={t('securityWorkspace.actionCard.totpDescription')}
               icon={<Smartphone size={22} />}
+              statusLabel={t('securityWorkspace.status')}
+              preparingLabel={t('securityWorkspace.preparing')}
+              savingLabel={t('securityWorkspace.saving')}
               statusBadges={(
                 <>
                   <Badge variant={status.totpConfigured ? 'success' : 'neutral'}>
-                    {status.totpConfigured ? 'Configured' : 'Not set'}
+                    {status.totpConfigured ? t('securityWorkspace.configured') : t('securityWorkspace.notSet')}
                   </Badge>
-                  {normalizedPrimaryMethod === 'totp' ? <Badge variant="info">Primary</Badge> : null}
+                  {normalizedPrimaryMethod === 'totp' ? <Badge variant="info">{t('securityWorkspace.primary')}</Badge> : null}
                 </>
               )}
               statusSummary={
                 status.totpConfigured
-                  ? 'Ready to use for sign-in.'
-                  : 'Not set yet.'
+                  ? t('securityWorkspace.actionCard.totpStatusReady')
+                  : t('securityWorkspace.actionCard.totpStatusMissing')
               }
-              buttonLabel={status.totpConfigured ? 'Reconfigure authenticator app' : 'Set up authenticator app'}
-              helperText="Best if you want a portable second factor that works across devices when you keep backup access."
+              buttonLabel={status.totpConfigured ? t('securityWorkspace.actionCard.totpButtonReconfigure') : t('securityWorkspace.actionCard.totpButtonSetUp')}
+              helperText={t('securityWorkspace.actionCard.totpHelper')}
               isLoading={pendingAction === 'totp'}
               secondaryButtonLabel={
                 canChooseBetweenInteractiveMethods && normalizedPrimaryMethod !== 'totp'
-                  ? 'Set as primary'
+                  ? t('securityWorkspace.actionCard.setAsPrimary')
                   : undefined
               }
               isSecondaryLoading={pendingAction === 'primary-totp'}
@@ -310,28 +322,31 @@ export const SecurityWorkspace = ({
               onClick={() => void runAction('totp', onStartTotpSetup)}
             />
             <SecurityActionCard
-              title="Add passkey or security key"
-              description="Add a synced passkey or a hardware key for fast and secure sign-in."
+              title={t('securityWorkspace.actionCard.webauthnTitle')}
+              description={t('securityWorkspace.actionCard.webauthnDescription')}
               icon={<KeyRound size={22} />}
+              statusLabel={t('securityWorkspace.status')}
+              preparingLabel={t('securityWorkspace.preparing')}
+              savingLabel={t('securityWorkspace.saving')}
               statusBadges={(
                 <>
                   <Badge variant={status.webauthnConfigured ? 'success' : 'neutral'}>
-                    {status.webauthnConfigured ? `${status.webauthnCredentialCount} enrolled` : 'Not set'}
+                    {status.webauthnConfigured ? t('securityWorkspace.actionCard.webauthnCredentialsSaved', { count: status.webauthnCredentialCount }) : t('securityWorkspace.notSet')}
                   </Badge>
-                  {normalizedPrimaryMethod === 'webauthn' ? <Badge variant="info">Primary</Badge> : null}
+                  {normalizedPrimaryMethod === 'webauthn' ? <Badge variant="info">{t('securityWorkspace.primary')}</Badge> : null}
                 </>
               )}
               statusSummary={
                 status.webauthnConfigured
-                  ? `${status.webauthnCredentialCount} credential${status.webauthnCredentialCount === 1 ? '' : 's'} saved.`
-                  : 'Not set yet.'
+                  ? t('securityWorkspace.actionCard.webauthnCredentialsSaved', { count: status.webauthnCredentialCount })
+                  : t('securityWorkspace.actionCard.webauthnStatusMissing')
               }
-              buttonLabel={status.webauthnConfigured ? 'Add another credential' : 'Set up passkey or key'}
-              helperText="Ideal if you want a hardware key or synced passkey as a stronger day-to-day sign-in option."
+              buttonLabel={status.webauthnConfigured ? t('securityWorkspace.actionCard.webauthnButtonAddAnother') : t('securityWorkspace.actionCard.webauthnButtonSetUp')}
+              helperText={t('securityWorkspace.actionCard.webauthnHelper')}
               isLoading={pendingAction === 'webauthn'}
               secondaryButtonLabel={
                 canChooseBetweenInteractiveMethods && normalizedPrimaryMethod !== 'webauthn'
-                  ? 'Set as primary'
+                  ? t('securityWorkspace.actionCard.setAsPrimary')
                   : undefined
               }
               isSecondaryLoading={pendingAction === 'primary-webauthn'}
@@ -339,20 +354,23 @@ export const SecurityWorkspace = ({
               onClick={() => void runAction('webauthn', onStartWebAuthnSetup)}
             />
             <SecurityActionCard
-              title="Generate recovery codes"
-              description="Keep emergency codes ready in case your phone or key is unavailable."
+              title={t('securityWorkspace.actionCard.recoveryTitle')}
+              description={t('securityWorkspace.actionCard.recoveryDescription')}
               icon={<BadgeCheck size={22} />}
+              statusLabel={t('securityWorkspace.status')}
+              preparingLabel={t('securityWorkspace.preparing')}
+              savingLabel={t('securityWorkspace.saving')}
               statusBadges={(
                 <>
                   <Badge variant={status.recoveryCodesAvailable ? 'success' : status.recoveryCodesConfigured ? 'warning' : 'neutral'}>
                     {recoveryStatusLabel}
                   </Badge>
-                  {status.recoveryCodesSetupPending ? <Badge variant="info">Setup pending</Badge> : null}
+                  {status.recoveryCodesSetupPending ? <Badge variant="info">{t('securityWorkspace.setupPending')}</Badge> : null}
                 </>
               )}
-              statusSummary={getRecoverySummary(status)}
-              buttonLabel={status.recoveryCodesConfigured ? 'Regenerate recovery codes' : 'Generate recovery codes'}
-              helperText="Store these offline or in a password manager so you can still sign in if a device is lost."
+              statusSummary={getRecoverySummary(status, t)}
+              buttonLabel={status.recoveryCodesConfigured ? t('securityWorkspace.actionCard.recoveryButtonRegenerate') : t('securityWorkspace.actionCard.recoveryButtonGenerate')}
+              helperText={t('securityWorkspace.actionCard.recoveryHelper')}
               isLoading={pendingAction === 'recovery'}
               onClick={() => void runAction('recovery', onManageRecoveryCodes)}
             />
@@ -370,10 +388,10 @@ export const SecurityWorkspace = ({
         <div className={containerClassName || undefined}>
           <Card>
             <div className="space-y-4 text-center">
-              <p className="text-lg font-black text-gray-900">Security status unavailable</p>
+              <p className="text-lg font-black text-gray-900">{t('securityWorkspace.loadingTitle')}</p>
               <p className="text-sm text-gray-500">{errorMessage}</p>
               <div className="flex justify-center">
-                <Button onClick={() => void refresh()}>Retry</Button>
+                <Button onClick={() => void refresh()}>{t('securityWorkspace.loadingRetry')}</Button>
               </div>
             </div>
           </Card>
@@ -383,68 +401,75 @@ export const SecurityWorkspace = ({
   );
 };
 
-const resolveSecurityOverview = (status: UserSecurityStatus): { tone: 'success' | 'warning'; title: string; description: string } => {
+const resolveSecurityOverview = (
+  status: UserSecurityStatus,
+  t: (key: string, options?: Record<string, unknown>) => string
+): { tone: 'success' | 'warning'; title: string; description: string } => {
   if (!status.secondFactorMethod) {
     return {
       tone: 'warning',
-      title: 'Your account is not fully protected yet.',
-      description: 'Set up a second sign-in method and then add recovery codes so you do not lose access.'
+      title: t('securityWorkspace.overview.missingAllTitle'),
+      description: t('securityWorkspace.overview.missingAllDescription')
     };
   }
 
   if (!status.hasFallbackSecondFactor) {
     return {
       tone: 'warning',
-      title: 'Your sign-in is protected, but backup access is still missing.',
-      description: 'Add another method or recovery codes so a lost phone or key does not block your sign-in.'
+      title: t('securityWorkspace.overview.missingFallbackTitle'),
+      description: t('securityWorkspace.overview.missingFallbackDescription')
     };
   }
 
   if (!status.recoveryCodesAvailable) {
     return {
       tone: 'warning',
-      title: 'Your main sign-in is set, but recovery is still incomplete.',
-      description: 'Generate recovery codes so you keep an emergency way back in.'
+      title: t('securityWorkspace.overview.missingRecoveryTitle'),
+      description: t('securityWorkspace.overview.missingRecoveryDescription')
     };
   }
 
   return {
     tone: 'success',
-    title: 'Your account is protected and backup access is ready.',
-    description: 'You can still get back in if one device becomes unavailable.'
+    title: t('securityWorkspace.overview.successTitle'),
+    description: t('securityWorkspace.overview.successDescription')
   };
 };
 
 const resolveActionStatusMessage = (
   action: string | null,
-  status: 'success' | 'cancelled' | 'error'
+  status: 'success' | 'cancelled' | 'error',
+  t: (key: string, options?: Record<string, unknown>) => string
 ): string => {
-  const actionLabel = resolveActionLabel(action);
+  const actionLabel = resolveActionLabel(action, t);
 
   if (status === 'success') {
-    return `${actionLabel} completed. The page was refreshed with the latest security status.`;
+    return t('securityWorkspace.actionStatus.success', { label: actionLabel });
   }
 
   if (status === 'cancelled') {
-    return `${actionLabel} was cancelled before completion.`;
+    return t('securityWorkspace.actionStatus.cancelled', { label: actionLabel });
   }
 
-  return `${actionLabel} did not complete successfully. Please try again.`;
+  return t('securityWorkspace.actionStatus.error', { label: actionLabel });
 };
 
-const resolveActionLabel = (action: string | null): string => {
+const resolveActionLabel = (
+  action: string | null,
+  t: (key: string, options?: Record<string, unknown>) => string
+): string => {
   switch (action) {
     case KEYCLOAK_ACTIONS.totp:
-      return 'Authenticator app setup';
+      return t('securityWorkspace.actionLabels.totp');
     case KEYCLOAK_ACTIONS.webauthn:
-      return 'Passkey or security key setup';
+      return t('securityWorkspace.actionLabels.webauthn');
     case KEYCLOAK_ACTIONS.recovery:
-      return 'Recovery codes setup';
+      return t('securityWorkspace.actionLabels.recovery');
     case UPDATE_PASSWORD_ACTION:
     case OPEX_UPDATE_PASSWORD_ACTION:
-      return 'Password update';
+      return t('securityWorkspace.actionLabels.password');
     default:
-      return 'Requested action';
+      return t('securityWorkspace.actionLabels.requestedAction');
   }
 };
 

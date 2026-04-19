@@ -35,8 +35,10 @@ type BadgeProps = PropsWithChildren<{
   variant?: BadgeVariant;
 }>;
 
+type ToggleFilterOption = string | { value: string; label: string };
+
 type ToggleFilterProps = {
-  options: string[];
+  options: ToggleFilterOption[];
   active: string;
   onChange: (value: string) => void;
 };
@@ -130,17 +132,19 @@ export const ToggleFilter = ({ options, active, onChange }: ToggleFilterProps) =
   <div className="flex bg-gray-100 p-1 rounded-lg">
     {options.map((option) => (
       <button
-        key={option}
+        key={typeof option === 'string' ? option : option.value}
         type="button"
         onClick={(event) => {
           event.stopPropagation();
-          onChange(option);
+          onChange(typeof option === 'string' ? option : option.value);
         }}
         className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
-          active === option ? 'bg-white text-opex-dark shadow-sm' : 'text-gray-500 hover:text-gray-900'
+          active === (typeof option === 'string' ? option : option.value)
+            ? 'bg-white text-opex-dark shadow-sm'
+            : 'text-gray-500 hover:text-gray-900'
         }`}
       >
-        {option}
+        {typeof option === 'string' ? option : option.label}
       </button>
     ))}
   </div>

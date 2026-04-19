@@ -1,8 +1,34 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Briefcase, Calculator, Calendar, Car, Check, Coins, Edit2, Gift, Home, Layers, ShoppingBag, TrendingUp, Utensils } from 'lucide-react';
+import {
+  Briefcase,
+  Calculator,
+  Calendar,
+  Car,
+  Check,
+  Coins,
+  Edit2,
+  Gift,
+  Home,
+  Layers,
+  ShoppingBag,
+  TrendingUp,
+  Utensils
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
 import { SubpageShell } from '../../../app/layout';
+import { useAppLanguage } from '../../../i18n';
+import { formatCurrency } from '../../../shared/formatting';
 import { Button, Card } from '../../../shared/ui';
 import { BankAccountRecord, CreateLocalTransactionInput } from '../../../shared/types';
+
+type AddTransactionPageProps = {
+  type: 'INCOME' | 'EXPENSE';
+  onBack: () => void;
+  bankAccounts: BankAccountRecord[];
+  onSubmit: (input: CreateLocalTransactionInput) => Promise<void>;
+  isSaving: boolean;
+};
 
 export const AddTransactionPage = ({
   type,
@@ -10,13 +36,9 @@ export const AddTransactionPage = ({
   bankAccounts,
   onSubmit,
   isSaving
-}: {
-  type: 'INCOME' | 'EXPENSE';
-  onBack: () => void;
-  bankAccounts: BankAccountRecord[];
-  onSubmit: (input: CreateLocalTransactionInput) => Promise<void>;
-  isSaving: boolean;
-}) => {
+}: AddTransactionPageProps) => {
+  const { t } = useTranslation('dashboard');
+  const { language } = useAppLanguage();
   const isIncome = type === 'INCOME';
   const localAccounts = useMemo(
     () => bankAccounts.filter((account) => !account.isSaltedge),
@@ -47,31 +69,31 @@ export const AddTransactionPage = ({
 
   const categories = isIncome
     ? [
-      { name: 'Salary', icon: Briefcase, color: 'bg-green-100 text-green-600' },
-      { name: 'Freelance', icon: Coins, color: 'bg-blue-100 text-blue-600' },
-      { name: 'Gift', icon: Gift, color: 'bg-pink-100 text-pink-600' },
-      { name: 'Investment', icon: TrendingUp, color: 'bg-purple-100 text-purple-600' },
-      { name: 'Other', icon: Layers, color: 'bg-gray-100 text-gray-600' }
-    ]
+        { value: 'Salary', label: t('addTransaction.categories.salary'), icon: Briefcase, color: 'bg-green-100 text-green-600' },
+        { value: 'Freelance', label: t('addTransaction.categories.freelance'), icon: Coins, color: 'bg-blue-100 text-blue-600' },
+        { value: 'Gift', label: t('addTransaction.categories.gift'), icon: Gift, color: 'bg-pink-100 text-pink-600' },
+        { value: 'Investment', label: t('addTransaction.categories.investment'), icon: TrendingUp, color: 'bg-purple-100 text-purple-600' },
+        { value: 'Other', label: t('addTransaction.categories.other'), icon: Layers, color: 'bg-gray-100 text-gray-600' }
+      ]
     : [
-      { name: 'Groceries', icon: ShoppingBag, color: 'bg-yellow-100 text-yellow-600' },
-      { name: 'Food', icon: Utensils, color: 'bg-orange-100 text-orange-600' },
-      { name: 'Transport', icon: Car, color: 'bg-blue-100 text-blue-600' },
-      { name: 'Home', icon: Home, color: 'bg-emerald-100 text-emerald-600' },
-      { name: 'Shopping', icon: ShoppingBag, color: 'bg-purple-100 text-purple-600' },
-      { name: 'Software', icon: Layers, color: 'bg-indigo-100 text-indigo-600' },
-      { name: 'Taxes', icon: Calculator, color: 'bg-red-100 text-red-600' }
-    ];
+        { value: 'Groceries', label: t('addTransaction.categories.groceries'), icon: ShoppingBag, color: 'bg-yellow-100 text-yellow-600' },
+        { value: 'Food', label: t('addTransaction.categories.food'), icon: Utensils, color: 'bg-orange-100 text-orange-600' },
+        { value: 'Transport', label: t('addTransaction.categories.transport'), icon: Car, color: 'bg-blue-100 text-blue-600' },
+        { value: 'Home', label: t('addTransaction.categories.home'), icon: Home, color: 'bg-emerald-100 text-emerald-600' },
+        { value: 'Shopping', label: t('addTransaction.categories.shopping'), icon: ShoppingBag, color: 'bg-purple-100 text-purple-600' },
+        { value: 'Software', label: t('addTransaction.categories.software'), icon: Layers, color: 'bg-indigo-100 text-indigo-600' },
+        { value: 'Taxes', label: t('addTransaction.categories.taxes'), icon: Calculator, color: 'bg-red-100 text-red-600' }
+      ];
 
   const handleConfirm = async () => {
     const parsedAmount = Number.parseFloat(amount);
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      setSubmitError('Please enter a valid amount greater than 0.');
+      setSubmitError(t('addTransaction.amountError'));
       return;
     }
 
     if (!selectedAccountId) {
-      setSubmitError('Please select a bank account before saving.');
+      setSubmitError(t('addTransaction.accountError'));
       return;
     }
 
@@ -87,30 +109,29 @@ export const AddTransactionPage = ({
       });
       onBack();
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : 'Unable to create transaction.');
+      setSubmitError(error instanceof Error ? error.message : t('addTransaction.submitError'));
     }
   };
 
   return (
-    <SubpageShell onBack={onBack} title={isIncome ? 'Add Income' : 'Add Expense'}>
+    <SubpageShell onBack={onBack} title={isIncome ? t('addTransaction.addIncome') : t('addTransaction.addExpense')}>
       <div className="max-w-2xl mx-auto space-y-8 pb-20">
         <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/50 text-center space-y-8">
           <div className="space-y-2">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Transaction Amount</p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{t('addTransaction.amount')}</p>
             <div className="flex items-center justify-center gap-2 group">
-              <span className="text-4xl font-black text-gray-300">€</span>
               <input
                 type="number"
                 value={amount}
-                onChange={e => setAmount(e.target.value)}
-                className={`text-6xl font-black w-full max-w-[280px] bg-transparent border-none focus:ring-0 text-center outline-none ${isIncome ? 'text-green-500' : 'text-opex-dark'}`}
+                onChange={(event) => setAmount(event.target.value)}
+                className={`text-6xl font-black w-full max-w-[320px] bg-transparent border-none focus:ring-0 text-center outline-none ${isIncome ? 'text-green-500' : 'text-opex-dark'}`}
                 placeholder="0.00"
               />
             </div>
           </div>
           <div className="flex justify-center">
             <div className="w-full max-w-2xl space-y-3">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center">Local Account</p>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center">{t('addTransaction.localAccount')}</p>
               {localAccounts.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {localAccounts.map((account) => {
@@ -122,22 +143,17 @@ export const AddTransactionPage = ({
                         key={accountId}
                         onClick={() => setSelectedAccountId(accountId)}
                         className={`text-left rounded-[1.75rem] border p-4 transition-all ${isSelected
-                            ? 'bg-white border-opex-teal/40 shadow-lg shadow-teal-900/10'
-                            : 'bg-gray-50 border-gray-100 hover:border-gray-200'
-                          }`}
+                          ? 'bg-white border-opex-teal/40 shadow-lg shadow-teal-900/10'
+                          : 'bg-gray-50 border-gray-100 hover:border-gray-200'
+                        }`}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div>
                             <p className="text-sm font-black text-gray-900">{account.institutionName}</p>
-                            <p className="mt-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Local Account</p>
+                            <p className="mt-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('addTransaction.localAccountLabel')}</p>
                           </div>
                           <p className="text-sm font-bold text-gray-700">
-                            {new Intl.NumberFormat('it-IT', {
-                              style: 'currency',
-                              currency: account.currency || 'EUR',
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 2
-                            }).format(account.balance ?? 0)}
+                            {formatCurrency(account.balance ?? 0, language, account.currency || 'EUR')}
                           </p>
                         </div>
                       </button>
@@ -146,8 +162,8 @@ export const AddTransactionPage = ({
                 </div>
               ) : (
                 <div className="rounded-[1.75rem] border border-gray-100 bg-gray-50 px-5 py-4 text-center">
-                  <p className="text-sm font-bold text-gray-500">No local account available.</p>
-                  <p className="mt-1 text-xs text-gray-400">Create a manual account before adding income or expenses.</p>
+                  <p className="text-sm font-bold text-gray-500">{t('addTransaction.noLocalAccount')}</p>
+                  <p className="mt-1 text-xs text-gray-400">{t('addTransaction.noLocalAccountDescription')}</p>
                 </div>
               )}
             </div>
@@ -155,25 +171,25 @@ export const AddTransactionPage = ({
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Select Category</h3>
+          <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('addTransaction.selectCategory')}</h3>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
-            {categories.map(cat => (
+            {categories.map((category) => (
               <button
-                key={cat.name}
-                onClick={() => setSelectedCat(cat.name)}
-                className={`flex flex-col items-center gap-3 p-4 rounded-[1.5rem] border-2 transition-all ${selectedCat === cat.name ? 'bg-white border-opex-teal shadow-lg scale-105' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}
+                key={category.value}
+                onClick={() => setSelectedCat(category.value)}
+                className={`flex flex-col items-center gap-3 p-4 rounded-[1.5rem] border-2 transition-all ${selectedCat === category.value ? 'bg-white border-opex-teal shadow-lg scale-105' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}
               >
-                <div className={`w-12 h-12 rounded-2xl ${cat.color} flex items-center justify-center`}>
-                  <cat.icon size={24} />
+                <div className={`w-12 h-12 rounded-2xl ${category.color} flex items-center justify-center`}>
+                  <category.icon size={24} />
                 </div>
-                <span className="text-[10px] font-black text-gray-700 uppercase tracking-tighter">{cat.name}</span>
+                <span className="text-[10px] font-black text-gray-700 uppercase tracking-tighter">{category.label}</span>
               </button>
             ))}
           </div>
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Transaction Details</h3>
+          <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('addTransaction.details')}</h3>
           <Card>
             <div className="space-y-6">
               <div className="flex items-center gap-3">
@@ -181,17 +197,17 @@ export const AddTransactionPage = ({
                 <input
                   type="date"
                   value={date}
-                  onChange={e => setDate(e.target.value)}
+                  onChange={(event) => setDate(event.target.value)}
                   className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold text-gray-900 outline-none"
                 />
               </div>
-              <div className="h-px bg-gray-50 w-full"></div>
+              <div className="h-px bg-gray-50 w-full" />
               <div className="flex items-center gap-3">
                 <Edit2 size={20} className="text-gray-400" />
                 <input
-                  placeholder="Add a note or description..."
+                  placeholder={t('addTransaction.notePlaceholder')}
                   value={note}
-                  onChange={e => setNote(e.target.value)}
+                  onChange={(event) => setNote(event.target.value)}
                   className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold text-gray-900 outline-none"
                 />
               </div>
@@ -201,7 +217,7 @@ export const AddTransactionPage = ({
 
         <div className="pt-6">
           <Button fullWidth size="lg" icon={Check} onClick={() => void handleConfirm()} disabled={isSaving || localAccounts.length === 0}>
-            {isSaving ? 'Saving...' : 'Confirm Transaction'}
+            {isSaving ? t('addTransaction.saving') : t('addTransaction.confirm')}
           </Button>
           {submitError && <p className="text-sm text-red-600 font-medium mt-3">{submitError}</p>}
         </div>
@@ -209,6 +225,3 @@ export const AddTransactionPage = ({
     </SubpageShell>
   );
 };
-
-
-

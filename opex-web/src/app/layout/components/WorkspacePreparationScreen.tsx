@@ -1,4 +1,5 @@
-import opesLargeLogo from '../../../shared/assets/Opes_large.png';
+import { useTranslation } from 'react-i18next';
+import opesLargeLogo from '../../../shared/assets/Opes_large_dark.png';
 
 const LoadingDot = ({ delayMs }: { delayMs: number }) => (
   <span
@@ -7,8 +8,11 @@ const LoadingDot = ({ delayMs }: { delayMs: number }) => (
   />
 );
 
-export const WorkspacePreparationScreen = () => (
-  <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(17,183,165,0.12),_transparent_38%),linear-gradient(180deg,_#fbfcfd_0%,_#f4f7f8_100%)]">
+export const WorkspacePreparationScreen = () => {
+  const { t } = useTranslation('app');
+
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(17,183,165,0.12),_transparent_38%),linear-gradient(180deg,_#fbfcfd_0%,_#f4f7f8_100%)]">
     <div className="absolute inset-0 pointer-events-none">
       <div className="absolute left-1/2 top-[16%] h-64 w-64 -translate-x-1/2 rounded-full bg-opex-teal/10 blur-3xl" />
       <div className="absolute bottom-[12%] right-[14%] h-56 w-56 rounded-full bg-opex-dark/5 blur-3xl" />
@@ -23,14 +27,12 @@ export const WorkspacePreparationScreen = () => (
           </div>
 
           <div className="space-y-3">
-            <p className="text-[11px] font-black uppercase tracking-[0.38em] text-gray-400">
-              Opex Workspace
-            </p>
+            <p className="text-[11px] font-black uppercase tracking-[0.38em] text-gray-400">{t('workspacePreparation.badge')}</p>
             <h1 className="text-3xl font-black tracking-tight text-opex-dark sm:text-4xl">
-              Preparing your workspace
+              {t('workspacePreparation.title')}
             </h1>
             <p className="mx-auto max-w-md text-sm leading-relaxed text-gray-500 sm:text-base">
-              We are syncing your profile, security status and latest banking data before the app opens.
+              {t('workspacePreparation.description')}
             </p>
           </div>
 
@@ -42,5 +44,6 @@ export const WorkspacePreparationScreen = () => (
         </div>
       </div>
     </div>
-  </div>
-);
+    </div>
+  );
+};

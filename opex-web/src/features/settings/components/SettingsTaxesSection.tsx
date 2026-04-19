@@ -1,4 +1,5 @@
 import { Landmark } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '../../../shared/ui';
 import { UserProfile } from '../../../shared/types';
 import { TaxProfileSetupForm } from '../../tax-profile';
@@ -11,9 +12,12 @@ type SettingsTaxesSectionProps = {
 export const SettingsTaxesSection = ({
   userProfile,
   onSaveProfile
-}: SettingsTaxesSectionProps) => (
-  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-    <Card title="Taxes">
+}: SettingsTaxesSectionProps) => {
+  const { t } = useTranslation('settings');
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <Card title={t('taxesSection.title')}>
       <div className="space-y-6">
         <div className="rounded-[2rem] border border-gray-100 bg-gradient-to-br from-white via-gray-50 to-amber-50/60 p-6 md:p-8">
           <div className="flex items-start gap-4">
@@ -21,12 +25,12 @@ export const SettingsTaxesSection = ({
               <Landmark size={22} />
             </div>
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-gray-400">Tax Profile</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-gray-400">{t('taxesSection.badge')}</p>
               <h2 className="mt-1 text-2xl font-black tracking-tight text-gray-900">
-                Configure the details behind your tax workspace
+                {t('taxesSection.heroTitle')}
               </h2>
               <p className="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-gray-500">
-                These values are used to unlock the Taxes area and drive tax estimates, filing cadence and compliance guidance.
+                {t('taxesSection.heroDescription')}
               </p>
             </div>
           </div>
@@ -36,13 +40,14 @@ export const SettingsTaxesSection = ({
           <TaxProfileSetupForm
             userProfile={userProfile}
             onSave={onSaveProfile}
-            title="Tax profile"
-            description="Choose your fiscal residence, regime and activity type. You can update these values here whenever your situation changes."
-            saveLabel="Save tax profile"
-            footerNote="These settings are used by the Taxes section and can be updated any time."
+            title={t('taxesSection.formTitle')}
+            description={t('taxesSection.formDescription')}
+            saveLabel={t('taxesSection.saveLabel')}
+            footerNote={t('taxesSection.footerNote')}
           />
         </div>
       </div>
-    </Card>
-  </div>
-);
+      </Card>
+    </div>
+  );
+};

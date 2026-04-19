@@ -1,6 +1,12 @@
-export const formatPeriodLabel = (date: Date, period: 'month' | 'quarter' | 'year'): string => {
+import { formatMonthLabelForLanguage } from '../../i18n/formatting';
+
+export const formatPeriodLabel = (
+  date: Date,
+  period: 'month' | 'quarter' | 'year',
+  language: string
+): string => {
   if (period === 'month') {
-    return new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date);
+    return formatMonthLabelForLanguage(language, date);
   }
   if (period === 'quarter') {
     return `Q${Math.floor(date.getMonth() / 3) + 1}`;

@@ -1,4 +1,6 @@
 import { Building2, ChevronRight, Landmark, Loader2, Wallet } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
 import { ProviderConnectionCard } from '../types';
 import {
   formatBankBalance,
@@ -26,13 +28,14 @@ export const BankConnectionListView = ({
   onAddManualAccount,
   onOpenConnectionDetail
 }: BankConnectionListViewProps) => {
+  const { t } = useTranslation('settings');
   const hasConnections = connections.length > 0;
 
   return (
     <div className="space-y-8 pb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="space-y-4">
         <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400 px-1">
-          Connection Actions
+          {t('bankingList.connectionActions')}
         </p>
         <div className="grid gap-3 xl:grid-cols-2">
           <button
@@ -47,13 +50,13 @@ export const BankConnectionListView = ({
                   <Landmark size={20} />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-gray-900">Connect with Open Banking</p>
+                  <p className="text-sm font-black text-gray-900">{t('bankingList.connectWithOpenBanking')}</p>
                   <p className="mt-1 text-sm font-medium leading-relaxed text-gray-500">
                     {isConnectingOpenBank
-                      ? 'Preparing the Salt Edge consent flow...'
+                      ? t('bankingList.preparingConsent')
                       : hasConnections
-                        ? 'Link another bank and keep balances or transactions synced automatically.'
-                        : 'Securely connect your first bank through the Salt Edge authorization flow.'}
+                        ? t('bankingList.addAnotherBank')
+                        : t('bankingList.connectFirstBank')}
                   </p>
                 </div>
               </div>
@@ -74,9 +77,9 @@ export const BankConnectionListView = ({
                   <Wallet size={20} />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-gray-900">Add manual account</p>
+                  <p className="text-sm font-black text-gray-900">{t('bankingList.addManualAccount')}</p>
                   <p className="mt-1 text-sm font-medium leading-relaxed text-gray-500">
-                    Track a local account inside Opex without creating a live Open Banking connection.
+                    {t('bankingList.addManualDescription')}
                   </p>
                 </div>
               </div>
@@ -94,10 +97,10 @@ export const BankConnectionListView = ({
       <div>
         <div className="mb-3 flex items-center justify-between gap-3 px-1">
           <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">
-            Current Connections
+            {t('bankingList.currentConnections')}
           </p>
           <p className="text-xs font-bold text-slate-400">
-            {connections.length} {connections.length === 1 ? 'source' : 'sources'}
+            {t('bankingList.sources', { count: connections.length })}
           </p>
         </div>
         {connections.length === 0 ? (
@@ -105,9 +108,9 @@ export const BankConnectionListView = ({
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-gray-200">
               <Building2 size={22} className="text-gray-400" />
             </div>
-            <p className="mt-4 text-sm font-black text-gray-700">No banking sources yet</p>
+            <p className="mt-4 text-sm font-black text-gray-700">{t('bankingList.noSourcesTitle')}</p>
             <p className="mt-1 text-sm font-medium leading-relaxed text-gray-500">
-              Start with Open Banking for live imports or create a manual account for local tracking.
+              {t('bankingList.noSourcesDescription')}
             </p>
           </div>
         ) : (
@@ -137,9 +140,9 @@ export const BankConnectionListView = ({
                         )}
                       </div>
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
-                        {conn.isManagedConnection ? 'Open Banking - Salt Edge' : 'Local Account'}
+                        {conn.isManagedConnection ? t('bankingList.liveSource') : t('bankingList.localSource')}
                         {' - '}
-                        {conn.accountCount} {conn.accountCount === 1 ? 'account' : 'accounts'}
+                        {t('bankingList.account', { count: conn.accountCount })}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">

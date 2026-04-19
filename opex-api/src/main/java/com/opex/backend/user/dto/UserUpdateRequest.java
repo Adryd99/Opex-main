@@ -16,6 +16,7 @@ public class UserUpdateRequest {
     private LocalDate dob;
     private String residence;
     private String occupation;
+    private String preferredLanguage;
     private String vatFrequency;
     private Boolean gdprAccepted;
     private String fiscalResidence;

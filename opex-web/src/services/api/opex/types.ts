@@ -5,6 +5,7 @@ export interface UserProfilePatchPayload {
   lastName: string;
   residence: string;
   occupation: string | null;
+  preferredLanguage: string | null;
   vatFrequency: string;
   gdprAccepted: boolean;
   fiscalResidence: string | null;

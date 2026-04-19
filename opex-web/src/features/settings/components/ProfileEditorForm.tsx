@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BriefcaseBusiness, CalendarDays, Camera, Check, Lock, UserRound, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Badge, Button } from '../../../shared/ui';
 import { UserProfile } from '../../../shared/types';
 import { getAdultBirthDateMax, isAdultBirthDate } from '../support/profileCompletion';
@@ -20,6 +21,7 @@ export const ProfileEditorForm = ({
   onSaved,
   saveLabel = 'Save Changes'
 }: ProfileEditorFormProps) => {
+  const { t } = useTranslation('settings');
   const [displayName, setDisplayName] = useState(userProfile.displayName ?? userProfile.name);
   const [firstName, setFirstName] = useState(userProfile.firstName ?? '');
   const [lastName, setLastName] = useState(userProfile.lastName ?? '');
@@ -32,6 +34,7 @@ export const ProfileEditorForm = ({
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
   const maxBirthDate = getAdultBirthDateMax();
   const isGoogleManagedIdentity = userProfile.identityProvider?.toLowerCase() === 'google';
+  const resolvedSaveLabel = saveLabel === 'Save Changes' ? t('profileEditor.saveChanges') : saveLabel;
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -42,7 +45,7 @@ export const ProfileEditorForm = ({
       setLogo(base64);
       setSaveError(null);
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Could not process the image. Try a different file.');
+      setSaveError(error instanceof Error ? error.message : t('profileEditor.imageProcessingError'));
     }
 
     event.target.value = '';
@@ -50,7 +53,7 @@ export const ProfileEditorForm = ({
 
   const handleSave = async () => {
     if (dob && !isAdultBirthDate(dob)) {
-      setSaveError('Birth date must belong to an adult user (18+).');
+      setSaveError(t('profileEditor.adultBirthDateError'));
       return;
     }
 
@@ -72,7 +75,7 @@ export const ProfileEditorForm = ({
       await onSaveProfile(nextProfile);
       onSaved?.();
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Unable to save profile changes.');
+      setSaveError(error instanceof Error ? error.message : t('profileEditor.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -104,7 +107,7 @@ export const ProfileEditorForm = ({
                   type="button"
                   onClick={() => setLogo(null)}
                   className="absolute -top-2 -right-2 bg-white border border-gray-200 text-gray-400 hover:text-red-500 p-1.5 rounded-xl shadow-md hover:scale-110 active:scale-95 transition-all"
-                  title="Remove photo"
+                  title={t('profileEditor.removePhoto')}
                 >
                   <X size={14} />
                 </button>
@@ -120,23 +123,23 @@ export const ProfileEditorForm = ({
 
             <div className="space-y-2 text-center md:text-left">
               <div className="space-y-1">
-                <p className="text-xl font-black tracking-tight text-gray-900">Edit your profile details</p>
+                <p className="text-xl font-black tracking-tight text-gray-900">{t('profileEditor.editProfileDetails')}</p>
                 <p className="text-sm font-medium text-gray-500">
-                  Keep your workspace information aligned with your Keycloak identity and your local Opex profile.
+                  {t('profileEditor.editProfileDescription')}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                <Badge variant="info">Inline editing enabled</Badge>
+                <Badge variant="info">{t('profileEditor.inlineEditingEnabled')}</Badge>
                 {isGoogleManagedIdentity && (
-                  <Badge variant="neutral">Google-managed identity</Badge>
+                  <Badge variant="neutral">{t('profileEditor.googleManagedIdentity')}</Badge>
                 )}
               </div>
             </div>
           </div>
 
           <div className="rounded-2xl bg-white/80 border border-gray-100 px-4 py-3 text-sm text-gray-500 shadow-sm">
-            <p className="font-semibold text-gray-700">Profile photo</p>
-            <p>Upload a new image or remove the current one directly from this card.</p>
+            <p className="font-semibold text-gray-700">{t('profileEditor.profilePhoto')}</p>
+            <p>{t('profileEditor.profilePhotoDescription')}</p>
           </div>
         </div>
       </div>
@@ -148,24 +151,24 @@ export const ProfileEditorForm = ({
               <UserRound size={18} />
             </div>
             <div>
-              <p className="text-sm font-black text-gray-900">Identity</p>
-              <p className="text-xs font-medium text-gray-500">These are the core details shown across your Opex workspace.</p>
+              <p className="text-sm font-black text-gray-900">{t('profileEditor.identity')}</p>
+              <p className="text-xs font-medium text-gray-500">{t('profileEditor.identityDescription')}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">First Name</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('profile.firstName')}</label>
               <input value={firstName} onChange={event => setFirstName(event.target.value)} disabled={isGoogleManagedIdentity} className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none disabled:text-gray-400 disabled:cursor-not-allowed disabled:bg-gray-100" />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Last Name</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('profile.lastName')}</label>
               <input value={lastName} onChange={event => setLastName(event.target.value)} disabled={isGoogleManagedIdentity} className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none disabled:text-gray-400 disabled:cursor-not-allowed disabled:bg-gray-100" />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Email</label>
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('profile.email')}</label>
             <input value={email} onChange={event => setEmail(event.target.value)} disabled={isGoogleManagedIdentity} className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none disabled:text-gray-400 disabled:cursor-not-allowed disabled:bg-gray-100" />
           </div>
 
@@ -173,7 +176,7 @@ export const ProfileEditorForm = ({
             <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 flex items-start gap-3">
               <Lock size={16} className="mt-0.5 text-amber-600 shrink-0" />
               <p className="text-sm font-medium text-amber-800">
-                Email, first name and last name are managed by your Google account and cannot be changed here.
+                {t('profileEditor.emailManagedByGoogle')}
               </p>
             </div>
           )}
@@ -185,13 +188,13 @@ export const ProfileEditorForm = ({
               <CalendarDays size={18} />
             </div>
             <div>
-              <p className="text-sm font-black text-gray-900">Personal details</p>
-              <p className="text-xs font-medium text-gray-500">Keep the profile details here and manage your tax profile from Settings &gt; Taxes.</p>
+              <p className="text-sm font-black text-gray-900">{t('profileEditor.personalDetails')}</p>
+              <p className="text-xs font-medium text-gray-500">{t('profileEditor.personalDetailsDescription')}</p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Display Name</label>
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('profileEditor.displayName')}</label>
             <input
               value={displayName}
               onChange={event => setDisplayName(event.target.value)}
@@ -201,14 +204,14 @@ export const ProfileEditorForm = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Birth Date</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('profileEditor.birthDate')}</label>
               <div className="relative">
                 <CalendarDays size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input type="date" value={dob} max={maxBirthDate} onChange={event => setDob(event.target.value)} className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none" />
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Occupation</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('profileEditor.occupation')}</label>
               <div className="relative">
                 <BriefcaseBusiness size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input value={occupation} onChange={event => setOccupation(event.target.value)} className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none" />
@@ -223,11 +226,11 @@ export const ProfileEditorForm = ({
         <div className="flex flex-col-reverse sm:flex-row gap-3">
           {onCancel && (
             <Button fullWidth variant="secondary" size="lg" onClick={onCancel} disabled={isSaving}>
-              Cancel
+              {t('profileEditor.cancel')}
             </Button>
           )}
           <Button fullWidth size="lg" icon={Check} onClick={() => void handleSave()} disabled={isSaving}>
-            {isSaving ? 'Saving...' : saveLabel}
+            {isSaving ? t('profileEditor.savingChanges') : resolvedSaveLabel}
           </Button>
         </div>
         {saveError && <p className="text-sm text-red-600 font-medium">{saveError}</p>}

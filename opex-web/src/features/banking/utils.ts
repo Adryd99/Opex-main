@@ -1,3 +1,5 @@
+import { DEFAULT_LANGUAGE } from '../../i18n/constants';
+import { formatCurrencyForLanguage } from '../../i18n/formatting';
 import { BankAccountRecord, TaxBufferProviderItem } from '../../shared/types';
 import { AccountCategory, ProviderConnectionCard, ProviderConnectionGroup } from './types';
 
@@ -138,13 +140,15 @@ export const groupProviderConnections = (
     .sort((left, right) => left.providerName.localeCompare(right.providerName));
 };
 
-export const formatBankBalance = (amount: number, currency?: string): string =>
-  new Intl.NumberFormat('it-IT', {
-    style: 'currency',
-    currency: currency || 'EUR',
+export const formatBankBalance = (
+  amount: number,
+  currency?: string,
+  language: string = DEFAULT_LANGUAGE
+): string =>
+  formatCurrencyForLanguage(language, amount, currency || 'EUR', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2
-  }).format(amount);
+  });
 
 export const resolveConnectionStatusLabel = (status: string | null): string | null => {
   const normalized = (status ?? '').trim();

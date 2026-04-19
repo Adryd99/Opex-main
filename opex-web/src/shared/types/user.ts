@@ -9,6 +9,7 @@ export interface UserProfile {
   vatFrequency: string;
   logo: string | null;
   gdprAccepted: boolean;
+  preferredLanguage?: string | null;
   fiscalResidence?: string | null;
   taxRegime?: string | null;
   activityType?: string | null;

@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -42,6 +43,7 @@ public class UserProfileUpdateService {
         String normalizedDisplayName = trimToNull(request.getDisplayName());
         String normalizedResidence = trimToNull(request.getResidence());
         String normalizedOccupation = trimToNull(request.getOccupation());
+        String normalizedPreferredLanguage = normalizePreferredLanguage(request.getPreferredLanguage());
         boolean emailChanged = request.getEmail() != null
                 && !Objects.equals(normalizeForComparison(user.getEmail()), normalizeForComparison(request.getEmail()));
 
@@ -76,6 +78,7 @@ public class UserProfileUpdateService {
             user.setDisplayName(normalizedDisplayName);
         }
 
+        userProfileValidator.validatePreferredLanguage(normalizedPreferredLanguage);
         if (updateKeycloak) {
             UserRepresentation keycloakUser = keycloakUserGateway.loadUser(keycloakId);
             Map<String, java.util.List<String>> keycloakAttributes = KeycloakUserAttributes.copyAttributes(keycloakUser);
@@ -127,6 +130,7 @@ public class UserProfileUpdateService {
             user.setOccupation(normalizedOccupation);
             user.setAnswer3(normalizedOccupation);
         }
+        if (request.getPreferredLanguage() != null) user.setPreferredLanguage(normalizedPreferredLanguage);
         if (request.getVatFrequency() != null) user.setVatFrequency(request.getVatFrequency());
         if (request.getGdprAccepted() != null) user.setGdprAccepted(request.getGdprAccepted());
         if (request.getFiscalResidence() != null) user.setFiscalResidence(request.getFiscalResidence());
@@ -154,5 +158,10 @@ public class UserProfileUpdateService {
         if (request.getNotifyMonthlyAnalysis() != null) user.setNotifyMonthlyAnalysis(request.getNotifyMonthlyAnalysis());
 
         return userRepository.save(user);
+    }
+
+    private String normalizePreferredLanguage(String preferredLanguage) {
+        String normalized = trimToNull(preferredLanguage);
+        return normalized == null ? null : normalized.toLowerCase(Locale.ROOT);
     }
 }

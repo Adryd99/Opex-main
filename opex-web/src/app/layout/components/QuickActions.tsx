@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-import { QUICK_ACTION_ITEMS } from '../support';
+import { buildQuickActionItems } from '../support';
 
 type QuickActionsProps = {
   compact?: boolean;
@@ -9,8 +10,10 @@ type QuickActionsProps = {
 };
 
 export const QuickActions = ({ compact = false, onNavigate }: QuickActionsProps) => {
+  const { t } = useTranslation('app');
   const [showQuickActions, setShowQuickActions] = useState(false);
   const quickActionsRef = useRef<HTMLDivElement>(null);
+  const quickActionItems = buildQuickActionItems(t);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -36,9 +39,9 @@ export const QuickActions = ({ compact = false, onNavigate }: QuickActionsProps)
       {showQuickActions && (
         <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
           <div className="px-4 py-2 border-b border-gray-50 mb-1">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Quick Actions</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('quickActions.title')}</p>
           </div>
-          {QUICK_ACTION_ITEMS.map((item) => (
+          {quickActionItems.map((item) => (
             <button
               key={item.id}
               type="button"

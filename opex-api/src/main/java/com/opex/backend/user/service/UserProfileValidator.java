@@ -6,10 +6,13 @@ import com.opex.backend.user.service.support.UserValueSupport;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.Set;
 import java.util.Objects;
 
 @Component
 public class UserProfileValidator {
+
+    private static final Set<String> SUPPORTED_LANGUAGES = Set.of("it", "en");
 
     public void validateAdultBirthDate(LocalDate birthDate) {
         if (birthDate == null) {
@@ -39,6 +42,16 @@ public class UserProfileValidator {
         if (request.getLastName() != null
                 && !Objects.equals(UserValueSupport.normalizeForComparison(user.getLastName()), UserValueSupport.normalizeForComparison(request.getLastName()))) {
             throw new IllegalArgumentException("Google-managed last name cannot be changed here.");
+        }
+    }
+
+    public void validatePreferredLanguage(String preferredLanguage) {
+        if (preferredLanguage == null) {
+            return;
+        }
+
+        if (!SUPPORTED_LANGUAGES.contains(preferredLanguage)) {
+            throw new IllegalArgumentException("Preferred language must be one of: it, en.");
         }
     }
 }

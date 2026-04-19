@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { LegalDocumentModal } from '../../legal';
 import type { LegalDocumentSlug } from '../../../shared/legal';
@@ -32,6 +33,7 @@ export const OpenBankingConsentModal = ({
   onAcceptSaltEdgeTransferChange,
   onSubmit
 }: OpenBankingConsentModalProps) => {
+  const { t } = useTranslation('settings');
   const [previewSlug, setPreviewSlug] = useState<LegalDocumentSlug | null>(null);
 
   if (!isOpen) {
@@ -43,10 +45,10 @@ export const OpenBankingConsentModal = ({
       <div className="w-full max-w-2xl rounded-[2.25rem] border border-white/70 bg-white/95 p-6 shadow-[0_32px_80px_-32px_rgba(15,23,42,0.45)] md:p-8">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Open Banking Notice</p>
-            <h3 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Review the banking data notice</h3>
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">{t('bankingConsent.badge')}</p>
+            <h3 className="mt-3 text-3xl font-black tracking-tight text-slate-900">{t('bankingConsent.title')}</h3>
             <p className="mt-3 text-sm font-medium leading-relaxed text-slate-500">
-              Before Opex redirects you to Salt Edge, confirm that you understand what banking data will be imported and why.
+              {t('bankingConsent.description')}
             </p>
           </div>
           <button
@@ -61,15 +63,15 @@ export const OpenBankingConsentModal = ({
 
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-            <p className="text-sm font-black text-slate-900">Data imported</p>
+            <p className="text-sm font-black text-slate-900">{t('bankingConsent.dataImported')}</p>
             <p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">
-              Opex may import account identifiers, provider metadata, balances and transactions for the connected bank.
+              {t('bankingConsent.dataImportedDescription')}
             </p>
           </div>
           <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-            <p className="text-sm font-black text-slate-900">Third-party processing</p>
+            <p className="text-sm font-black text-slate-900">{t('bankingConsent.thirdPartyProcessing')}</p>
             <p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">
-              Salt Edge handles the authorization redirect and connection workflow with your bank.
+              {t('bankingConsent.thirdPartyProcessingDescription')}
             </p>
           </div>
         </div>
@@ -85,22 +87,20 @@ export const OpenBankingConsentModal = ({
             />
             <span>
               <span className="block text-base font-black text-slate-900">
-                I accept the Open Banking Notice v{openBankingNoticeVersion || 'current'}.
+                {t('bankingConsent.acceptNotice', { version: openBankingNoticeVersion || 'current' })}
               </span>
               <span className="mt-1 block text-sm font-medium leading-relaxed text-slate-500">
-                I understand how Opex will use connected banking data inside the product.
+                {t('bankingConsent.acceptNoticeDescription')}
               </span>
               <span className="mt-2 block text-sm font-medium leading-relaxed text-slate-500">
-                Read the{' '}
                 <button
                   type="button"
                   onClick={() => setPreviewSlug('open-banking')}
                   className="font-black text-blue-600 transition-colors hover:text-blue-700 hover:underline"
                   disabled={isSubmittingOpenBankingConsent || !legalPublicInfo}
                 >
-                  Open Banking Notice
+                  {t('bankingConsent.readNotice')}
                 </button>
-                .
               </span>
             </span>
           </label>
@@ -114,17 +114,17 @@ export const OpenBankingConsentModal = ({
             />
             <span>
               <span className="block text-base font-black text-slate-900">
-                I understand that Opex will redirect me to Salt Edge to complete the bank connection setup.
+                {t('bankingConsent.saltEdgeRedirect')}
               </span>
               <span className="mt-1 block text-sm font-medium leading-relaxed text-slate-500">
-                Open Banking is optional overall. You can keep using manual accounts if you prefer not to connect a bank.
+                {t('bankingConsent.saltEdgeRedirectDescription')}
               </span>
             </span>
           </label>
         </div>
 
         <div className="mt-6 rounded-[1.5rem] bg-slate-50 px-5 py-4 text-sm font-medium leading-relaxed text-slate-500">
-          Privacy Notice and Terms of Service were already accepted during onboarding and do not need to be accepted again here.
+          {t('bankingConsent.legalAlreadyAccepted')}
         </div>
 
         {openBankingConsentError && (
@@ -133,10 +133,10 @@ export const OpenBankingConsentModal = ({
 
         <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button type="button" onClick={onClose} className="inline-flex h-12 items-center justify-center rounded-[1rem] border border-slate-200 bg-white px-5 text-sm font-black text-slate-500 transition-colors hover:border-slate-300 hover:text-opex-dark" disabled={isSubmittingOpenBankingConsent}>
-            Cancel
+            {t('bankingConsent.cancel')}
           </button>
           <button type="button" onClick={onSubmit} className="inline-flex h-12 items-center justify-center rounded-[1rem] bg-opex-dark px-5 text-sm font-black text-white disabled:opacity-60" disabled={isSubmittingOpenBankingConsent}>
-            {isSubmittingOpenBankingConsent ? 'Opening...' : 'Continue to Salt Edge'}
+            {isSubmittingOpenBankingConsent ? t('bankingConsent.opening') : t('bankingConsent.continueToSaltEdge')}
           </button>
         </div>
       </div>

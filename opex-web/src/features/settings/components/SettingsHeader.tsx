@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { AccountSelector, QuickActions } from '../../../app/layout';
 
 type SettingsHeaderProps = {
@@ -5,11 +6,13 @@ type SettingsHeaderProps = {
 };
 
 export const SettingsHeader = ({ onNavigate }: SettingsHeaderProps) => {
+  const { t } = useTranslation('settings');
+
   return (
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2 relative z-20">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
-        <p className="text-sm text-gray-500">Manage your account, preferences, and personal data.</p>
+        <h2 className="text-2xl font-bold text-gray-900">{t('header.title')}</h2>
+        <p className="text-sm text-gray-500">{t('header.description')}</p>
       </div>
       <div className="flex items-center gap-3">
         <AccountSelector />

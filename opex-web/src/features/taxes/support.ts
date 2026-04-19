@@ -1,4 +1,6 @@
 import { TaxBufferDashboardResponse } from '../../shared/types';
+import { DEFAULT_LANGUAGE } from '../../i18n/constants';
+import { formatCurrencyForLanguage, formatDateForLanguage } from '../../i18n/formatting';
 export {
   TAX_ACTIVITY_OPTIONS,
   TAX_REGIME_OPTIONS,
@@ -32,19 +34,24 @@ const DEFAULT_VAT = {
   vatLiability: 0
 };
 
-export const formatTaxMoney = (value: number, currency = TAX_CURRENCY): string =>
-  new Intl.NumberFormat('it-IT', {
-    style: 'currency',
-    currency,
+export const formatTaxMoney = (
+  value: number,
+  currency = TAX_CURRENCY,
+  language: string = DEFAULT_LANGUAGE
+): string =>
+  formatCurrencyForLanguage(language, value, currency, {
     maximumFractionDigits: 0
-  }).format(value);
+  });
 
-export const formatTaxDate = (value: string | null | undefined): string => {
+export const formatTaxDate = (
+  value: string | null | undefined,
+  language: string = DEFAULT_LANGUAGE
+): string => {
   if (!value) {
     return '-';
   }
 
-  return new Date(`${value}T12:00:00`).toLocaleDateString('it-IT', {
+  return formatDateForLanguage(language, new Date(`${value}T12:00:00`), {
     day: '2-digit',
     month: 'short',
     year: 'numeric'
@@ -60,7 +67,10 @@ export const getTaxIncomeSocial = (taxBufferDashboard: TaxBufferDashboardRespons
 export const getTaxVat = (taxBufferDashboard: TaxBufferDashboardResponse | null) =>
   taxBufferDashboard?.vat ?? DEFAULT_VAT;
 
-export const getTaxLiabilities = (taxBufferDashboard: TaxBufferDashboardResponse | null) => {
+export const getTaxLiabilities = (
+  taxBufferDashboard: TaxBufferDashboardResponse | null,
+  t?: (key: string) => string
+) => {
   const liabilities = taxBufferDashboard?.liabilitySplit ?? [];
 
   if (liabilities.length > 0) {
@@ -71,9 +81,9 @@ export const getTaxLiabilities = (taxBufferDashboard: TaxBufferDashboardResponse
   const vat = getTaxVat(taxBufferDashboard);
 
   return [
-    { label: 'Income Tax', amount: incomeSocial.incomeTax, percentage: 0 },
-    { label: 'Social Contributions', amount: incomeSocial.socialContributions, percentage: 0 },
-    { label: 'VAT', amount: vat.vatLiability, percentage: 0 }
+    { label: t ? t('support.incomeTax') : 'Income Tax', amount: incomeSocial.incomeTax, percentage: 0 },
+    { label: t ? t('support.socialContributions') : 'Social Contributions', amount: incomeSocial.socialContributions, percentage: 0 },
+    { label: t ? t('support.vat') : 'VAT', amount: vat.vatLiability, percentage: 0 }
   ];
 };
 

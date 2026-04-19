@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAppLanguage } from '../../i18n';
+import { i18n as appI18n } from '../../i18n/config';
+import { normalizeLanguage, isSupportedLanguage } from '../../i18n/constants';
 
 import {
   BankAccountRecord,
@@ -43,6 +46,7 @@ type UseAppDataArgs = {
 };
 
 export const useAppData = ({ isAuthenticated, setErrorMessage }: UseAppDataArgs) => {
+  const { language } = useAppLanguage();
   const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
   const [bankAccounts, setBankAccounts] = useState<BankAccountRecord[]>([]);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
@@ -133,6 +137,11 @@ export const useAppData = ({ isAuthenticated, setErrorMessage }: UseAppDataArgs)
           opexApi.getLegalPublicInfo()
         ]);
         setLegalPublicInfo(nextLegalPublicInfo);
+        const nextPreferredLanguage = syncedProfile.preferredLanguage;
+        const currentLanguage = normalizeLanguage(appI18n.resolvedLanguage ?? appI18n.language);
+        if (isSupportedLanguage(nextPreferredLanguage) && normalizeLanguage(nextPreferredLanguage) !== currentLanguage) {
+          await appI18n.changeLanguage(normalizeLanguage(nextPreferredLanguage));
+        }
         setUserProfile((current) =>
           syncStoredLegalConsents(
             {
@@ -235,8 +244,8 @@ export const useAppData = ({ isAuthenticated, setErrorMessage }: UseAppDataArgs)
   }, [bankAccounts, doesAccountMatchSelectedProvider, selectedProviderName, visibleTransactions]);
 
   const timeAggregatedSummary = useMemo<TimeAggregatedRecord>(
-    () => buildTimeAggregatedSummary(visibleTransactions),
-    [visibleTransactions]
+    () => buildTimeAggregatedSummary(visibleTransactions, language),
+    [language, visibleTransactions]
   );
 
   return {

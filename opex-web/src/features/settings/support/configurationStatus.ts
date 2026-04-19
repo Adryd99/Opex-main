@@ -3,6 +3,7 @@ import { getMissingTaxProfileFields, hasTaxProfileConfigured } from '../../tax-p
 import { ConsentAuditItem, SettingsChecklistItem, VerificationEmailActionState } from '../types';
 import { formatConsentTimestamp } from '../utils';
 import { hasCompleteProfileDetails } from './profileCompletion';
+type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
 const isCurrentLegalVersion = (
   currentVersion: string | null | undefined,
@@ -17,26 +18,30 @@ export const hasCurrentRequiredConsents = (
   && isCurrentLegalVersion(legalPublicInfo?.privacyPolicy.version, userProfile.privacyPolicyVersion)
   && isCurrentLegalVersion(legalPublicInfo?.termsOfService.version, userProfile.termsOfServiceVersion);
 
-export const buildConsentAuditItems = (userProfile: UserProfile): ConsentAuditItem[] => [
+export const buildConsentAuditItems = (
+  userProfile: UserProfile,
+  language: string,
+  t: TranslateFn
+): ConsentAuditItem[] => [
   {
-    label: 'Privacy Notice',
-    version: userProfile.privacyPolicyVersion ?? 'Not accepted',
-    acceptedAt: formatConsentTimestamp(userProfile.privacyAcceptedAt)
+    label: t('privacy.privacyNotice'),
+    version: userProfile.privacyPolicyVersion ?? t('profile.missing'),
+    acceptedAt: formatConsentTimestamp(userProfile.privacyAcceptedAt, language, t('privacy.notRecorded'))
   },
   {
-    label: 'Terms of Service',
-    version: userProfile.termsOfServiceVersion ?? 'Not accepted',
-    acceptedAt: formatConsentTimestamp(userProfile.termsAcceptedAt)
+    label: t('privacy.termsOfService'),
+    version: userProfile.termsOfServiceVersion ?? t('profile.missing'),
+    acceptedAt: formatConsentTimestamp(userProfile.termsAcceptedAt, language, t('privacy.notRecorded'))
   },
   {
-    label: 'Cookie Notice',
-    version: userProfile.cookiePolicyVersion ?? 'Not acknowledged',
-    acceptedAt: formatConsentTimestamp(userProfile.cookiePolicyAcknowledgedAt)
+    label: t('privacy.cookieNotice'),
+    version: userProfile.cookiePolicyVersion ?? t('profile.missing'),
+    acceptedAt: formatConsentTimestamp(userProfile.cookiePolicyAcknowledgedAt, language, t('privacy.notRecorded'))
   },
   {
-    label: 'Open Banking Notice',
-    version: userProfile.openBankingNoticeVersion ?? 'Not accepted',
-    acceptedAt: formatConsentTimestamp(userProfile.openBankingNoticeAcceptedAt)
+    label: t('privacy.openBankingNotice'),
+    version: userProfile.openBankingNoticeVersion ?? t('profile.missing'),
+    acceptedAt: formatConsentTimestamp(userProfile.openBankingNoticeAcceptedAt, language, t('privacy.notRecorded'))
   }
 ];
 

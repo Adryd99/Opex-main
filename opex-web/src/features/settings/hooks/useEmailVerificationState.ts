@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { EmailVerificationRequestResult, VerificationEmailActionState } from '../types';
-
-const DEFAULT_VERIFICATION_DETAIL = 'Send a verification link.';
 
 export const formatVerificationCooldown = (seconds: number): string => {
   const normalized = Math.max(0, seconds);
@@ -27,6 +26,7 @@ export const useEmailVerificationState = ({
   isSendingVerificationEmail: boolean;
   verificationEmailAction: VerificationEmailActionState;
 } => {
+  const { t } = useTranslation('settings');
   const [isSendingVerificationEmail, setIsSendingVerificationEmail] = useState(false);
   const [verificationEmailDetail, setVerificationEmailDetail] = useState<string | null>(null);
   const [verificationEmailCooldownSeconds, setVerificationEmailCooldownSeconds] = useState(0);
@@ -40,22 +40,22 @@ export const useEmailVerificationState = ({
       setVerificationEmailCooldownSeconds(Math.max(0, response.cooldownRemainingSeconds ?? 0));
 
       if (response.emailVerified) {
-        setVerificationEmailDetail('Email already verified.');
+        setVerificationEmailDetail(t('profile.verified'));
         return;
       }
 
       if (response.verificationEmailSent || response.cooldownRemainingSeconds > 0) {
-        setVerificationEmailDetail('Check your inbox for the verification link.');
+        setVerificationEmailDetail(t('notices.profile.verifyEmailDescription'));
         return;
       }
 
-      setVerificationEmailDetail(DEFAULT_VERIFICATION_DETAIL);
+      setVerificationEmailDetail(t('notices.profile.verifyEmailTitle'));
     } catch {
       setVerificationEmailDetail(null);
     } finally {
       setIsSendingVerificationEmail(false);
     }
-  }, [onRequestEmailVerification]);
+  }, [onRequestEmailVerification, t]);
 
   useEffect(() => {
     if (emailVerified) {
@@ -82,13 +82,13 @@ export const useEmailVerificationState = ({
     isSendingVerificationEmail,
     verificationEmailAction: {
       cta: isSendingVerificationEmail
-        ? 'Sending...'
+        ? t('profileEditor.savingChanges')
         : verificationEmailCooldownSeconds > 0
-          ? `Retry in ${cooldownLabel}`
-          : 'Verify',
+          ? t('profile.retryIn', { cooldown: cooldownLabel })
+          : t('profile.verifyEmail'),
       detail: verificationEmailCooldownSeconds > 0
-        ? `Check your inbox. Retry in ${cooldownLabel}.`
-        : verificationEmailDetail ?? DEFAULT_VERIFICATION_DETAIL,
+        ? t('profile.verifyEmailCooldown', { cooldown: cooldownLabel })
+        : verificationEmailDetail ?? t('profile.sendVerificationLink'),
       actionDisabled: isSendingVerificationEmail || verificationEmailCooldownSeconds > 0,
       requestVerificationEmail
     }

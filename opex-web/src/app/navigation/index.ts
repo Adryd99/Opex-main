@@ -28,6 +28,7 @@ export const APP_TABS = {
 } as const;
 
 export type AppTab = (typeof APP_TABS)[keyof typeof APP_TABS];
+type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
 
 const MAIN_TABS = [
   APP_TABS.DASHBOARD,
@@ -70,20 +71,6 @@ const LEGACY_TAB_ALIASES: Record<string, AppTab> = {
   [APP_TABS.SETTINGS_ADD_BANK]: APP_TABS.SETTINGS_OPEN_BANKING
 };
 
-const PAGE_TITLES: Partial<Record<AppTab, string>> = {
-  [APP_TABS.DASHBOARD]: 'Overview',
-  [APP_TABS.BUDGET]: 'Budget',
-  [APP_TABS.TAXES]: 'Tax Buffer',
-  [APP_TABS.INVOICING]: 'Invoicing',
-  [APP_TABS.INCOME]: 'Income Breakdown',
-  [APP_TABS.EXPENSES]: 'Expense Breakdown',
-  [APP_TABS.TRANSACTIONS_IN]: 'Income Transactions',
-  [APP_TABS.TRANSACTIONS_OUT]: 'Expense Transactions',
-  [APP_TABS.INSIGHTS]: 'Financial Insights',
-  [APP_TABS.ALL_ACTIVITY]: 'All Activity',
-  [APP_TABS.SETTINGS]: 'Settings'
-};
-
 export const DEFAULT_APP_TAB: MainAppTab = APP_TABS.DASHBOARD;
 
 export const isAppTab = (value: string): value is AppTab =>
@@ -115,20 +102,45 @@ export const resolveSettingsNavigationTarget = (value: string): AppTab =>
     ? normalizeAppTab(value)
     : normalizeAppTab(`SETTINGS_${value}`);
 
-export const getAppPageTitle = (tab: AppTab): string => {
+export const getAppPageTitle = (tab: AppTab, t: TranslateFn): string => {
   if (tab === APP_TABS.QUICK_INVOICE) {
-    return 'Invoicing';
+    return t('app:pageTitles.invoicing');
   }
 
   if (isSettingsTab(tab)) {
-    return 'Settings';
+    return t('app:pageTitles.settings');
   }
 
   if (tab.startsWith('QUICK_')) {
-    return 'New Transaction';
+    return t('app:pageTitles.newTransaction');
   }
 
-  return PAGE_TITLES[tab] ?? 'Opex';
+  switch (tab) {
+    case APP_TABS.DASHBOARD:
+      return t('app:pageTitles.overview');
+    case APP_TABS.BUDGET:
+      return t('app:pageTitles.budget');
+    case APP_TABS.TAXES:
+      return t('app:pageTitles.taxBuffer');
+    case APP_TABS.INVOICING:
+      return t('app:pageTitles.invoicing');
+    case APP_TABS.INCOME:
+      return t('app:pageTitles.incomeBreakdown');
+    case APP_TABS.EXPENSES:
+      return t('app:pageTitles.expenseBreakdown');
+    case APP_TABS.TRANSACTIONS_IN:
+      return t('app:pageTitles.incomeTransactions');
+    case APP_TABS.TRANSACTIONS_OUT:
+      return t('app:pageTitles.expenseTransactions');
+    case APP_TABS.INSIGHTS:
+      return t('app:pageTitles.financialInsights');
+    case APP_TABS.ALL_ACTIVITY:
+      return t('app:pageTitles.allActivity');
+    case APP_TABS.SETTINGS:
+      return t('app:pageTitles.settings');
+    default:
+      return t('app:pageTitles.opex');
+  }
 };
 
 export const isSubpageAppTab = (tab: AppTab): boolean =>

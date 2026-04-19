@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useAppLanguage } from '../../../i18n';
 import { Button } from '../../../shared/ui';
 import { useEmailVerificationState } from '../hooks/useEmailVerificationState';
 import { useUserSecurityStatus } from '../hooks/useUserSecurityStatus';
 import { buildConsentAuditItems, hasCurrentRequiredConsents } from '../support/configurationStatus';
 import { hasCompleteProfileDetails } from '../support/profileCompletion';
-import { SETTINGS_SECTIONS } from '../support/sections';
+import { buildSettingsSections } from '../support/sections';
 import { SettingsPageProps, SettingsSectionId } from '../types';
 import {
   SettingsBrandingSection,
@@ -41,6 +43,8 @@ export const SettingsPage = ({
   openBankErrorMessage = null,
   initialSection = 'PROFILE'
 }: SettingsPageProps) => {
+  const { t } = useTranslation('settings');
+  const { language } = useAppLanguage();
   const [activeSection, setActiveSection] = useState<SettingsSectionId>(initialSection as SettingsSectionId);
   const [theme, setTheme] = useState(() => localStorage.getItem('app-theme') || 'light');
   const [isExportingData, setIsExportingData] = useState(false);
@@ -52,7 +56,7 @@ export const SettingsPage = ({
     onRequestEmailVerification
   });
   const requiredConsentsCurrent = hasCurrentRequiredConsents(userProfile, legalPublicInfo);
-  const consentAuditItems = buildConsentAuditItems(userProfile);
+  const consentAuditItems = buildConsentAuditItems(userProfile, language, t);
   const isProfileDetailsComplete = hasCompleteProfileDetails(userProfile);
   const isProfileSetupComplete = isProfileDetailsComplete && Boolean(userProfile.emailVerified);
   const isSecuritySetupComplete = Boolean(
@@ -62,6 +66,7 @@ export const SettingsPage = ({
   );
   const isTaxProfileComplete = hasTaxProfileConfigured(userProfile);
   const isBankingSetupComplete = bankAccounts.length > 0;
+  const settingsSections = buildSettingsSections(t);
   const sectionAttentionById: Partial<Record<SettingsSectionId, boolean>> = {
     PROFILE: !isProfileSetupComplete,
     SECURITY: !isSecuritySetupComplete,
@@ -77,18 +82,18 @@ export const SettingsPage = ({
 
         return {
           title: !isProfileDetailsComplete && !userProfile.emailVerified
-            ? 'Finish your profile setup'
+            ? t('notices.profile.finishSetupTitle')
             : !isProfileDetailsComplete
-              ? 'Complete your profile details'
-              : 'Verify your email',
+              ? t('notices.profile.completeDetailsTitle')
+              : t('notices.profile.verifyEmailTitle'),
           description: !isProfileDetailsComplete && !userProfile.emailVerified
-            ? 'Add the missing personal details and verify your email to complete this section.'
+            ? t('notices.profile.finishSetupDescription')
             : !isProfileDetailsComplete
-              ? 'Some personal details are still missing and should be completed here.'
+              ? t('notices.profile.completeDetailsDescription')
               : verificationEmailAction.detail,
           action: !isProfileDetailsComplete ? (
             <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)}>
-              Complete details
+              {t('notices.profile.completeDetailsAction')}
             </Button>
           ) : undefined
         };
@@ -98,12 +103,12 @@ export const SettingsPage = ({
         }
 
         return {
-          title: 'Finish account protection',
+          title: t('notices.security.title'),
           description: !securityStatus?.secondFactorMethod
-            ? 'Add a second factor first, then keep a backup path with recovery codes.'
+            ? t('notices.security.noSecondFactor')
             : !securityStatus.hasFallbackSecondFactor
-              ? 'Your account still needs a backup sign-in path in case the main method becomes unavailable.'
-              : 'Recovery codes are still missing. Generate them to complete this section.'
+              ? t('notices.security.noFallback')
+              : t('notices.security.noRecovery')
         };
       case 'TAXES':
         if (isTaxProfileComplete) {
@@ -111,8 +116,8 @@ export const SettingsPage = ({
         }
 
         return {
-          title: 'Finish your tax profile',
-          description: 'Fiscal residence, tax regime and activity type are still required before the Taxes workspace can be considered complete.'
+          title: t('notices.taxes.title'),
+          description: t('notices.taxes.description')
         };
       case 'BANKING':
         if (isBankingSetupComplete) {
@@ -120,8 +125,8 @@ export const SettingsPage = ({
         }
 
         return {
-          title: 'Connect your first account',
-          description: 'Use Open Banking for live balances and transactions, or add a manual account if you prefer to track everything locally.'
+          title: t('notices.banking.title'),
+          description: t('notices.banking.description')
         };
       default:
         return null;
@@ -204,6 +209,8 @@ export const SettingsPage = ({
             theme={theme}
             onThemeChange={setTheme}
             onNavigate={onNavigate}
+            userProfile={userProfile}
+            onSaveProfile={onSaveProfile}
           />
         );
       case 'SECURITY':
@@ -234,7 +241,7 @@ export const SettingsPage = ({
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       <SettingsHeader onNavigate={onNavigate} />
       <SettingsTabs
-        sections={SETTINGS_SECTIONS}
+        sections={settingsSections}
         activeSection={activeSection}
         attentionBySection={sectionAttentionById}
         onSectionChange={setActiveSection}

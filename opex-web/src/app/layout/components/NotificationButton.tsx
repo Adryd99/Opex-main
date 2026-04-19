@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bell } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { NotificationRecord } from '../../../shared/types';
 import { opexApi } from '../../../services/api/opexApi';
 import { ICON_MAP } from '../support';
 
 export const NotificationButton = () => {
+  const { t } = useTranslation('app');
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -76,20 +78,20 @@ export const NotificationButton = () => {
       {isOpen && (
         <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-[2rem] shadow-2xl border border-gray-100 py-4 z-[100] animate-in fade-in zoom-in-95 duration-200 origin-top-right">
           <div className="px-6 py-2 border-b border-gray-50 flex items-center justify-between mb-2">
-            <h3 className="font-black text-gray-900 tracking-tight">Notifications</h3>
+            <h3 className="font-black text-gray-900 tracking-tight">{t('notifications.title')}</h3>
             {unreadCount > 0 && (
               <button
                 type="button"
                 onClick={() => void markAllAsRead()}
                 className="text-[10px] font-black text-opex-teal uppercase tracking-widest hover:underline"
               >
-                Mark as read
+                {t('notifications.markAsRead')}
               </button>
             )}
           </div>
           <div className="max-h-[400px] overflow-y-auto no-scrollbar px-2">
             {notifications.length === 0 ? (
-              <div className="p-8 text-center text-gray-400 text-sm">No notifications</div>
+              <div className="p-8 text-center text-gray-400 text-sm">{t('notifications.noNotifications')}</div>
             ) : (
               notifications.map((notification) => {
                 const Icon = ICON_MAP[notification.icon] || Bell;
@@ -131,7 +133,7 @@ export const NotificationButton = () => {
               type="button"
               className="w-full py-3 bg-gray-50 rounded-xl text-xs font-black text-gray-400 hover:text-opex-teal transition-colors"
             >
-              View all notifications
+              {t('notifications.viewAll')}
             </button>
           </div>
         </div>

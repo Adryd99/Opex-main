@@ -1,6 +1,7 @@
 import type { Root } from 'react-dom/client';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { AppI18nProvider } from '../i18n';
 
 declare global {
   interface Window {
@@ -15,4 +16,8 @@ if (!container) {
 
 const root = window.__opexRoot ?? createRoot(container);
 window.__opexRoot = root;
-root.render(<App />);
+root.render(
+  <AppI18nProvider>
+    <App />
+  </AppI18nProvider>
+);

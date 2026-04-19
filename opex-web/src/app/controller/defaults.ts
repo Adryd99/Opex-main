@@ -7,6 +7,7 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
   vatFrequency: 'Yearly',
   logo: null,
   gdprAccepted: false,
+  preferredLanguage: null,
   fiscalResidence: null,
   taxRegime: null,
   activityType: null,

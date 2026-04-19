@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { BankAccountRecord, OpenBankingConsentPayload } from '../../../shared/types';
 import { AccountCategory, AddBankPageProps, ProviderConnectionCard } from '../types';
@@ -29,6 +30,7 @@ export const useAddBankPageState = ({
   onCreateOpenBankConnection,
   openBankingNoticeVersion
 }: UseAddBankPageStateArgs) => {
+  const { t } = useTranslation('banking');
   const [bankingView, setBankingView] = useState<'list' | 'connection-detail' | 'account-edit'>('list');
   const [selectedConnectionKey, setSelectedConnectionKey] = useState<string | null>(null);
   const [selectedConnectionProviderName, setSelectedConnectionProviderName] = useState('');
@@ -90,7 +92,7 @@ export const useAddBankPageState = ({
 
     const accountId = resolveConnectionRecordId(liveAccount);
     if (!accountId) {
-      setAccountEditError('Unable to identify the account ID.');
+      setAccountEditError(t('errors.missingAccountId'));
       return;
     }
 
@@ -105,7 +107,7 @@ export const useAddBankPageState = ({
       });
       setBankingView('connection-detail');
     } catch (error) {
-      setAccountEditError(error instanceof Error ? error.message : 'Unable to save changes.');
+      setAccountEditError(error instanceof Error ? error.message : t('errors.saveChanges'));
     } finally {
       setIsSavingAccount(false);
     }
@@ -125,7 +127,7 @@ export const useAddBankPageState = ({
       setBankingView('list');
       setSelectedConnectionKey(null);
     } catch (error) {
-      setRemoveConnectionError(error instanceof Error ? error.message : 'Unable to remove connection.');
+      setRemoveConnectionError(error instanceof Error ? error.message : t('errors.removeConnection'));
     } finally {
       setIsRemovingConnection(false);
       setShowRemoveConfirm(false);
@@ -134,11 +136,11 @@ export const useAddBankPageState = ({
 
   const submitOpenBankingConsent = async () => {
     if (!openBankingNoticeVersion) {
-      setOpenBankingConsentError('Open banking notice version is not available yet. Reload and retry.');
+      setOpenBankingConsentError(t('errors.missingNoticeVersion'));
       return;
     }
     if (!acceptOpenBankingNotice || !acceptSaltEdgeTransfer) {
-      setOpenBankingConsentError('You must confirm both notices before connecting a bank.');
+      setOpenBankingConsentError(t('errors.consentRequired'));
       return;
     }
 
@@ -154,7 +156,7 @@ export const useAddBankPageState = ({
       await onCreateOpenBankConnection(consent);
       setIsOpenBankingConsentModalOpen(false);
     } catch (error) {
-      setOpenBankingConsentError(error instanceof Error ? error.message : 'Unable to start open banking connection.');
+      setOpenBankingConsentError(error instanceof Error ? error.message : t('errors.startConnection'));
     } finally {
       setIsSubmittingOpenBankingConsent(false);
     }

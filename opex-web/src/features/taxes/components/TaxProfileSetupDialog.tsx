@@ -1,6 +1,16 @@
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
 import { UserProfile } from '../../../shared/types';
 import { TaxProfileSetupForm } from '../../tax-profile';
+
+type TaxProfileSetupDialogProps = {
+  isOpen: boolean;
+  isRequired: boolean;
+  userProfile: UserProfile;
+  onClose: () => void;
+  onSave: (profile: UserProfile) => Promise<void>;
+};
 
 export const TaxProfileSetupDialog = ({
   isOpen,
@@ -8,13 +18,9 @@ export const TaxProfileSetupDialog = ({
   userProfile,
   onClose,
   onSave
-}: {
-  isOpen: boolean;
-  isRequired: boolean;
-  userProfile: UserProfile;
-  onClose: () => void;
-  onSave: (profile: UserProfile) => Promise<void>;
-}) => {
+}: TaxProfileSetupDialogProps) => {
+  const { t } = useTranslation('taxes');
+
   if (!isOpen) {
     return null;
   }
@@ -35,7 +41,7 @@ export const TaxProfileSetupDialog = ({
           userProfile={userProfile}
           onSave={onSave}
           onSaved={onClose}
-          footerNote="You can update this later from Settings."
+          footerNote={t('page.settingsHint')}
         />
       </div>
     </div>

@@ -6,6 +6,7 @@ import {
   Wallet
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
   APP_TABS,
@@ -49,6 +50,7 @@ import { useAppController } from './useAppController';
 import { useKeycloakAuth } from '../services/auth/useKeycloakAuth';
 
 export const App = () => {
+  const { t } = useTranslation(['app', 'settings']);
   const legalDocumentSlug = resolveLegalCenterSlug(window.location.pathname);
   const normalizedPathname = window.location.pathname.replace(/\/+$/, '') || '/';
   const pendingSettingsReturnSection = readPendingSettingsReturnSection();
@@ -193,11 +195,11 @@ export const App = () => {
   if (!isAuthenticated) {
     return (
       <CenteredStatusCard
-        title="Autenticazione Keycloak"
+        title={t('app:status.authTitle')}
         description={authErrorMessage}
         actions={authErrorMessage ? (
           <Button onClick={() => void login()}>
-            Riprova login
+            {t('app:status.retryLogin')}
           </Button>
         ) : undefined}
       />
@@ -227,7 +229,7 @@ export const App = () => {
 
     return (
       <CenteredStatusCard
-        title="Synchronizing Bank Data"
+        title={t('app:status.syncTitle')}
         icon={(
           <div className="w-14 h-14 mx-auto rounded-2xl bg-opex-teal/10 text-opex-teal flex items-center justify-center">
             <Loader2 size={28} className="animate-spin" />
@@ -239,14 +241,14 @@ export const App = () => {
               <p className="text-red-600">{appErrorMessage}</p>
               <p>
                 {isBankSyncInProgress || bankSyncStage === 'syncing_success'
-                  ? 'Sync in progress, please wait...'
-                  : 'Preparing synchronization...'}
+                  ? t('app:status.syncInProgress')
+                  : t('app:status.preparingSync')}
               </p>
             </div>
           ) : (
             isBankSyncInProgress || bankSyncStage === 'syncing_success'
-              ? 'Sync in progress, please wait...'
-              : 'Preparing synchronization...'
+              ? t('app:status.syncInProgress')
+              : t('app:status.preparingSync')
           )
         }
         actions={appErrorMessage ? (
@@ -256,7 +258,7 @@ export const App = () => {
               void syncAfterSuccessRedirect();
             }}
           >
-            Retry sync
+            {t('app:status.retrySync')}
           </Button>
         ) : undefined}
       />
@@ -297,7 +299,7 @@ export const App = () => {
     />
   );
 
-  const pageTitle = getAppPageTitle(activeTab);
+  const pageTitle = getAppPageTitle(activeTab, t);
   const isSubpage = isSubpageAppTab(activeTab);
 
   const mobileNavItems = [
@@ -468,7 +470,7 @@ export const App = () => {
           <div className="px-4 md:px-6 pt-4 max-w-7xl mx-auto">
             <div className="bg-red-50 border border-red-100 text-red-700 px-4 py-3 rounded-2xl flex items-center justify-between gap-4 text-sm">
               <span>{appErrorMessage}</span>
-              <button onClick={clearError} className="font-bold text-xs uppercase tracking-wider">Dismiss</button>
+              <button onClick={clearError} className="font-bold text-xs uppercase tracking-wider">{t('app:status.dismiss')}</button>
             </div>
           </div>
         )}

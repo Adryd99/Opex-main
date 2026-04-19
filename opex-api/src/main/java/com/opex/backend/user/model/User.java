@@ -33,6 +33,7 @@ public class User {
     private String country;
     private String residence;
     private String occupation;
+    private String preferredLanguage;
     private String preferredSecondFactor;
     private Boolean secondFactorEnrollmentDeferred = false;
     private String secondFactorMethod;

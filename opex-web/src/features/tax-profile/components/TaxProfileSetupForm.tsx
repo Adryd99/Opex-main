@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Calculator, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { UserProfile } from '../../../shared/types';
 import {
   TAX_ACTIVITY_OPTIONS,
@@ -22,11 +23,16 @@ export const TaxProfileSetupForm = ({
   userProfile,
   onSave,
   onSaved,
-  title = 'Set up your tax profile',
-  description = 'We need a few details to estimate taxes correctly.',
-  saveLabel = 'Save and continue',
-  footerNote = 'You can update this later from Settings.'
+  title,
+  description,
+  saveLabel,
+  footerNote
 }: TaxProfileSetupFormProps) => {
+  const { t } = useTranslation('settings');
+  const resolvedTitle = title ?? t('taxForm.defaultTitle');
+  const resolvedDescription = description ?? t('taxForm.defaultDescription');
+  const resolvedSaveLabel = saveLabel ?? t('taxForm.defaultSaveLabel');
+  const resolvedFooterNote = footerNote ?? t('taxForm.defaultFooterNote');
   const [selectedRegime, setSelectedRegime] = useState<string>((userProfile.taxRegime ?? '').trim());
   const [selectedActivity, setSelectedActivity] = useState<string>((userProfile.activityType ?? '').trim());
   const [selectedFiscalResidence, setSelectedFiscalResidence] = useState<string>(getInitialFiscalResidence(userProfile));
@@ -60,7 +66,7 @@ export const TaxProfileSetupForm = ({
 
   const handleSave = async () => {
     if (!isComplete) {
-      setFormError('Select tax regime, activity type, and fiscal residence to continue.');
+      setFormError(t('taxForm.validationError'));
       return;
     }
 
@@ -82,11 +88,17 @@ export const TaxProfileSetupForm = ({
       setIsSaved(true);
       onSaved?.();
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Unexpected error while saving tax setup.');
+      setFormError(error instanceof Error ? error.message : t('taxForm.saveError'));
     } finally {
       setIsSaving(false);
     }
   };
+
+  const vatFrequencyOptions = [
+    { value: 'Monthly', label: t('taxForm.vatFrequency.monthly') },
+    { value: 'Quarterly', label: t('taxForm.vatFrequency.quarterly') },
+    { value: 'Yearly', label: t('taxForm.vatFrequency.yearly') }
+  ] as const;
 
   return (
     <div className="space-y-8">
@@ -95,9 +107,9 @@ export const TaxProfileSetupForm = ({
           <Calculator size={26} />
         </div>
         <div>
-          <h3 className="text-3xl font-black tracking-tight text-gray-900">{title}</h3>
+          <h3 className="text-3xl font-black tracking-tight text-gray-900">{resolvedTitle}</h3>
           <p className="mt-1 text-sm font-medium text-slate-500">
-            {description}
+            {resolvedDescription}
           </p>
         </div>
       </div>
@@ -106,7 +118,7 @@ export const TaxProfileSetupForm = ({
         <div className="space-y-6">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Tax Regime</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{t('taxForm.taxRegime')}</p>
             </div>
             <div className="space-y-3">
               {TAX_REGIME_OPTIONS.map((option) => {
@@ -131,8 +143,10 @@ export const TaxProfileSetupForm = ({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-base font-black text-gray-900">{option.label}</p>
-                        <p className="mt-1 text-xs font-medium text-slate-500">{option.description}</p>
+                        <p className="text-base font-black text-gray-900">
+                          {option.labelKey ? t(option.labelKey) : option.label}
+                        </p>
+                        <p className="mt-1 text-xs font-medium text-slate-500">{t(option.descriptionKey)}</p>
                       </div>
                       <div className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full border ${
                         isSelected ? 'border-opex-dark bg-opex-dark text-white' : 'border-slate-200 text-transparent'
@@ -147,7 +161,7 @@ export const TaxProfileSetupForm = ({
           </div>
 
           <div className="space-y-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Fiscal Residence</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{t('taxForm.fiscalResidence')}</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {TAX_RESIDENCE_OPTIONS.map((option) => {
                 const isSelected = selectedFiscalResidence === option.value;
@@ -170,7 +184,7 @@ export const TaxProfileSetupForm = ({
                     disabled={isSaving}
                   >
                     <p className="text-sm font-black text-gray-900">{option.label}</p>
-                    <p className="mt-1 text-[11px] font-medium text-slate-500">{option.description}</p>
+                    <p className="mt-1 text-[11px] font-medium text-slate-500">{t(option.descriptionKey)}</p>
                   </button>
                 );
               })}
@@ -179,17 +193,17 @@ export const TaxProfileSetupForm = ({
 
           <div className="space-y-3">
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
-              VAT Filing
+              {t('taxForm.vatFiling')}
             </p>
             <div className="grid grid-cols-3 gap-3">
-              {['Monthly', 'Quarterly', 'Yearly'].map((option) => {
-                const isSelected = selectedVatFrequency === option;
+              {vatFrequencyOptions.map((option) => {
+                const isSelected = selectedVatFrequency === option.value;
                 return (
                   <button
-                    key={option}
+                    key={option.value}
                     type="button"
                     onClick={() => {
-                      setSelectedVatFrequency(option);
+                      setSelectedVatFrequency(option.value);
                       setIsSaved(false);
                       if (formError) {
                         setFormError(null);
@@ -202,22 +216,22 @@ export const TaxProfileSetupForm = ({
                     }`}
                     disabled={isSaving}
                   >
-                    <p className="text-sm font-black text-gray-900">{option}</p>
+                    <p className="text-sm font-black text-gray-900">{option.label}</p>
                   </button>
                 );
               })}
             </div>
             <p className="text-xs font-medium text-slate-500">
-              Used to estimate VAT deadlines and recurring tax obligations.
+              {t('taxForm.vatFilingDescription')}
             </p>
           </div>
         </div>
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Activity Type</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{t('taxForm.activityType')}</p>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300">
-              {selectedRegime ? 'Select your business area' : 'Select a tax regime first.'}
+              {selectedRegime ? t('taxForm.selectBusinessArea') : t('taxForm.selectRegimeFirst')}
             </p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -249,8 +263,12 @@ export const TaxProfileSetupForm = ({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className={`text-base font-black ${isDisabled ? 'text-slate-300' : 'text-gray-900'}`}>{option.label}</p>
-                      <p className={`mt-1 text-xs font-medium ${isDisabled ? 'text-slate-300' : 'text-slate-500'}`}>{option.description}</p>
+                      <p className={`text-base font-black ${isDisabled ? 'text-slate-300' : 'text-gray-900'}`}>
+                        {option.labelKey ? t(option.labelKey) : option.label}
+                      </p>
+                      <p className={`mt-1 text-xs font-medium ${isDisabled ? 'text-slate-300' : 'text-slate-500'}`}>
+                        {t(option.descriptionKey)}
+                      </p>
                       {option.meta && (
                         <p className={`mt-2 text-[11px] font-black uppercase tracking-widest ${isDisabled ? 'text-slate-300' : 'text-slate-400'}`}>
                           {option.meta}
@@ -286,14 +304,14 @@ export const TaxProfileSetupForm = ({
           disabled={!isComplete || isSaving}
         >
           {isSaving ? (
-            'Saving...'
+            t('taxForm.saving')
           ) : isSaved ? (
             <>
               <Check size={18} />
-              Tax profile saved
+              {t('taxForm.savedButton')}
             </>
           ) : (
-            saveLabel
+            resolvedSaveLabel
           )}
         </button>
         <p
@@ -302,10 +320,10 @@ export const TaxProfileSetupForm = ({
           }`}
           aria-live="polite"
         >
-          {isSaved ? 'Saved. Your Taxes workspace is now up to date.' : 'Save changes here to update the Taxes workspace.'}
+          {isSaved ? t('taxForm.savedMessage') : t('taxForm.saveHint')}
         </p>
         <p className="mt-4 text-center text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
-          {footerNote}
+          {resolvedFooterNote}
         </p>
       </div>
     </div>

@@ -10,7 +10,9 @@ import {
   ShieldCheck,
   UserRound
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Badge, Button, Card } from '../../../shared/ui';
+import { formatDateForLanguage, useAppLanguage } from '../../../i18n';
 import { UserProfile } from '../../../shared/types';
 import { VerificationEmailActionState } from '../types';
 import { ProfileEditorForm } from './ProfileEditorForm';
@@ -37,22 +39,24 @@ export const SettingsProfileSection = ({
   onSaveProfile,
   verificationEmailAction
 }: SettingsProfileSectionProps) => {
-  const registrationDateLabel = formatRegistrationDate(userProfile.registrationDate);
+  const { t } = useTranslation('settings');
+  const { language } = useAppLanguage();
+  const registrationDateLabel = formatRegistrationDate(userProfile.registrationDate, language);
   const accountVerified = Boolean(userProfile.emailVerified);
-  const birthDateLabel = formatBirthDate(userProfile.dob);
+  const birthDateLabel = formatBirthDate(userProfile.dob, language, t);
   const timeZoneLabel = getTimeZoneLabel();
   const managedByGoogle = userProfile.identityProvider?.toLowerCase() === 'google';
   const displayName = userProfile.displayName?.trim() || userProfile.name;
-  const occupationLabel = userProfile.occupation?.trim() || 'Missing';
+  const occupationLabel = userProfile.occupation?.trim() || t('profile.missing');
   const initials = displayName.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase() || '?';
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
       <Card
-        title="Profile"
+        title={t('profile.title')}
         action={isEditingProfile
-          ? <Button variant="ghost" size="sm" onClick={() => onEditingProfileChange(false)}>Cancel</Button>
-          : <Button variant="ghost" size="sm" icon={Edit2} onClick={() => onEditingProfileChange(true)}>Edit</Button>
+          ? <Button variant="ghost" size="sm" onClick={() => onEditingProfileChange(false)}>{t('profile.cancel')}</Button>
+          : <Button variant="ghost" size="sm" icon={Edit2} onClick={() => onEditingProfileChange(true)}>{t('profile.edit')}</Button>
         }
       >
         {isEditingProfile ? (
@@ -78,21 +82,21 @@ export const SettingsProfileSection = ({
 
                   <div className="space-y-3">
                     <div className="space-y-1">
-                      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-gray-400">Personal Profile</p>
+                      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-gray-400">{t('profile.personalProfile')}</p>
                       <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{displayName}</h2>
                       <p className="text-sm font-medium text-gray-500 max-w-2xl">
                         {managedByGoogle
-                          ? 'Your Google identity manages email, first name and last name. The rest of your workspace details stay editable in Opex.'
-                          : 'This section groups the personal, residency and tax details that drive your Opex workspace.'}
+                          ? t('profile.managedByGoogleDescription')
+                          : t('profile.managedByOpexDescription')}
                       </p>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
                       <Badge variant={accountVerified ? 'success' : 'warning'}>
-                        {accountVerified ? 'Account verified' : 'Verification pending'}
+                        {accountVerified ? t('profile.accountVerified') : t('profile.verificationPending')}
                       </Badge>
                       <Badge variant="info">
-                        {managedByGoogle ? 'Google-managed identity' : 'Managed in Opex'}
+                        {managedByGoogle ? t('profile.googleManagedIdentity') : t('profile.managedInOpex')}
                       </Badge>
                       {registrationDateLabel && <Badge variant="neutral">{registrationDateLabel}</Badge>}
                     </div>
@@ -101,14 +105,14 @@ export const SettingsProfileSection = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:w-[440px]">
                   <SummaryTile
-                    label="Profile owner"
+                    label={t('profile.profileOwner')}
                     value={displayName}
-                    detail={managedByGoogle ? 'Synced from Google' : 'Local workspace identity'}
+                    detail={managedByGoogle ? t('profile.syncedFromGoogle') : t('profile.localWorkspaceIdentity')}
                     icon={UserRound}
                   />
                   <SummaryTile
-                    label="Email status"
-                    value={accountVerified ? 'Verified' : 'Pending'}
+                    label={t('profile.emailStatus')}
+                    value={accountVerified ? t('profile.verified') : t('profile.pending')}
                     detail={userProfile.email}
                     icon={accountVerified ? ShieldCheck : AtSign}
                     action={!accountVerified ? (
@@ -124,9 +128,9 @@ export const SettingsProfileSection = ({
                     ) : null}
                   />
                   <SummaryTile
-                    label="Occupation"
+                    label={t('profile.occupation')}
                     value={occupationLabel}
-                    detail={birthDateLabel === 'Not provided yet' ? 'Birth date missing' : birthDateLabel}
+                    detail={birthDateLabel === t('profile.notProvidedYet') ? t('profile.birthDateMissing') : birthDateLabel}
                     icon={BriefcaseBusiness}
                   />
                 </div>
@@ -137,25 +141,25 @@ export const SettingsProfileSection = ({
               <div className="rounded-[1.75rem] border border-gray-100 bg-gray-50/80 p-5 space-y-5">
                 <SectionHeading
                   icon={UserRound}
-                  title="Identity"
-                  description="Core profile fields used across the application."
+                  title={t('profile.identity')}
+                  description={t('profile.identityDescription')}
                 />
                 <div className="grid grid-cols-1 gap-5">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <ProfileDetailItem
-                      label="First Name"
-                      value={userProfile.firstName?.trim() || 'Not provided yet'}
+                      label={t('profile.firstName')}
+                      value={userProfile.firstName?.trim() || t('profile.notProvidedYet')}
                       isMuted={!userProfile.firstName?.trim()}
                     />
                     <ProfileDetailItem
-                      label="Last Name"
-                      value={userProfile.lastName?.trim() || 'Not provided yet'}
+                      label={t('profile.lastName')}
+                      value={userProfile.lastName?.trim() || t('profile.notProvidedYet')}
                       isMuted={!userProfile.lastName?.trim()}
                     />
                   </div>
                   <ProfileDetailItem
-                    label="Email"
-                    value={userProfile.email || 'Not provided yet'}
+                    label={t('profile.email')}
+                    value={userProfile.email || t('profile.notProvidedYet')}
                     icon={AtSign}
                     isMuted={!userProfile.email}
                   />
@@ -164,7 +168,7 @@ export const SettingsProfileSection = ({
                   <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 flex items-start gap-3">
                     <Lock size={16} className="mt-0.5 text-amber-600 shrink-0" />
                     <p className="text-sm font-medium text-amber-800">
-                      Email, first name and last name are managed by Google and cannot be changed here.
+                      {t('profile.managedIdentityNotice')}
                     </p>
                   </div>
                 )}
@@ -173,29 +177,29 @@ export const SettingsProfileSection = ({
               <div className="rounded-[1.75rem] border border-gray-100 bg-gray-50/80 p-5 space-y-5">
                 <SectionHeading
                   icon={Globe}
-                  title="Personal Details"
-                  description="Personal details used across your workspace and onboarding state."
+                  title={t('profile.personalDetails')}
+                  description={t('profile.personalDetailsDescription')}
                 />
                 <div className="grid grid-cols-1 gap-5">
                   <ProfileDetailItem
-                    label="Display Name"
-                    value={displayName || 'Not provided yet'}
+                    label={t('profile.displayName')}
+                    value={displayName || t('profile.notProvidedYet')}
                   />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <ProfileDetailItem
-                      label="Birth Date"
+                      label={t('profile.birthDate')}
                       value={birthDateLabel}
                       icon={CalendarDays}
-                      isMuted={birthDateLabel === 'Not provided yet'}
+                      isMuted={birthDateLabel === t('profile.notProvidedYet')}
                     />
                     <ProfileDetailItem
-                      label="Occupation"
-                      value={userProfile.occupation?.trim() || 'Not provided yet'}
+                      label={t('profile.occupation')}
+                      value={userProfile.occupation?.trim() || t('profile.notProvidedYet')}
                       isMuted={!userProfile.occupation?.trim()}
                     />
                   </div>
                   <ProfileDetailItem
-                    label="Time Zone"
+                    label={t('profile.timeZone')}
                     value={timeZoneLabel}
                     isMuted={!timeZoneLabel}
                   />
@@ -205,23 +209,23 @@ export const SettingsProfileSection = ({
               <div className="rounded-[1.75rem] border border-gray-100 bg-white p-5 space-y-5 shadow-sm">
                 <SectionHeading
                   icon={BadgeCheck}
-                  title="Account Status"
-                  description="High-level account and profile state."
+                  title={t('profile.accountStatus')}
+                  description={t('profile.accountStatusDescription')}
                 />
                 <div className="space-y-4">
                   <StatusRow
-                    label="Verification"
-                    value={accountVerified ? 'Completed' : 'Pending'}
+                    label={t('profile.verification')}
+                    value={accountVerified ? t('profile.completed') : t('profile.pending')}
                     variant={accountVerified ? 'success' : 'warning'}
                   />
                   <StatusRow
-                    label="Identity source"
+                    label={t('profile.identitySource')}
                     value={managedByGoogle ? 'Google' : 'Opex'}
                     variant="info"
                   />
                   <StatusRow
-                    label="Registration"
-                    value={registrationDateLabel ?? 'Not available'}
+                    label={t('profile.registration')}
+                    value={registrationDateLabel ?? t('profile.notAvailable')}
                     variant="neutral"
                   />
                 </div>
@@ -311,7 +315,7 @@ const StatusRow = ({
   </div>
 );
 
-const formatRegistrationDate = (value: string | null | undefined): string | null => {
+const formatRegistrationDate = (value: string | null | undefined, language: string): string | null => {
   if (!value?.trim()) {
     return null;
   }
@@ -321,16 +325,20 @@ const formatRegistrationDate = (value: string | null | undefined): string | null
     return null;
   }
 
-  return new Intl.DateTimeFormat('en-US', {
+  return formatDateForLanguage(language, parsed, {
     month: 'short',
     day: 'numeric',
     year: 'numeric'
-  }).format(parsed);
+  });
 };
 
-const formatBirthDate = (value: string | null | undefined): string => {
+const formatBirthDate = (
+  value: string | null | undefined,
+  language: string,
+  t: (key: string) => string
+): string => {
   if (!value?.trim()) {
-    return 'Not provided yet';
+    return t('profile.notProvidedYet');
   }
 
   const parsed = new Date(`${value}T00:00:00`);
@@ -338,11 +346,11 @@ const formatBirthDate = (value: string | null | undefined): string => {
     return value;
   }
 
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatDateForLanguage(language, parsed, {
     day: '2-digit',
     month: 'short',
     year: 'numeric'
-  }).format(parsed);
+  });
 };
 
 const getTimeZoneLabel = (): string => {

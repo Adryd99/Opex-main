@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { SubpageShell } from '../../../app/layout';
 import { AddBankPageProps } from '../types';
 import {
@@ -29,6 +30,7 @@ export const AddBankPage = ({
   openBankErrorMessage = null,
   embeddedInSettings = false
 }: AddBankPageProps) => {
+  const { t } = useTranslation('settings');
   const groupedByProvider = useMemo(
     () => groupProviderConnections(bankAccounts, taxBufferProviders),
     [bankAccounts, taxBufferProviders]
@@ -175,7 +177,7 @@ export const AddBankPage = ({
     }
 
     return (
-      <SubpageShell onBack={() => setBankingView('connection-detail')} title={selectedConnectionProviderName || 'Connection'}>
+      <SubpageShell onBack={() => setBankingView('connection-detail')} title={selectedConnectionProviderName || t('bankingEdit.fallbackTitle')}>
         {accountEditContent}
       </SubpageShell>
     );
@@ -187,7 +189,7 @@ export const AddBankPage = ({
     }
 
     return (
-      <SubpageShell onBack={() => setBankingView('list')} title={selectedConnectionProviderName || 'Connection'}>
+      <SubpageShell onBack={() => setBankingView('list')} title={selectedConnectionProviderName || t('bankingDetail.fallbackTitle')}>
         {connectionDetailContent}
       </SubpageShell>
     );
@@ -203,7 +205,7 @@ export const AddBankPage = ({
   }
 
   return (
-    <SubpageShell onBack={() => onNavigate('SETTINGS')} title="Banking">
+    <SubpageShell onBack={() => onNavigate('SETTINGS')} title={t('bankingSection.title')}>
       {listContent}
       {consentModal}
     </SubpageShell>
