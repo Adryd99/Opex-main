@@ -32,6 +32,7 @@ public final class OptionalWebAuthnRegister extends WebAuthnRegister {
 
         if (context.getUser().credentialManager().isConfiguredFor(WebAuthnCredentialModel.TYPE_TWOFACTOR)) {
             SecondFactorSupport.markConfigured(context, "webauthn");
+            SecondFactorSupport.ensureRecoveryCodesRequiredAction(context);
         }
     }
 }

@@ -132,6 +132,8 @@ Dopo aver applicato tutti gli script locali:
 - `SECURITY_SETUP_CHOICE` e il primo step del blocco sicurezza
 - `CONFIGURE_TOTP` disponibile ma non default
 - `webauthn-register` disponibile ma non default
+- `CONFIGURE_RECOVERY_AUTHN_CODES` disponibile, abilitata e con priorita subito successiva al setup TOTP/WebAuthn
+- il browser login flow espone `OTP Form`, `WebAuthn Authenticator` e `Recovery Authentication Code Form` come alternative dentro `Browser - Conditional 2FA`
 - seguono `PROFILE_BASICS`, `COUNTRY_SELECTION`, `OCCUPATION`, `LEGAL_ACCEPTANCE`
 - `UPDATE_PROFILE` non viene piu usato come default action
 

@@ -32,6 +32,10 @@ Entrambi gli script buildano i jar senza toccare Keycloak, a meno che tu non pas
   orchestration locale completa: build tema, build provider, singolo restart di Keycloak e apply dei setting locali del realm
 - [apply-local-languages.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-languages.ps1)
 - [apply-local-login-settings.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-login-settings.ps1)
+- [apply-local-browser-2fa-flow.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-browser-2fa-flow.ps1)
+  riallinea sia `Browser - Conditional 2FA` sia `First broker login - Conditional 2FA` con OTP, WebAuthn e recovery code come alternative reali
+- [apply-local-security-setup-choice.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-security-setup-choice.ps1)
+  registra anche `CONFIGURE_RECOVERY_AUTHN_CODES` con priorita immediatamente successiva a `OPTIONAL_CONFIGURE_TOTP` e `OPTIONAL_WEBAUTHN_REGISTER`
 - [apply-local-user-profile-settings.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-user-profile-settings.ps1)
 - [apply-local-smtp-settings.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-smtp-settings.ps1)
 - [apply-local-google-idp.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-google-idp.ps1)
@@ -61,6 +65,8 @@ Nota importante:
   token admin e chiamate `GET/POST/PUT/DELETE` verso la Admin API
 - [KeycloakRequiredActions.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/lib/KeycloakRequiredActions.ps1)
   helper riusabili per registrare, aggiornare o rimuovere required actions tramite Admin API
+- [KeycloakAuthenticationFlows.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/lib/KeycloakAuthenticationFlows.ps1)
+  helper riusabili per leggere e riallineare requirement ed execution dei flow di autenticazione
 - [KeycloakContainer.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/lib/KeycloakContainer.ps1)
   helper per restart locale di Keycloak, health check e operazioni `docker compose`
 

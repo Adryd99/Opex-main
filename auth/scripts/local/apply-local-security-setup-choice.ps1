@@ -75,6 +75,13 @@ $actionSpecs = @(
         Enabled = $true
         DefaultAction = $false
         Priority = 100
+    },
+    @{
+        Alias = "CONFIGURE_RECOVERY_AUTHN_CODES"
+        Name = "Recovery Authentication Codes"
+        Enabled = $true
+        DefaultAction = $false
+        Priority = 35
     }
 )
 

@@ -37,6 +37,11 @@ public class User {
     private Boolean secondFactorEnrollmentDeferred = false;
     private String secondFactorMethod;
     private OffsetDateTime secondFactorConfiguredAt;
+    private Boolean totpConfigured = false;
+    private Integer webauthnCredentialCount = 0;
+    private Boolean recoveryCodesConfigured = false;
+    private Integer recoveryCodesRemainingCount = 0;
+    private Boolean recoveryCodesSetupPending = false;
     private String vatFrequency;
     private Boolean gdprAccepted = false;
     private String legalVersion;

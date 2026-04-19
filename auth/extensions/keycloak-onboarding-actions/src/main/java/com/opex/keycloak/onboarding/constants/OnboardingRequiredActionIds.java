@@ -5,6 +5,7 @@ public final class OnboardingRequiredActionIds {
     public static final String SECURITY_SETUP_CHOICE = "SECURITY_SETUP_CHOICE";
     public static final String OPTIONAL_CONFIGURE_TOTP = "OPTIONAL_CONFIGURE_TOTP";
     public static final String OPTIONAL_WEBAUTHN_REGISTER = "OPTIONAL_WEBAUTHN_REGISTER";
+    public static final String CONFIGURE_RECOVERY_AUTHN_CODES = "CONFIGURE_RECOVERY_AUTHN_CODES";
     public static final String CONFIGURE_TOTP = "CONFIGURE_TOTP";
     public static final String WEBAUTHN_REGISTER = "webauthn-register";
     public static final String PROFILE_BASICS = "PROFILE_BASICS";

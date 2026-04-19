@@ -23,6 +23,7 @@ public final class OptionalConfigureTotpRequiredAction extends UpdateTotp {
 
         if (context.getUser().credentialManager().isConfiguredFor(OTPCredentialModel.TYPE)) {
             SecondFactorSupport.markConfigured(context, "totp");
+            SecondFactorSupport.ensureRecoveryCodesRequiredAction(context);
         }
     }
 

@@ -19,6 +19,16 @@ import {
 } from './storage';
 
 export type KeycloakSessionResolution = 'authenticated' | 'redirecting';
+export type KeycloakActionStatus = 'success' | 'cancelled' | 'error';
+export type KeycloakAuthorizationOptions = {
+  redirectPath?: string;
+  action?: string;
+  actionParameters?: Record<string, string | number | boolean | undefined>;
+};
+export type KeycloakActionResult = {
+  action: string | null;
+  status: KeycloakActionStatus | null;
+};
 
 const cleanupAuthorizationParams = () => {
   const url = new URL(window.location.href);
@@ -72,9 +82,42 @@ export const tryRefreshToken = async (): Promise<boolean> => {
   }
 };
 
-export const buildAuthorizationUrl = async (): Promise<string> => {
+const cleanupActionParams = () => {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('kc_action');
+  url.searchParams.delete('kc_action_status');
+
+  const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState({}, document.title, nextUrl);
+};
+
+export const readKeycloakActionResult = (): KeycloakActionResult => {
+  const url = new URL(window.location.href);
+  const action = url.searchParams.get('kc_action');
+  const status = url.searchParams.get('kc_action_status');
+
+  if (status === 'success' || status === 'cancelled' || status === 'error') {
+    return {
+      action,
+      status
+    };
+  }
+
+  return {
+    action,
+    status: null
+  };
+};
+
+export const clearKeycloakActionResult = (): void => {
+  cleanupActionParams();
+};
+
+export const buildAuthorizationUrl = async (
+  options: KeycloakAuthorizationOptions = {}
+): Promise<string> => {
   const pkceSession = await createPkceSession();
-  const redirectUri = getRedirectUri();
+  const redirectUri = getRedirectUri(options.redirectPath);
   storePkceSession(pkceSession.verifier, pkceSession.state);
 
   const url = new URL(KEYCLOAK_AUTH_URL);
@@ -85,14 +128,33 @@ export const buildAuthorizationUrl = async (): Promise<string> => {
   url.searchParams.set('state', pkceSession.state);
   url.searchParams.set('code_challenge', pkceSession.challenge);
   url.searchParams.set('code_challenge_method', 'S256');
+  if (options.action) {
+    url.searchParams.set('kc_action', options.action);
+  }
+  Object.entries(options.actionParameters ?? {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      url.searchParams.set(key, String(value));
+    }
+  });
   return url.toString();
 };
 
-export const redirectToLogin = async (): Promise<KeycloakSessionResolution> => {
-  const authorizationUrl = await buildAuthorizationUrl();
+export const redirectToLogin = async (
+  options: KeycloakAuthorizationOptions = {}
+): Promise<KeycloakSessionResolution> => {
+  const authorizationUrl = await buildAuthorizationUrl(options);
   window.location.assign(authorizationUrl);
   return 'redirecting';
 };
+
+export const redirectToKeycloakAction = async (
+  action: string,
+  options: Omit<KeycloakAuthorizationOptions, 'action'> = {}
+): Promise<KeycloakSessionResolution> =>
+  redirectToLogin({
+    ...options,
+    action
+  });
 
 export const exchangeCodeForToken = async (code: string, state: string | null) => {
   const pkceSession = readPkceSession();
@@ -109,7 +171,7 @@ export const exchangeCodeForToken = async (code: string, state: string | null) =
       grant_type: 'authorization_code',
       client_id: KEYCLOAK_CLIENT_ID,
       code,
-      redirect_uri: getRedirectUri(),
+      redirect_uri: getRedirectUri(window.location.pathname),
       code_verifier: pkceSession.verifier
     })
   );
@@ -123,7 +185,7 @@ export const buildLogoutUrl = () => {
   clearPkceSession();
   clearStoredTokens();
 
-  const redirectUri = getRedirectUri();
+  const redirectUri = getRedirectUri(window.location.pathname);
   const logoutUrl = new URL(KEYCLOAK_LOGOUT_URL, window.location.origin);
   logoutUrl.searchParams.set('client_id', KEYCLOAK_CLIENT_ID);
   logoutUrl.searchParams.set('post_logout_redirect_uri', redirectUri);

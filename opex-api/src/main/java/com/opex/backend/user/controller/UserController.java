@@ -2,6 +2,7 @@ package com.opex.backend.user.controller;
 
 import com.opex.backend.common.security.AuthenticatedUser;
 import com.opex.backend.user.dto.EmailVerificationStatusResponse;
+import com.opex.backend.user.dto.UserSecurityStatusResponse;
 import com.opex.backend.user.dto.UserResponse;
 import com.opex.backend.user.dto.UserUpdateRequest;
 import com.opex.backend.user.model.User;
@@ -22,6 +23,11 @@ public class UserController {
     public ResponseEntity<UserResponse> syncUser(AuthenticatedUser authenticatedUser) {
         User user = userService.syncUserWithKeycloak(authenticatedUser);
         return ResponseEntity.ok(UserResponse.from(user));
+    }
+
+    @GetMapping("/security")
+    public ResponseEntity<UserSecurityStatusResponse> getSecurityStatus(AuthenticatedUser authenticatedUser) {
+        return ResponseEntity.ok(userService.getSecurityStatus(authenticatedUser));
     }
 
     @PatchMapping("/profile")

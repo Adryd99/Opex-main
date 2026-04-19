@@ -2,6 +2,7 @@ package com.opex.backend.user.service;
 
 import com.opex.backend.common.security.AuthenticatedUser;
 import com.opex.backend.user.dto.EmailVerificationStatusResponse;
+import com.opex.backend.user.dto.UserSecurityStatusResponse;
 import com.opex.backend.user.dto.UserUpdateRequest;
 import com.opex.backend.user.model.User;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ public class UserService {
     private final UserProfileUpdateService userProfileUpdateService;
     private final UserEmailVerificationService userEmailVerificationService;
     private final UserLifecycleService userLifecycleService;
+    private final UserSecurityStatusService userSecurityStatusService;
 
     public User syncUserWithKeycloak(AuthenticatedUser authenticatedUser) {
         return userSyncService.syncUserWithKeycloak(authenticatedUser);
@@ -30,5 +32,9 @@ public class UserService {
 
     public void deleteUser(String keycloakId) {
         userLifecycleService.deleteUser(keycloakId);
+    }
+
+    public UserSecurityStatusResponse getSecurityStatus(AuthenticatedUser authenticatedUser) {
+        return userSecurityStatusService.getSecurityStatus(authenticatedUser);
     }
 }

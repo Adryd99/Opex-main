@@ -52,6 +52,7 @@ Questi file **non** coprono sempre tutto quello che iteriamo velocemente in loca
 - Google IDP
 - token mappers
 - priorita e stato delle required actions custom
+- browser 2FA flow e metodi alternativi di login
 
 In locale queste parti vengono applicate dagli script sotto [auth/scripts/local](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local).
 
@@ -143,10 +144,26 @@ Questo comando:
 - ricarica Keycloak una volta sola
 - aspetta che Keycloak sia `healthy`
 - applica i setting locali del realm
+- riallinea il browser flow 2FA con `OTP Form`, `WebAuthn Authenticator` e `Recovery Authentication Code Form` come alternative
+- mantiene `CONFIGURE_RECOVERY_AUTHN_CODES` subito dopo il setup TOTP/WebAuthn nel blocco onboarding
 - applica il flow onboarding locale
 - applica i token mappers
 
 SMTP e Google IDP restano opzionali e si attivano solo passando i parametri richiesti.
+
+## 2FA State
+
+Lo stato attuale del sistema 2FA e questo:
+
+- il browser flow principale usa `OTP Form`, `WebAuthn Authenticator` e `Recovery Authentication Code Form` come alternative nello stesso blocco 2FA
+- anche il subflow `First broker login - Conditional 2FA` usa gli stessi tre metodi come alternative, quindi il ramo broker/social login e allineato al browser flow principale
+- l'onboarding puo portare a:
+  - setup TOTP
+  - setup WebAuthn
+  - setup recovery codes subito dopo il completamento del secondo fattore principale
+- il backend espone uno stato dedicato per il frontend tramite `GET /api/users/security`
+- il frontend ha una route nascosta `/security` che usa dati reali e lancia i flow Keycloak via AIA
+- il metodo 2FA mostrato al frontend viene derivato dalle credenziali reali Keycloak, non solo dagli attributi custom scritti in onboarding
 
 ## Bootstrap produzione
 

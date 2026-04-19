@@ -1,4 +1,4 @@
-import { Camera, Check, CircleDashed, Edit2, Globe, Receipt } from 'lucide-react';
+import { Check, CircleDashed, Edit2, Globe, Receipt } from 'lucide-react';
 import { useState } from 'react';
 import { Badge, Button, Card } from '../../../shared/ui';
 import { UserProfile } from '../../../shared/types';
@@ -125,10 +125,10 @@ export const SettingsProfileSection = ({
             onSaved={() => setIsEditingProfile(false)}
           />
         ) : (
-          <div className="space-y-8">
+            <div className="space-y-8">
             <div className="flex flex-col md:flex-row gap-10">
-              <div className="relative group shrink-0">
-                <div className="w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl transition-transform group-hover:scale-[1.02] cursor-pointer bg-opex-teal/10 flex items-center justify-center" onClick={() => setIsEditingProfile(true)}>
+              <div className="shrink-0">
+                <div className="w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-opex-teal/10 flex items-center justify-center">
                   {userProfile.logo
                     ? <img src={userProfile.logo} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     : <span className="text-3xl font-black text-opex-teal select-none">
@@ -136,9 +136,6 @@ export const SettingsProfileSection = ({
                     </span>
                   }
                 </div>
-                <button type="button" className="absolute -bottom-2 -right-2 bg-opex-dark text-white p-3 rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all" onClick={() => setIsEditingProfile(true)}>
-                  <Camera size={16} />
-                </button>
               </div>
 
               <div className="flex-1 flex flex-col justify-center gap-3">

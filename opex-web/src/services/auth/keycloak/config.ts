@@ -13,4 +13,14 @@ export const KEYCLOAK_CLIENT_ID = runtimeEnv.VITE_KEYCLOAK_CLIENT_ID ?? 'opex';
 export const KEYCLOAK_SCOPE = runtimeEnv.VITE_KEYCLOAK_SCOPE ?? 'openid profile email';
 const KEYCLOAK_REDIRECT_URI = runtimeEnv.VITE_KEYCLOAK_REDIRECT_URI;
 
-export const getRedirectUri = (): string => KEYCLOAK_REDIRECT_URI ?? window.location.origin;
+export const getRedirectUri = (pathname = window.location.pathname): string => {
+  const baseRedirectUri = KEYCLOAK_REDIRECT_URI ?? window.location.origin;
+  const url = new URL(baseRedirectUri, window.location.origin);
+  const normalizedPath = pathname.startsWith('/') ? pathname : `/${pathname}`;
+
+  url.pathname = normalizedPath || '/';
+  url.search = '';
+  url.hash = '';
+
+  return url.toString();
+};

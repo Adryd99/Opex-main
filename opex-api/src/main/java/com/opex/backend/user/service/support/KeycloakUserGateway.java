@@ -5,12 +5,14 @@ import com.opex.backend.common.security.AuthenticatedUser;
 import lombok.RequiredArgsConstructor;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.UserResource;
+import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.FederatedIdentityRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +24,8 @@ public class KeycloakUserGateway {
 
     private final Keycloak keycloak;
     private final KeycloakAdminProperties keycloakAdminProperties;
+    private final KeycloakSecondFactorSnapshotMapper keycloakSecondFactorSnapshotMapper;
+    private final KeycloakSecondFactorStateResolver keycloakSecondFactorStateResolver;
 
     public UserRepresentation loadUser(String keycloakId) {
         return getUserResource(keycloakId).toRepresentation();
@@ -42,10 +46,12 @@ public class KeycloakUserGateway {
     public KeycloakProfileSnapshot loadProfileSnapshot(AuthenticatedUser authenticatedUser) {
         UserRepresentation keycloakUser = null;
         UserResource userResource = null;
+        List<CredentialRepresentation> credentials = null;
 
         try {
             userResource = getUserResource(authenticatedUser.userId());
             keycloakUser = userResource.toRepresentation();
+            credentials = userResource.credentials();
         } catch (Exception exception) {
             log.warn("Unable to load Keycloak profile for '{}', falling back to JWT claims only", authenticatedUser.userId(), exception);
         }
@@ -59,6 +65,22 @@ public class KeycloakUserGateway {
         Boolean emailVerified = keycloakUser != null ? keycloakUser.isEmailVerified() : null;
         String firstName = UserValueSupport.firstNonBlank(keycloakUser != null ? keycloakUser.getFirstName() : null, authenticatedUser.firstName());
         String lastName = UserValueSupport.firstNonBlank(keycloakUser != null ? keycloakUser.getLastName() : null, authenticatedUser.lastName());
+        KeycloakSecondFactorSnapshot secondFactorSnapshot = keycloakSecondFactorSnapshotMapper.from(keycloakUser, credentials);
+        String preferredSecondFactor = KeycloakUserAttributes.getAttribute(attributes, UserAttributeNames.PREFERRED_SECOND_FACTOR);
+        String recordedSecondFactorMethod = KeycloakUserAttributes.getAttribute(attributes, UserAttributeNames.SECOND_FACTOR_METHOD);
+        OffsetDateTime recordedSecondFactorConfiguredAt = UserValueSupport.parseOffsetDateTime(
+                KeycloakUserAttributes.getAttribute(attributes, UserAttributeNames.SECOND_FACTOR_CONFIGURED_AT)
+        );
+        String effectiveSecondFactorMethod = keycloakSecondFactorStateResolver.resolveEffectiveMethod(
+                preferredSecondFactor,
+                recordedSecondFactorMethod,
+                secondFactorSnapshot
+        );
+        OffsetDateTime effectiveSecondFactorConfiguredAt = keycloakSecondFactorStateResolver.resolveEffectiveConfiguredAt(
+                effectiveSecondFactorMethod,
+                recordedSecondFactorConfiguredAt,
+                secondFactorSnapshot
+        );
 
         return new KeycloakProfileSnapshot(
                 email,
@@ -85,10 +107,19 @@ public class KeycloakUserGateway {
                         authenticatedUser.profilePicture()
                 ),
                 identityProvider,
-                KeycloakUserAttributes.getAttribute(attributes, UserAttributeNames.PREFERRED_SECOND_FACTOR),
+                preferredSecondFactor,
                 UserValueSupport.parseBoolean(KeycloakUserAttributes.getAttribute(attributes, UserAttributeNames.SECOND_FACTOR_ENROLLMENT_DEFERRED)),
-                KeycloakUserAttributes.getAttribute(attributes, UserAttributeNames.SECOND_FACTOR_METHOD),
-                UserValueSupport.parseOffsetDateTime(KeycloakUserAttributes.getAttribute(attributes, UserAttributeNames.SECOND_FACTOR_CONFIGURED_AT)),
+                secondFactorSnapshot.stateLoaded(),
+                effectiveSecondFactorMethod,
+                effectiveSecondFactorConfiguredAt,
+                secondFactorSnapshot.totpConfigured(),
+                secondFactorSnapshot.totpConfiguredAt(),
+                secondFactorSnapshot.webauthnCredentialCount(),
+                secondFactorSnapshot.webauthnConfiguredAt(),
+                secondFactorSnapshot.recoveryCodesConfigured(),
+                secondFactorSnapshot.recoveryCodesConfiguredAt(),
+                secondFactorSnapshot.recoveryCodesRemainingCount(),
+                secondFactorSnapshot.recoveryCodesSetupPending(),
                 UserValueSupport.firstNonNull(
                         UserValueSupport.parseBoolean(KeycloakUserAttributes.getAttribute(attributes, UserAttributeNames.LEGAL_ACCEPTED)),
                         authenticatedUser.legalAccepted()

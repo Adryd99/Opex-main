@@ -1797,7 +1797,7 @@
         {
           "authenticator": "webauthn-authenticator",
           "authenticatorFlow": false,
-          "requirement": "DISABLED",
+          "requirement": "ALTERNATIVE",
           "priority": 40,
           "autheticatorFlow": false,
           "userSetupAllowed": false
@@ -1805,7 +1805,7 @@
         {
           "authenticator": "auth-recovery-authn-code-form",
           "authenticatorFlow": false,
-          "requirement": "DISABLED",
+          "requirement": "ALTERNATIVE",
           "priority": 50,
           "autheticatorFlow": false,
           "userSetupAllowed": false
@@ -1926,7 +1926,7 @@
         {
           "authenticator": "webauthn-authenticator",
           "authenticatorFlow": false,
-          "requirement": "DISABLED",
+          "requirement": "ALTERNATIVE",
           "priority": 40,
           "autheticatorFlow": false,
           "userSetupAllowed": false
@@ -1934,7 +1934,7 @@
         {
           "authenticator": "auth-recovery-authn-code-form",
           "authenticatorFlow": false,
-          "requirement": "DISABLED",
+          "requirement": "ALTERNATIVE",
           "priority": 50,
           "autheticatorFlow": false,
           "userSetupAllowed": false
@@ -2553,7 +2553,7 @@
       "providerId": "UPDATE_EMAIL",
       "enabled": false,
       "defaultAction": false,
-      "priority": 130,
+      "priority": 35,
       "config": {}
     },
     {

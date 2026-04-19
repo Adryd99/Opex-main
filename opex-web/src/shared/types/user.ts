@@ -48,3 +48,19 @@ export interface UserProfile {
   notifyQuarterlyVat?: boolean;
   notifyMonthlyAnalysis?: boolean;
 }
+
+export interface UserSecurityStatus {
+  preferredSecondFactor?: string | null;
+  secondFactorEnrollmentDeferred?: boolean;
+  secondFactorMethod?: string | null;
+  secondFactorConfiguredAt?: string | null;
+  totpConfigured: boolean;
+  webauthnConfigured: boolean;
+  webauthnCredentialCount: number;
+  recoveryCodesConfigured: boolean;
+  recoveryCodesAvailable: boolean;
+  recoveryCodesRemainingCount: number;
+  recoveryCodesSetupPending: boolean;
+  hasFallbackSecondFactor: boolean;
+  availableSecondFactorMethods: string[];
+}

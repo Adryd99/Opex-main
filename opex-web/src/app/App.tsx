@@ -36,6 +36,7 @@ import {
   NotificationDetailsPage,
   RecurringPage,
   RenewConsentPage,
+  SecurityPage,
   SettingsPage,
   SupportPage
 } from '../features/settings';
@@ -46,6 +47,8 @@ import { useKeycloakAuth } from '../services/auth/useKeycloakAuth';
 
 export const App = () => {
   const legalDocumentSlug = resolveLegalCenterSlug(window.location.pathname);
+  const normalizedPathname = window.location.pathname.replace(/\/+$/, '') || '/';
+  const isSecurityRoute = normalizedPathname === '/security';
 
   const {
     isAuthenticated,
@@ -205,6 +208,21 @@ export const App = () => {
           </div>
         )}
         description="We are syncing your profile and loading the latest data."
+      />
+    );
+  }
+
+  if (isSecurityRoute) {
+    return (
+      <SecurityPage
+        onBack={() => {
+          const canGoBackWithinApp = document.referrer.startsWith(window.location.origin);
+          if (canGoBackWithinApp && window.history.length > 1) {
+            window.history.back();
+            return;
+          }
+          window.location.assign('/');
+        }}
       />
     );
   }

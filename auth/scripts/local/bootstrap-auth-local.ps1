@@ -163,6 +163,7 @@ if (-not $SkipRealmSetup) {
 
     Invoke-AuthScript -ScriptPath (Join-Path $localScriptsDir "apply-local-languages.ps1") -Arguments $adminApiArgs
     Invoke-AuthScript -ScriptPath (Join-Path $localScriptsDir "apply-local-login-settings.ps1") -Arguments $adminApiArgs
+    Invoke-AuthScript -ScriptPath (Join-Path $localScriptsDir "apply-local-browser-2fa-flow.ps1") -Arguments $adminApiArgs
     Invoke-AuthScript -ScriptPath (Join-Path $localScriptsDir "apply-local-user-profile-settings.ps1") -Arguments @{
         KeycloakBaseUrl = $KeycloakBaseUrl
         AdminRealm = "master"

@@ -1,5 +1,6 @@
-import type { UserProfile } from '../../../../shared/types/user';
+import type { UserProfile, UserSecurityStatus } from '../../../../shared/types/user';
 import { request } from '../http';
+import { normalizeUserSecurityStatus } from '../normalizers/userSecurity';
 import { normalizeUserProfile } from '../normalizers/user';
 import { UserProfilePatchPayload } from '../types';
 
@@ -23,6 +24,9 @@ type EmailVerificationStatusResponse = {
 export const userClient = {
   syncUser: async (fallback?: Partial<UserProfile>) =>
     normalizeUserProfile(await request<unknown>('/api/users/sync', { method: 'POST' }), fallback),
+
+  getUserSecurityStatus: async (): Promise<UserSecurityStatus> =>
+    normalizeUserSecurityStatus(await request<unknown>('/api/users/security')),
 
   patchUserProfile: async (payload: UserProfilePatchPayload, fallback?: Partial<UserProfile>) =>
     normalizeUserProfile(

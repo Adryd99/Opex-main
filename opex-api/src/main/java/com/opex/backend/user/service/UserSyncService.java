@@ -128,6 +128,7 @@ public class UserSyncService {
 
     private boolean applySecondFactorSnapshot(User user, KeycloakProfileSnapshot snapshot) {
         boolean changed = false;
+        boolean secondFactorStateLoaded = Boolean.TRUE.equals(snapshot.secondFactorStateLoaded());
 
         changed |= updateValue(user, User::getPreferredSecondFactor, User::setPreferredSecondFactor, firstNonBlank(snapshot.preferredSecondFactor(), user.getPreferredSecondFactor()));
         changed |= updateValue(
@@ -136,13 +137,17 @@ public class UserSyncService {
                 User::setSecondFactorEnrollmentDeferred,
                 firstNonNull(snapshot.secondFactorEnrollmentDeferred(), user.getSecondFactorEnrollmentDeferred(), false)
         );
-        changed |= updateValue(user, User::getSecondFactorMethod, User::setSecondFactorMethod, firstNonBlank(snapshot.secondFactorMethod(), user.getSecondFactorMethod()));
-        changed |= updateValue(
-                user,
-                User::getSecondFactorConfiguredAt,
-                User::setSecondFactorConfiguredAt,
-                firstNonNull(snapshot.secondFactorConfiguredAt(), user.getSecondFactorConfiguredAt())
-        );
+        if (!secondFactorStateLoaded) {
+            return changed;
+        }
+
+        changed |= updateValue(user, User::getSecondFactorMethod, User::setSecondFactorMethod, snapshot.secondFactorMethod());
+        changed |= updateValue(user, User::getSecondFactorConfiguredAt, User::setSecondFactorConfiguredAt, snapshot.secondFactorConfiguredAt());
+        changed |= updateValue(user, User::getTotpConfigured, User::setTotpConfigured, firstNonNull(snapshot.totpConfigured(), false));
+        changed |= updateValue(user, User::getWebauthnCredentialCount, User::setWebauthnCredentialCount, firstNonNull(snapshot.webauthnCredentialCount(), 0));
+        changed |= updateValue(user, User::getRecoveryCodesConfigured, User::setRecoveryCodesConfigured, firstNonNull(snapshot.recoveryCodesConfigured(), false));
+        changed |= updateValue(user, User::getRecoveryCodesRemainingCount, User::setRecoveryCodesRemainingCount, firstNonNull(snapshot.recoveryCodesRemainingCount(), 0));
+        changed |= updateValue(user, User::getRecoveryCodesSetupPending, User::setRecoveryCodesSetupPending, firstNonNull(snapshot.recoveryCodesSetupPending(), false));
 
         return changed;
     }
@@ -195,6 +200,21 @@ public class UserSyncService {
                 User::getStrictlyNecessaryCookiesAcknowledged,
                 User::setStrictlyNecessaryCookiesAcknowledged,
                 firstNonNull(user.getStrictlyNecessaryCookiesAcknowledged(), false)
+        );
+        changed |= updateValue(user, User::getTotpConfigured, User::setTotpConfigured, firstNonNull(user.getTotpConfigured(), false));
+        changed |= updateValue(user, User::getWebauthnCredentialCount, User::setWebauthnCredentialCount, firstNonNull(user.getWebauthnCredentialCount(), 0));
+        changed |= updateValue(user, User::getRecoveryCodesConfigured, User::setRecoveryCodesConfigured, firstNonNull(user.getRecoveryCodesConfigured(), false));
+        changed |= updateValue(
+                user,
+                User::getRecoveryCodesRemainingCount,
+                User::setRecoveryCodesRemainingCount,
+                firstNonNull(user.getRecoveryCodesRemainingCount(), 0)
+        );
+        changed |= updateValue(
+                user,
+                User::getRecoveryCodesSetupPending,
+                User::setRecoveryCodesSetupPending,
+                firstNonNull(user.getRecoveryCodesSetupPending(), false)
         );
 
         return changed;

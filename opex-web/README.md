@@ -36,6 +36,24 @@ The local root `.env` is **not** used by Vite. The frontend reads local override
 
 - [http://localhost:3000](http://localhost:3000)
 
+## Hidden Security Route
+
+Esiste una route tecnica non esposta nella navigazione standard:
+
+- [http://localhost:3000/security](http://localhost:3000/security)
+
+Questa pagina:
+
+- legge lo stato reale 2FA/recovery da `GET /api/users/security`
+- avvia i flow Keycloak tramite Application Initiated Actions per:
+  - `CONFIGURE_TOTP`
+  - `webauthn-register`
+  - `CONFIGURE_RECOVERY_AUTHN_CODES`
+- mostra il metodo primario effettivo derivato dalle credenziali reali disponibili in Keycloak
+- e pensata come base futura per l'integrazione in `Settings > Security`
+
+Per ora resta volutamente nascosta e non compare nella sidebar o nei tab delle impostazioni.
+
 ## Source Layout
 
 ```text
