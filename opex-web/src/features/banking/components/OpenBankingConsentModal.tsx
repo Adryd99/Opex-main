@@ -80,7 +80,7 @@ export const OpenBankingConsentModal = ({
               type="checkbox"
               checked={acceptOpenBankingNotice}
               onChange={(event) => onAcceptOpenBankingNoticeChange(event.target.checked)}
-              className="mt-1 h-5 w-5 rounded border-slate-300 text-opex-dark focus:ring-opex-dark"
+              className="mt-1 h-5 w-5 min-h-5 min-w-5 shrink-0 rounded border-slate-300 text-opex-dark focus:ring-opex-dark"
               disabled={isSubmittingOpenBankingConsent}
             />
             <span>
@@ -90,6 +90,18 @@ export const OpenBankingConsentModal = ({
               <span className="mt-1 block text-sm font-medium leading-relaxed text-slate-500">
                 I understand how Opex will use connected banking data inside the product.
               </span>
+              <span className="mt-2 block text-sm font-medium leading-relaxed text-slate-500">
+                Read the{' '}
+                <button
+                  type="button"
+                  onClick={() => setPreviewSlug('open-banking')}
+                  className="font-black text-blue-600 transition-colors hover:text-blue-700 hover:underline"
+                  disabled={isSubmittingOpenBankingConsent || !legalPublicInfo}
+                >
+                  Open Banking Notice
+                </button>
+                .
+              </span>
             </span>
           </label>
           <label className="flex items-start gap-4">
@@ -97,45 +109,22 @@ export const OpenBankingConsentModal = ({
               type="checkbox"
               checked={acceptSaltEdgeTransfer}
               onChange={(event) => onAcceptSaltEdgeTransferChange(event.target.checked)}
-              className="mt-1 h-5 w-5 rounded border-slate-300 text-opex-dark focus:ring-opex-dark"
+              className="mt-1 h-5 w-5 min-h-5 min-w-5 shrink-0 rounded border-slate-300 text-opex-dark focus:ring-opex-dark"
               disabled={isSubmittingOpenBankingConsent}
             />
             <span>
               <span className="block text-base font-black text-slate-900">
-                I authorize the redirect to Salt Edge for bank connection setup.
+                I understand that Opex will redirect me to Salt Edge to complete the bank connection setup.
               </span>
               <span className="mt-1 block text-sm font-medium leading-relaxed text-slate-500">
-                This specific flow is optional. You can keep using manual accounts if you prefer not to connect a bank.
+                Open Banking is optional overall. You can keep using manual accounts if you prefer not to connect a bank.
               </span>
             </span>
           </label>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-          <button
-            type="button"
-            onClick={() => setPreviewSlug('open-banking')}
-            className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
-            disabled={isSubmittingOpenBankingConsent || !legalPublicInfo}
-          >
-            Open Banking Notice
-          </button>
-          <button
-            type="button"
-            onClick={() => setPreviewSlug('privacy')}
-            className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
-            disabled={isSubmittingOpenBankingConsent || !legalPublicInfo}
-          >
-            Privacy Notice
-          </button>
-          <button
-            type="button"
-            onClick={() => setPreviewSlug('terms')}
-            className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
-            disabled={isSubmittingOpenBankingConsent || !legalPublicInfo}
-          >
-            Terms
-          </button>
+        <div className="mt-6 rounded-[1.5rem] bg-slate-50 px-5 py-4 text-sm font-medium leading-relaxed text-slate-500">
+          Privacy Notice and Terms of Service were already accepted during onboarding and do not need to be accepted again here.
         </div>
 
         {openBankingConsentError && (

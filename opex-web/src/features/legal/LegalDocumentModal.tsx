@@ -46,6 +46,8 @@ export const LegalDocumentModal = ({
           <div className="flex items-center gap-3">
             <a
               href={getLegalDocumentPath(slug)}
+              target="_blank"
+              rel="noreferrer"
               className="inline-flex h-11 items-center justify-center gap-2 rounded-[1rem] border border-slate-200 bg-white px-4 text-sm font-black text-slate-600 transition-colors hover:border-slate-300 hover:text-opex-dark"
             >
               Open full page

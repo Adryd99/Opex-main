@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
   AtSign,
   BadgeCheck,
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Badge, Button, Card } from '../../../shared/ui';
 import { UserProfile } from '../../../shared/types';
+import { VerificationEmailActionState } from '../types';
 import { ProfileEditorForm } from './ProfileEditorForm';
 
 type SettingsProfileSectionProps = {
@@ -18,6 +20,7 @@ type SettingsProfileSectionProps = {
   isEditingProfile: boolean;
   onEditingProfileChange: (isEditing: boolean) => void;
   onSaveProfile: (profile: UserProfile) => Promise<void>;
+  verificationEmailAction: VerificationEmailActionState;
 };
 
 type ProfileDetailItemProps = {
@@ -31,7 +34,8 @@ export const SettingsProfileSection = ({
   userProfile,
   isEditingProfile,
   onEditingProfileChange,
-  onSaveProfile
+  onSaveProfile,
+  verificationEmailAction
 }: SettingsProfileSectionProps) => {
   const registrationDateLabel = formatRegistrationDate(userProfile.registrationDate);
   const accountVerified = Boolean(userProfile.emailVerified);
@@ -107,6 +111,17 @@ export const SettingsProfileSection = ({
                     value={accountVerified ? 'Verified' : 'Pending'}
                     detail={userProfile.email}
                     icon={accountVerified ? ShieldCheck : AtSign}
+                    action={!accountVerified ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 w-full rounded-xl border-gray-200 px-3 py-2 text-xs font-black"
+                        onClick={() => void verificationEmailAction.requestVerificationEmail()}
+                        disabled={verificationEmailAction.actionDisabled}
+                      >
+                        {verificationEmailAction.cta}
+                      </Button>
+                    ) : null}
                   />
                   <SummaryTile
                     label="Occupation"
@@ -243,12 +258,14 @@ const SummaryTile = ({
   label,
   value,
   detail,
-  icon: Icon
+  icon: Icon,
+  action
 }: {
   label: string;
   value: string;
   detail: string;
   icon: typeof Globe;
+  action?: ReactNode;
 }) => (
   <div className="min-w-0 rounded-[1.5rem] border border-white/80 bg-white/90 px-4 py-4 shadow-sm backdrop-blur-sm">
     <div className="flex items-center gap-2 text-gray-400">
@@ -257,6 +274,7 @@ const SummaryTile = ({
     </div>
     <p className="mt-3 min-w-0 text-sm font-black text-gray-900 leading-tight break-words [overflow-wrap:anywhere]">{value}</p>
     <p className="mt-1 min-w-0 text-xs font-medium text-gray-500 leading-relaxed break-words [overflow-wrap:anywhere]">{detail}</p>
+    {action}
   </div>
 );
 

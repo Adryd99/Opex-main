@@ -3,16 +3,23 @@ import { SettingsSectionDefinition, SettingsSectionId } from '../types';
 type SettingsTabsProps = {
   sections: SettingsSectionDefinition[];
   activeSection: SettingsSectionId;
+  attentionBySection?: Partial<Record<SettingsSectionId, boolean>>;
   onSectionChange: (section: SettingsSectionId) => void;
 };
 
-export const SettingsTabs = ({ sections, activeSection, onSectionChange }: SettingsTabsProps) => {
+export const SettingsTabs = ({
+  sections,
+  activeSection,
+  attentionBySection,
+  onSectionChange
+}: SettingsTabsProps) => {
   return (
     <div className="w-full relative py-2">
       <div className="flex items-center gap-3 overflow-x-auto no-scrollbar scroll-smooth pb-4 px-1">
         {sections.map((section) => {
           const isActive = activeSection === section.id;
           const Icon = section.icon;
+          const hasAttention = Boolean(attentionBySection?.[section.id]);
 
           return (
             <button
@@ -24,7 +31,16 @@ export const SettingsTabs = ({ sections, activeSection, onSectionChange }: Setti
                   : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50'
                 }`}
             >
-              <Icon size={18} className={isActive ? 'text-white' : 'text-gray-400'} />
+              <div className="relative">
+                <Icon size={18} className={isActive ? 'text-white' : 'text-gray-400'} />
+                {hasAttention ? (
+                  <span
+                    className={`absolute -right-1.5 -top-1.5 h-2.5 w-2.5 rounded-full border-2 ${
+                      isActive ? 'border-opex-teal bg-white' : 'border-white bg-amber-500'
+                    }`}
+                  />
+                ) : null}
+              </div>
               {section.label}
             </button>
           );

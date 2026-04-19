@@ -1,22 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { AddBankPage } from '../../banking';
+import { Button } from '../../../shared/ui';
 import { useEmailVerificationState } from '../hooks/useEmailVerificationState';
 import { useUserSecurityStatus } from '../hooks/useUserSecurityStatus';
-import { buildConfigurationChecklist, buildConsentAuditItems, hasCurrentRequiredConsents } from '../support/configurationStatus';
+import { buildConsentAuditItems, hasCurrentRequiredConsents } from '../support/configurationStatus';
+import { hasCompleteProfileDetails } from '../support/profileCompletion';
 import { SETTINGS_SECTIONS } from '../support/sections';
 import { SettingsPageProps, SettingsSectionId } from '../types';
 import {
   SettingsBrandingSection,
-  SettingsConfigurationStatus,
   SettingsHeader,
+  SettingsBankingSection,
   SettingsHelpSection,
   SettingsPreferencesSection,
   SettingsPrivacySection,
   SettingsProfileSection,
+  SettingsSectionNotice,
   SettingsSecuritySection,
   SettingsTaxesSection,
   SettingsTabs
 } from '../components';
+import { hasTaxProfileConfigured } from '../../tax-profile';
 
 export const SettingsPage = ({
   userProfile,
@@ -50,14 +53,80 @@ export const SettingsPage = ({
   });
   const requiredConsentsCurrent = hasCurrentRequiredConsents(userProfile, legalPublicInfo);
   const consentAuditItems = buildConsentAuditItems(userProfile);
-  const checklistItems = buildConfigurationChecklist({
-    userProfile,
-    verificationEmailAction,
-    securityStatus
-  });
+  const isProfileDetailsComplete = hasCompleteProfileDetails(userProfile);
+  const isProfileSetupComplete = isProfileDetailsComplete && Boolean(userProfile.emailVerified);
+  const isSecuritySetupComplete = Boolean(
+    securityStatus?.secondFactorMethod
+    && securityStatus.hasFallbackSecondFactor
+    && securityStatus.recoveryCodesAvailable
+  );
+  const isTaxProfileComplete = hasTaxProfileConfigured(userProfile);
+  const isBankingSetupComplete = bankAccounts.length > 0;
+  const sectionAttentionById: Partial<Record<SettingsSectionId, boolean>> = {
+    PROFILE: !isProfileSetupComplete,
+    SECURITY: !isSecuritySetupComplete,
+    TAXES: !isTaxProfileComplete,
+    BANKING: !isBankingSetupComplete
+  };
+  const activeSectionNotice = (() => {
+    switch (activeSection) {
+      case 'PROFILE':
+        if (isProfileSetupComplete) {
+          return null;
+        }
 
-  const completedCount = checklistItems.filter((item) => item.completed).length;
-  const [isConfigurationCollapsed, setIsConfigurationCollapsed] = useState(true);
+        return {
+          title: !isProfileDetailsComplete && !userProfile.emailVerified
+            ? 'Finish your profile setup'
+            : !isProfileDetailsComplete
+              ? 'Complete your profile details'
+              : 'Verify your email',
+          description: !isProfileDetailsComplete && !userProfile.emailVerified
+            ? 'Add the missing personal details and verify your email to complete this section.'
+            : !isProfileDetailsComplete
+              ? 'Some personal details are still missing and should be completed here.'
+              : verificationEmailAction.detail,
+          action: !isProfileDetailsComplete ? (
+            <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)}>
+              Complete details
+            </Button>
+          ) : undefined
+        };
+      case 'SECURITY':
+        if (isSecuritySetupComplete) {
+          return null;
+        }
+
+        return {
+          title: 'Finish account protection',
+          description: !securityStatus?.secondFactorMethod
+            ? 'Add a second factor first, then keep a backup path with recovery codes.'
+            : !securityStatus.hasFallbackSecondFactor
+              ? 'Your account still needs a backup sign-in path in case the main method becomes unavailable.'
+              : 'Recovery codes are still missing. Generate them to complete this section.'
+        };
+      case 'TAXES':
+        if (isTaxProfileComplete) {
+          return null;
+        }
+
+        return {
+          title: 'Finish your tax profile',
+          description: 'Fiscal residence, tax regime and activity type are still required before the Taxes workspace can be considered complete.'
+        };
+      case 'BANKING':
+        if (isBankingSetupComplete) {
+          return null;
+        }
+
+        return {
+          title: 'Connect your first account',
+          description: 'Use Open Banking for live balances and transactions, or add a manual account if you prefer to track everything locally.'
+        };
+      default:
+        return null;
+    }
+  })();
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -71,23 +140,6 @@ export const SettingsPage = ({
   useEffect(() => {
     setActiveSection(initialSection as SettingsSectionId);
   }, [initialSection]);
-
-  const handleChecklistItemSelect = (item: typeof checklistItems[number]) => {
-    if (item.opensProfileEditor) {
-      setActiveSection('PROFILE');
-      setIsEditingProfile(true);
-      return;
-    }
-
-    if (item.action) {
-      void item.action();
-      return;
-    }
-
-    if (item.targetSection) {
-      setActiveSection(item.targetSection);
-    }
-  };
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -111,6 +163,7 @@ export const SettingsPage = ({
             isEditingProfile={isEditingProfile}
             onEditingProfileChange={setIsEditingProfile}
             onSaveProfile={onSaveProfile}
+            verificationEmailAction={verificationEmailAction}
           />
         );
       case 'BRANDING':
@@ -123,23 +176,20 @@ export const SettingsPage = ({
         );
       case 'BANKING':
         return (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <AddBankPage
-              embeddedInSettings
-              onNavigate={onNavigate}
-              onBankSelect={onBankSelect}
-              onConnectionSelect={onConnectionSelect}
-              onUpdateBankAccount={onUpdateBankAccount}
-              bankAccounts={bankAccounts}
-              taxBufferProviders={taxBufferProviders}
-              onCreateOpenBankConnection={onCreateOpenBankConnection}
-              onRemoveOpenBankConnection={onRemoveOpenBankConnection}
-              legalPublicInfo={legalPublicInfo}
-              openBankingNoticeVersion={legalPublicInfo?.openBankingNotice.version ?? null}
-              isConnectingOpenBank={isConnectingOpenBank}
-              openBankErrorMessage={openBankErrorMessage}
-            />
-          </div>
+          <SettingsBankingSection
+            onNavigate={onNavigate}
+            onBankSelect={onBankSelect}
+            onConnectionSelect={onConnectionSelect}
+            onUpdateBankAccount={onUpdateBankAccount}
+            bankAccounts={bankAccounts}
+            taxBufferProviders={taxBufferProviders}
+            onCreateOpenBankConnection={onCreateOpenBankConnection}
+            onRemoveOpenBankConnection={onRemoveOpenBankConnection}
+            legalPublicInfo={legalPublicInfo}
+            openBankingNoticeVersion={legalPublicInfo?.openBankingNotice.version ?? null}
+            isConnectingOpenBank={isConnectingOpenBank}
+            openBankErrorMessage={openBankErrorMessage}
+          />
         );
       case 'TAXES':
         return (
@@ -183,14 +233,20 @@ export const SettingsPage = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       <SettingsHeader onNavigate={onNavigate} />
-      <SettingsTabs sections={SETTINGS_SECTIONS} activeSection={activeSection} onSectionChange={setActiveSection} />
-      <SettingsConfigurationStatus
-        checklistItems={checklistItems}
-        completedCount={completedCount}
-        isCollapsed={isConfigurationCollapsed}
-        onToggleCollapsed={() => setIsConfigurationCollapsed((current) => !current)}
-        onSelectItem={handleChecklistItemSelect}
+      <SettingsTabs
+        sections={SETTINGS_SECTIONS}
+        activeSection={activeSection}
+        attentionBySection={sectionAttentionById}
+        onSectionChange={setActiveSection}
       />
+      {activeSectionNotice ? (
+        <SettingsSectionNotice
+          title={activeSectionNotice.title}
+          description={activeSectionNotice.description}
+          tone="warning"
+          action={activeSectionNotice.action}
+        />
+      ) : null}
 
       <div className="flex flex-col gap-8">
         <div className="flex-1 w-full space-y-8">

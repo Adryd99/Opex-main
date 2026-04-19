@@ -57,6 +57,31 @@ export const useBankingFlow = ({
   const [bankPopupUrl, setBankPopupUrl] = useState<string | null>(null);
   const [isManualBankSaving, setIsManualBankSaving] = useState(false);
 
+  const prepareBankPopup = useCallback((): Window | null => {
+    const popup = window.open('', '_blank', 'popup=yes,width=460,height=760');
+    if (!popup) {
+      return null;
+    }
+
+    try {
+      popup.opener = null;
+      popup.document.title = 'Opex Open Banking';
+      popup.document.body.innerHTML = `
+        <div style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8fafc;color:#0c2131;font-family:Inter,Segoe UI,sans-serif;">
+          <div style="text-align:center;max-width:320px;padding:32px;">
+            <div style="width:56px;height:56px;margin:0 auto 20px;border-radius:18px;background:#0c2131;display:flex;align-items:center;justify-content:center;color:white;font-size:24px;font-weight:700;">OB</div>
+            <div style="font-size:24px;font-weight:800;letter-spacing:-0.03em;">Preparing secure connection</div>
+            <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#64748b;">Opex is generating the Salt Edge authorization page for your bank.</p>
+          </div>
+        </div>
+      `;
+    } catch {
+      // Ignore rendering errors and keep the popup available for navigation.
+    }
+
+    return popup;
+  }, []);
+
   const resetSelection = useCallback(() => {
     setSelectedBank(null);
     setSelectedBankAccount(null);
@@ -120,10 +145,28 @@ export const useBankingFlow = ({
     setActiveTab(APP_TABS.SETTINGS_BANK_SETUP);
   }, [bankAccounts, providerByConnectionId, selectConnectionAccountForSetup, setActiveTab]);
 
-  const openBankPopup = useCallback((connectUrl: string, popupErrorMessage: string) => {
+  const openBankPopup = useCallback((
+    connectUrl: string,
+    popupErrorMessage: string,
+    preparedPopup?: Window | null
+  ) => {
     setBankPopupUrl(connectUrl);
-    const popup = window.open(connectUrl, '_blank', 'noopener,noreferrer');
+    const popup = preparedPopup && !preparedPopup.closed
+      ? preparedPopup
+      : window.open('', '_blank', 'popup=yes,width=460,height=760');
     if (!popup) {
+      throw new Error(popupErrorMessage);
+    }
+
+    try {
+      popup.opener = null;
+      popup.location.replace(connectUrl);
+    } catch {
+      try {
+        popup.close();
+      } catch {
+        // Ignore popup close failures.
+      }
       throw new Error(popupErrorMessage);
     }
 
@@ -132,6 +175,8 @@ export const useBankingFlow = ({
   }, []);
 
   const syncExternalBankAndNavigate = useCallback(async (consent: OpenBankingConsentPayload) => {
+    const preparedPopup = prepareBankPopup();
+
     setIsBankSyncInProgress(true);
     setErrorMessage(null);
     setBankSyncStage('opening_widget');
@@ -149,8 +194,16 @@ export const useBankingFlow = ({
         throw new Error('Bank integration connect did not return a valid Salt Edge URL.');
       }
 
-      openBankPopup(connectUrl, 'Unable to open bank connection page. Please allow popups and retry.');
+      openBankPopup(
+        connectUrl,
+        'Unable to open bank connection page. Please allow popups and retry.',
+        preparedPopup
+      );
     } catch (error) {
+      if (preparedPopup && !preparedPopup.closed) {
+        preparedPopup.close();
+      }
+
       const errorMessage = toErrorMessage(error);
 
       if (errorMessage === CONSENT_REQUIRED_ERROR && legalPublicInfo) {
@@ -177,13 +230,15 @@ export const useBankingFlow = ({
     } finally {
       setIsBankSyncInProgress(false);
     }
-  }, [legalPublicInfo, openBankPopup, setErrorMessage, setUserProfile]);
+  }, [legalPublicInfo, openBankPopup, prepareBankPopup, setErrorMessage, setUserProfile]);
 
   const refreshExternalBankConnection = useCallback(async (connectionId: string) => {
     const normalizedConnectionId = normalizeText(connectionId);
     if (normalizedConnectionId.length === 0) {
       throw new Error('Missing Salt Edge connection identifier.');
     }
+
+    const preparedPopup = prepareBankPopup();
 
     setIsBankSyncInProgress(true);
     setErrorMessage(null);
@@ -198,15 +253,23 @@ export const useBankingFlow = ({
         throw new Error('Connection refresh did not return a valid Salt Edge URL.');
       }
 
-      openBankPopup(connectUrl, 'Unable to open Salt Edge refresh page. Please allow popups and retry.');
+      openBankPopup(
+        connectUrl,
+        'Unable to open Salt Edge refresh page. Please allow popups and retry.',
+        preparedPopup
+      );
     } catch (error) {
+      if (preparedPopup && !preparedPopup.closed) {
+        preparedPopup.close();
+      }
+
       setErrorMessage(toErrorMessage(error));
       setBankSyncStage('idle');
       throw error;
     } finally {
       setIsBankSyncInProgress(false);
     }
-  }, [openBankPopup, setErrorMessage]);
+  }, [openBankPopup, prepareBankPopup, setErrorMessage]);
 
   const deleteExternalBankConnection = useCallback(async (connectionId: string) => {
     const normalizedConnectionId = normalizeText(connectionId);

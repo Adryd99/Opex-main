@@ -1,4 +1,4 @@
-import { LegalPublicInfoRecord, UserProfile, UserSecurityStatus } from '../../../shared/types';
+import { BankAccountRecord, LegalPublicInfoRecord, UserProfile, UserSecurityStatus } from '../../../shared/types';
 import { getMissingTaxProfileFields, hasTaxProfileConfigured } from '../../tax-profile';
 import { ConsentAuditItem, SettingsChecklistItem, VerificationEmailActionState } from '../types';
 import { formatConsentTimestamp } from '../utils';
@@ -42,6 +42,7 @@ export const buildConsentAuditItems = (userProfile: UserProfile): ConsentAuditIt
 
 type BuildConfigurationChecklistArgs = {
   userProfile: UserProfile;
+  bankAccounts: BankAccountRecord[];
   verificationEmailAction: VerificationEmailActionState;
   securityStatus?: UserSecurityStatus | null;
 };
@@ -90,8 +91,35 @@ const getTaxProfileChecklistDetail = (userProfile: UserProfile): string | undefi
   return 'Missing fiscal residence, tax regime and activity type';
 };
 
+const hasConfiguredBankAccount = (bankAccounts: BankAccountRecord[]): boolean =>
+  bankAccounts.length > 0;
+
+const getBankingChecklistDetail = (bankAccounts: BankAccountRecord[]): string | undefined => {
+  if (bankAccounts.length === 0) {
+    return 'No bank or manual account yet';
+  }
+
+  const liveAccountsCount = bankAccounts.filter((account) => account.isSaltedge).length;
+  const manualAccountsCount = bankAccounts.length - liveAccountsCount;
+
+  if (liveAccountsCount > 0 && manualAccountsCount > 0) {
+    return `${liveAccountsCount} live and ${manualAccountsCount} manual accounts ready`;
+  }
+
+  if (liveAccountsCount > 0) {
+    return liveAccountsCount === 1
+      ? '1 live bank account connected'
+      : `${liveAccountsCount} live bank accounts connected`;
+  }
+
+  return manualAccountsCount === 1
+    ? '1 manual account ready'
+    : `${manualAccountsCount} manual accounts ready`;
+};
+
 export const buildConfigurationChecklist = ({
   userProfile,
+  bankAccounts,
   verificationEmailAction,
   securityStatus
 }: BuildConfigurationChecklistArgs): SettingsChecklistItem[] => [
@@ -126,8 +154,9 @@ export const buildConfigurationChecklist = ({
   {
     id: 4,
     label: 'Connect first bank account',
-    completed: false,
+    completed: hasConfiguredBankAccount(bankAccounts),
     cta: 'Open',
+    detail: getBankingChecklistDetail(bankAccounts),
     targetSection: 'BANKING',
     action: null
   },

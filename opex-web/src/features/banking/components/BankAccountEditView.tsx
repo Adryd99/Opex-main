@@ -54,13 +54,13 @@ export const BankAccountEditView = ({
       <div className="pt-1">
         <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Edit Account</p>
         <h2 className="mt-1.5 text-2xl font-black text-opex-dark">{displayName}</h2>
-        {account && (
+        {account ? (
           <p className="mt-1 text-sm font-medium text-slate-400">
             {account.isSaltedge ? 'Open Banking account' : 'Local account'}
-            {' · '}
+            {' - '}
             {formatBankBalance(Number(account.balance ?? 0), account.currency)}
           </p>
-        )}
+        ) : null}
       </div>
 
       <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm space-y-3">
@@ -86,10 +86,11 @@ export const BankAccountEditView = ({
               type="button"
               onClick={() => onCategoryChange(category)}
               disabled={isSavingAccount}
-              className={`px-5 py-2.5 rounded-2xl text-sm font-black transition-all ${editAccountCategory === category
+              className={`px-5 py-2.5 rounded-2xl text-sm font-black transition-all ${
+                editAccountCategory === category
                   ? 'bg-opex-dark text-white shadow-md'
                   : 'bg-gray-50 text-gray-600 border border-gray-100 hover:border-gray-300 hover:bg-gray-100'
-                }`}
+              }`}
             >
               {category}
             </button>
@@ -117,12 +118,14 @@ export const BankAccountEditView = ({
             aria-checked={editIsTaxBuffer}
             onClick={onTaxBufferToggle}
             disabled={isSavingAccount}
-            className={`relative inline-flex h-7 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${editIsTaxBuffer ? 'bg-opex-dark' : 'bg-slate-200'
-              }`}
+            className={`relative inline-flex h-7 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+              editIsTaxBuffer ? 'bg-opex-dark' : 'bg-slate-200'
+            }`}
           >
             <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition duration-200 ${editIsTaxBuffer ? 'translate-x-8' : 'translate-x-1'
-                }`}
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition duration-200 ${
+                editIsTaxBuffer ? 'translate-x-8' : 'translate-x-1'
+              }`}
             />
           </button>
         </div>

@@ -1,4 +1,4 @@
-import { Building2, ChevronRight, Loader2 } from 'lucide-react';
+import { Building2, ChevronRight, Landmark, Loader2, Wallet } from 'lucide-react';
 import { ProviderConnectionCard } from '../types';
 import {
   formatBankBalance,
@@ -26,58 +26,88 @@ export const BankConnectionListView = ({
   onAddManualAccount,
   onOpenConnectionDetail
 }: BankConnectionListViewProps) => {
+  const hasConnections = connections.length > 0;
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="space-y-3">
+    <div className="space-y-8 pb-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="space-y-4">
         <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400 px-1">
-          Add Connection
+          Connection Actions
         </p>
-        <button
-          type="button"
-          onClick={onOpenConsentModal}
-          className="w-full bg-opex-teal/5 p-5 rounded-[2rem] border border-opex-teal/20 flex items-center justify-between gap-4 hover:bg-opex-teal/10 transition-all group"
-          disabled={isConnectingOpenBank}
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-opex-teal text-white flex items-center justify-center font-black text-sm shadow-lg group-hover:scale-105 transition-transform flex-shrink-0">
-              OB
+        <div className="grid gap-3 xl:grid-cols-2">
+          <button
+            type="button"
+            onClick={onOpenConsentModal}
+            className="w-full rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-5 text-left transition-all hover:border-emerald-200 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70"
+            disabled={isConnectingOpenBank}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-opex-dark text-white shadow-lg shadow-slate-900/10">
+                  <Landmark size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-gray-900">Connect with Open Banking</p>
+                  <p className="mt-1 text-sm font-medium leading-relaxed text-gray-500">
+                    {isConnectingOpenBank
+                      ? 'Preparing the Salt Edge consent flow...'
+                      : hasConnections
+                        ? 'Link another bank and keep balances or transactions synced automatically.'
+                        : 'Securely connect your first bank through the Salt Edge authorization flow.'}
+                  </p>
+                </div>
+              </div>
+              {isConnectingOpenBank
+                ? <Loader2 size={18} className="mt-1 shrink-0 animate-spin text-emerald-600" />
+                : <ChevronRight size={18} className="mt-1 shrink-0 text-emerald-600" />}
             </div>
-            <div className="text-left">
-              <p className="text-sm font-black text-gray-900">New Open Banking Connection</p>
-              <p className="text-xs text-gray-500 font-medium">
-                {isConnectingOpenBank ? 'Preparing connection...' : 'Connect via Salt Edge authorization.'}
-              </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={onAddManualAccount}
+            className="w-full rounded-[2rem] border border-slate-200 bg-slate-50 p-5 text-left transition-all hover:border-slate-300 hover:bg-slate-100"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-slate-500 shadow-sm border border-slate-200">
+                  <Wallet size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-gray-900">Add manual account</p>
+                  <p className="mt-1 text-sm font-medium leading-relaxed text-gray-500">
+                    Track a local account inside Opex without creating a live Open Banking connection.
+                  </p>
+                </div>
+              </div>
+              <ChevronRight size={18} className="mt-1 shrink-0 text-slate-400" />
             </div>
-          </div>
-          {isConnectingOpenBank
-            ? <Loader2 size={18} className="text-opex-teal animate-spin flex-shrink-0" />
-            : <ChevronRight size={18} className="text-opex-teal flex-shrink-0" />}
-        </button>
+          </button>
+        </div>
         {openBankErrorMessage && (
-          <p className="text-sm text-red-600 font-medium px-1">{openBankErrorMessage}</p>
+          <div className="rounded-[1.5rem] border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {openBankErrorMessage}
+          </div>
         )}
-        <button
-          type="button"
-          onClick={onAddManualAccount}
-          className="w-full bg-gray-50 p-4 rounded-2xl border border-dashed border-gray-200 text-left hover:bg-gray-100 transition-all"
-        >
-          <p className="text-sm font-black text-gray-700">Add Manual Account</p>
-          <p className="text-xs text-gray-500 font-medium mt-0.5">Create a local account without Open Banking.</p>
-        </button>
       </div>
 
       <div>
-        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400 mb-3 px-1">
-          Connected Accounts
-        </p>
+        <div className="mb-3 flex items-center justify-between gap-3 px-1">
+          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">
+            Current Connections
+          </p>
+          <p className="text-xs font-bold text-slate-400">
+            {connections.length} {connections.length === 1 ? 'source' : 'sources'}
+          </p>
+        </div>
         {connections.length === 0 ? (
-          <div className="rounded-[2rem] border border-dashed border-gray-200 bg-gray-50/50 p-10 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto">
+          <div className="rounded-[2rem] border border-dashed border-gray-200 bg-gray-50/70 p-10 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-gray-200">
               <Building2 size={22} className="text-gray-400" />
             </div>
-            <p className="mt-4 text-sm font-black text-gray-500">No connections yet</p>
-            <p className="text-xs font-medium text-gray-400 mt-1">
-              Add an open banking connection or create a manual account above.
+            <p className="mt-4 text-sm font-black text-gray-700">No banking sources yet</p>
+            <p className="mt-1 text-sm font-medium leading-relaxed text-gray-500">
+              Start with Open Banking for live imports or create a manual account for local tracking.
             </p>
           </div>
         ) : (
