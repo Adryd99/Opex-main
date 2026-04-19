@@ -1,129 +1,55 @@
 # Auth Scripts
 
-Questa cartella e la source of truth per gli script PowerShell di `auth`.
+Questa cartella e la source of truth operativa del layer `auth`.
+
+Qui vive tutto cio che builda, riallinea o applica davvero la configurazione runtime del realm:
+
+- build del tema Keycloakify
+- build del provider Java
+- bootstrap locale completo
+- apply di realm settings via Admin API
+- bootstrap production post-deploy
+
+Se devi cambiare il comportamento operativo di Keycloak, il punto di ingresso giusto e qui.
 
 ## Struttura
 
-- [build](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/build)
-  build locale del tema Keycloakify e del provider Java
-- [local](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local)
-  script admin per configurare il realm locale via Keycloak Admin API o `kcadm`
-- [production](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/production)
-  bootstrap post-deploy per applicare al realm production gli stessi setting del locale, con credenziali e valori diversi
-- [lib](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/lib)
-  funzioni PowerShell condivise per configurazione locale, Admin API Keycloak e comandi nel container
+- [build](./build)
+  Script di build per tema e provider.
+- [local](./local)
+  Script di apply e bootstrap del realm locale.
+- [production](./production)
+  Bootstrap post-deploy per applicare gli stessi setting del locale contro un realm remoto.
+- [lib](./lib)
+  Helper PowerShell condivisi per `.env`, Admin API, required actions, authentication flows e container locale.
 
-## Regola pratica
+## Entry point consigliati
 
-Se devi modificare o lanciare script, il posto giusto e sempre [auth/scripts](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts).
+### Build solo tema
 
-Non esistono piu wrapper duplicati sotto `auth/keycloakify` o `auth/extensions/keycloak-onboarding-actions`.
+```powershell
+.\auth\scripts\build\build-local-theme.ps1
+```
 
-## Script di build
+Usalo quando hai cambiato solo `auth/keycloakify`.
 
-- [build-local-theme.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/build/build-local-theme.ps1)
-- [build-local-provider.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/build/build-local-provider.ps1)
+### Build solo provider Java
 
-Entrambi gli script buildano i jar senza toccare Keycloak, a meno che tu non passi esplicitamente `-RestartKeycloak`.
+```powershell
+.\auth\scripts\build\build-local-provider.ps1
+```
 
-## Script locali
+Usalo quando hai cambiato solo `auth/extensions/keycloak-onboarding-actions`.
 
-- [bootstrap-auth-local.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/bootstrap-auth-local.ps1)
-  orchestration locale completa: build tema, build provider, singolo restart di Keycloak e apply dei setting locali del realm
-- [apply-local-languages.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-languages.ps1)
-- [apply-local-login-settings.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-login-settings.ps1)
-  applica login settings del realm, incluso `resetPasswordAllowed` e la password policy locale di default:
-  `length(10) and lowerCase(1) and upperCase(1) and digits(1) and specialChars(1) and notUsername(undefined) and passwordHistory(3)`
-- [apply-local-browser-2fa-flow.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-browser-2fa-flow.ps1)
-  riallinea sia `Browser - Conditional 2FA` sia `First broker login - Conditional 2FA` con OTP, WebAuthn e recovery code come alternative reali, mantenendo `CONFIGURE_RECOVERY_AUTHN_CODES` riutilizzabile via AIA per `900` secondi dall'ultima autenticazione
-- [apply-local-password-update.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-password-update.ps1)
-  registra la required action custom `OPEX_UPDATE_PASSWORD` usata da `Settings > Security` per il cambio password con campo password attuale
-- [apply-local-security-setup-choice.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-security-setup-choice.ps1)
-  registra anche `CONFIGURE_RECOVERY_AUTHN_CODES` con priorita immediatamente successiva a `OPTIONAL_CONFIGURE_TOTP` e `OPTIONAL_WEBAUTHN_REGISTER`, e imposta `CONFIGURE_TOTP`, `webauthn-register` e `CONFIGURE_RECOVERY_AUTHN_CODES` con una finestra AIA `max_auth_age` di `900` secondi
-- [apply-local-user-profile-settings.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-user-profile-settings.ps1)
-- [apply-local-smtp-settings.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-smtp-settings.ps1)
-- [apply-local-google-idp.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-google-idp.ps1)
-  applica il provider Google locale, il first broker flow con linking via password e un `post login flow` dedicato per riattivare il blocco 2FA dopo il ritorno dal broker
-- [apply-local-security-setup-choice.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-security-setup-choice.ps1)
-- [apply-local-profile-basics.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-profile-basics.ps1)
-- [apply-local-country-selection.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-country-selection.ps1)
-- [apply-local-occupation.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-occupation.ps1)
-- [apply-local-legal-acceptance.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-legal-acceptance.ps1)
-- [apply-local-token-mappers.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-token-mappers.ps1)
-
-Nota importante:
-
-- gli script `apply-local-*` non dipendono piu solo dal locale
-- oggi sono script di apply realm riusabili anche per production, pur mantenendo il nome storico per compatibilita
-- se non passi credenziali admin esplicite, fanno fallback alla `.env` locale
-
-## Script produzione
-
-- [bootstrap-auth-production.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/production/bootstrap-auth-production.ps1)
-  applica al realm production gli stessi setting del bootstrap locale, ma via Admin API remota e con credenziali fornite esplicitamente
-
-## Libreria condivisa
-
-- [LocalConfig.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/lib/LocalConfig.ps1)
-  lettura di `.env`, repo root e credenziali admin locali
-- [KeycloakAdminApi.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/lib/KeycloakAdminApi.ps1)
-  token admin e chiamate `GET/POST/PUT/DELETE` verso la Admin API
-- [KeycloakRequiredActions.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/lib/KeycloakRequiredActions.ps1)
-  helper riusabili per registrare, aggiornare o rimuovere required actions tramite Admin API
-- [KeycloakAuthenticationFlows.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/lib/KeycloakAuthenticationFlows.ps1)
-  helper riusabili per leggere e riallineare requirement ed execution dei flow di autenticazione
-- [KeycloakContainer.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/lib/KeycloakContainer.ps1)
-  helper per restart locale di Keycloak, health check e operazioni `docker compose`
-
-## Bootstrap consigliato
-
-Per il loop locale completo, il comando consigliato adesso e:
+### Bootstrap locale completo
 
 ```powershell
 .\auth\scripts\local\bootstrap-auth-local.ps1
 ```
 
-Per includere anche SMTP reale e Google IDP:
+Usalo quando vuoi riallineare tutto il layer auth locale dopo modifiche a tema, provider o realm settings.
 
-```powershell
-.\auth\scripts\local\bootstrap-auth-local.ps1 `
-  -ApplySmtp `
-  -SmtpHost "smtp.example.com" `
-  -SmtpPort 587 `
-  -Encryption StartTLS `
-  -UseAuthentication $true `
-  -Username "user@example.com" `
-  -Password "<SMTP_PASSWORD>" `
-  -FromAddress "user@example.com" `
-  -FromDisplayName "Opex" `
-  -ApplyGoogleIdp `
-  -GoogleClientId "<GOOGLE_CLIENT_ID>" `
-  -GoogleClientSecret "<GOOGLE_CLIENT_SECRET>"
-```
-
-In alternativa, per il locale puoi salvare queste chiavi nel file root `.env`:
-
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `SMTP_HOST`
-- `SMTP_PORT`
-- `SMTP_ENCRYPTION`
-- `SMTP_USE_AUTHENTICATION`
-- `SMTP_USERNAME`
-- `SMTP_PASSWORD`
-- `SMTP_FROM_ADDRESS`
-- `SMTP_FROM_DISPLAY_NAME`
-
-Se presenti, `bootstrap-auth-local.ps1` le usera automaticamente anche senza parametri espliciti.
-
-## Bootstrap produzione
-
-Per production il pattern consigliato e:
-
-1. deploy del servizio `opex-auth`
-2. apply dei setting realm via Admin API
-
-Script base:
+### Bootstrap production
 
 ```powershell
 .\auth\scripts\production\bootstrap-auth-production.ps1 `
@@ -132,6 +58,182 @@ Script base:
   -AdminPassword "<KC_ADMIN_PW>"
 ```
 
-Il wrapper Cloud Run che legge i secret da Google Secret Manager sta qui:
+Usalo dopo il deploy del servizio Keycloak per applicare i setting runtime del realm.
 
-- [apply-auth-production-settings.ps1](C:/Users/danie/workspace/Opex/Opex-main/deploy/cloud-run/apply-auth-production-settings.ps1)
+## Bootstrap locale: cosa fa davvero
+
+`bootstrap-auth-local.ps1` orchestra tutto il loop auth locale:
+
+1. build tema, a meno che non passi `-SkipThemeBuild`
+2. build provider Java, a meno che non passi `-SkipProviderBuild`
+3. riavvia Keycloak una sola volta se almeno uno dei due jar e cambiato
+4. aspetta che il container sia `healthy`
+5. applica il realm via Admin API, a meno che non passi `-SkipRealmSetup`
+
+Ordine attuale di apply:
+
+1. `apply-local-languages.ps1`
+2. `apply-local-login-settings.ps1`
+3. `apply-local-browser-2fa-flow.ps1`
+4. `apply-local-password-update.ps1`
+5. `apply-local-user-profile-settings.ps1`
+6. `apply-local-security-setup-choice.ps1`
+7. `apply-local-profile-basics.ps1`
+8. `apply-local-country-selection.ps1`
+9. `apply-local-occupation.ps1`
+10. `apply-local-legal-acceptance.ps1`
+11. `apply-local-token-mappers.ps1`
+12. `apply-local-smtp-settings.ps1` se richiesto o configurato
+13. `apply-local-google-idp.ps1` se richiesto o configurato
+
+## Script di build
+
+- [build/build-local-theme.ps1](./build/build-local-theme.ps1)
+- [build/build-local-provider.ps1](./build/build-local-provider.ps1)
+
+Comportamento:
+
+- buildano i jar in `auth/themes`
+- non toccano Keycloak a meno che tu non passi `-RestartKeycloak`
+- usano strumenti locali se disponibili
+- fanno fallback agli strumenti scaricati localmente quando serve
+
+## Script locali principali
+
+### Realm base
+
+- [local/apply-local-languages.ps1](./local/apply-local-languages.ps1)
+  Abilita internazionalizzazione, supporta `it` e `en`, imposta `it` come default.
+- [local/apply-local-login-settings.ps1](./local/apply-local-login-settings.ps1)
+  Imposta `resetPasswordAllowed` e la password policy del realm.
+- [local/apply-local-user-profile-settings.ps1](./local/apply-local-user-profile-settings.ps1)
+  Abilita `unmanagedAttributePolicy = ENABLED`, necessario per gli attributi custom usati dal flow.
+- [local/apply-local-token-mappers.ps1](./local/apply-local-token-mappers.ps1)
+  Crea/aggiorna la client scope `opex-onboarding` e pubblica:
+  - `birthDate`
+  - `country`
+  - `occupation`
+  - `profilePicture`
+  - `identityProvider`
+  - `legalAccepted`
+
+### Required actions e onboarding
+
+- [local/apply-local-password-update.ps1](./local/apply-local-password-update.ps1)
+  Registra e configura `OPEX_UPDATE_PASSWORD`.
+- [local/apply-local-security-setup-choice.ps1](./local/apply-local-security-setup-choice.ps1)
+  Registra e ordina:
+  - `SECURITY_SETUP_CHOICE`
+  - `OPTIONAL_CONFIGURE_TOTP`
+  - `OPTIONAL_WEBAUTHN_REGISTER`
+  - `CONFIGURE_TOTP`
+  - `webauthn-register`
+  - `CONFIGURE_RECOVERY_AUTHN_CODES`
+  - `VERIFY_EMAIL`
+- [local/apply-local-profile-basics.ps1](./local/apply-local-profile-basics.ps1)
+  Abilita `PROFILE_BASICS` e disattiva `UPDATE_PROFILE` come step di default.
+- [local/apply-local-country-selection.ps1](./local/apply-local-country-selection.ps1)
+  Registra `COUNTRY_SELECTION`.
+- [local/apply-local-occupation.ps1](./local/apply-local-occupation.ps1)
+  Registra `OCCUPATION`.
+- [local/apply-local-legal-acceptance.ps1](./local/apply-local-legal-acceptance.ps1)
+  Registra `LEGAL_ACCEPTANCE`, disabilita `TERMS_AND_CONDITIONS` e mantiene `VERIFY_EMAIL` fuori dal blocco onboarding.
+
+### Authentication flows
+
+- [local/apply-local-browser-2fa-flow.ps1](./local/apply-local-browser-2fa-flow.ps1)
+  Riallinea sia `Browser - Conditional 2FA` sia `First broker login - Conditional 2FA`.
+
+Stato attuale dei flow 2FA:
+
+- `conditional-user-configured` = `REQUIRED`
+- `conditional-credential` = `REQUIRED`
+- `auth-otp-form` = `ALTERNATIVE`
+- `webauthn-authenticator` = `ALTERNATIVE`
+- `auth-recovery-authn-code-form` = `ALTERNATIVE`
+
+In piu:
+
+- `CONFIGURE_TOTP`, `webauthn-register` e `CONFIGURE_RECOVERY_AUTHN_CODES` vengono configurate con `max_auth_age = 900`
+- questo permette alle AIA lanciate da `Settings > Security` di riusare una sessione Keycloak recente invece di richiedere sempre re-login
+
+### Integrazioni esterne
+
+- [local/apply-local-smtp-settings.ps1](./local/apply-local-smtp-settings.ps1)
+  Scrive `smtpServer` nel realm.
+- [local/apply-local-google-idp.ps1](./local/apply-local-google-idp.ps1)
+  Crea o aggiorna il provider Google e i flow collegati.
+
+Dettagli importanti dello script Google:
+
+- first broker login flow dedicato: `opex-google-first-broker-login`
+- post-broker login flow dedicato: `opex-google-post-login-conditional-2fa`
+- mapper Google:
+  - first name
+  - last name
+  - profile picture
+
+## Fallback `.env`
+
+Gli script locali fanno fallback al file root `.env`.
+
+Variabili richieste per le credenziali admin locali:
+
+- `KC_ADMIN`
+- `KC_ADMIN_PW`
+
+Variabili opzionali lette da `bootstrap-auth-local.ps1`:
+
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_ENCRYPTION`
+- `SMTP_USE_AUTHENTICATION`
+- `SMTP_USERNAME`
+- `SMTP_PASSWORD`
+- `SMTP_FROM_ADDRESS`
+- `SMTP_FROM_DISPLAY_NAME`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+
+Se sono presenti, il bootstrap locale puo applicare SMTP e Google IDP senza passare tutti i parametri a mano.
+
+## Production
+
+`bootstrap-auth-production.ps1` non builda jar e non tocca Docker.
+
+Fa una sola cosa:
+
+- applica al realm remoto gli stessi setting runtime usati in locale, via Admin API
+
+Questa scelta e intenzionale:
+
+- il container Keycloak si occupa del runtime
+- gli script production si occupano dello stato del realm nel DB Keycloak
+
+Per Cloud Run esiste anche il wrapper:
+
+- [../deploy/cloud-run/apply-auth-production-settings.ps1](../deploy/cloud-run/apply-auth-production-settings.ps1)
+
+## Libreria condivisa
+
+- [lib/LocalConfig.ps1](./lib/LocalConfig.ps1)
+  Risolve repo root, `.env` e credenziali admin locali.
+- [lib/KeycloakAdminApi.ps1](./lib/KeycloakAdminApi.ps1)
+  Token admin e chiamate `GET/POST/PUT/DELETE`.
+- [lib/KeycloakRequiredActions.ps1](./lib/KeycloakRequiredActions.ps1)
+  Helper per registrare, aggiornare o rimuovere required actions.
+- [lib/KeycloakAuthenticationFlows.ps1](./lib/KeycloakAuthenticationFlows.ps1)
+  Helper per leggere e modificare requirement ed execution dei flow.
+- [lib/KeycloakContainer.ps1](./lib/KeycloakContainer.ps1)
+  Restart locale, health check e operazioni `docker compose`.
+
+## Regola pratica
+
+Se devi:
+
+- buildare il tema o il provider: usa `build/`
+- riallineare il realm locale: usa `local/`
+- applicare setting a production: usa `production/`
+- aggiungere helper riusabili: usa `lib/`
+
+Non creare wrapper duplicati altrove dentro `auth`.

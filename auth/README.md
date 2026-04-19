@@ -1,261 +1,303 @@
 # Auth Workspace
 
-Questa cartella contiene tutto il layer di autenticazione e identita di Opex basato su Keycloak.
+Questa cartella contiene tutto il layer Keycloak di Opex:
 
-## Obiettivo
-
-Dentro `auth` convivono quattro responsabilita diverse:
-
-- configurazione del realm Keycloak
-- tema UI custom del login/onboarding
+- configurazione dichiarativa del realm
+- tema custom Keycloakify per login e onboarding
 - estensioni Java server-side per i required actions custom
-- script locali di build e bootstrap
+- script di build e bootstrap locale / production
 
-La cosa importante e non confondere i livelli:
+L'obiettivo di questo README e descrivere il flow reale che gira oggi, non solo la struttura della cartella.
 
-- il **tema** decide come si presenta il flow
-- le **estensioni Java** decidono come si comporta il flow server-side
-- il **realm** decide quali provider, setting e required actions sono registrati
-- gli **script** applicano in locale build e configurazioni operative
+## Mappa rapida
 
-## Mappa della cartella
+- [realm](./realm)
+  Base dichiarativa del realm e configurazioni importabili.
+- [keycloakify](./keycloakify)
+  Tema React/TypeScript del login, onboarding e second-factor UI.
+- [extensions/keycloak-onboarding-actions](./extensions/keycloak-onboarding-actions)
+  Modulo Java con required actions custom e support server-side.
+- [scripts](./scripts)
+  Source of truth operativa per build, bootstrap e apply via Admin API.
+- [themes](./themes)
+  Jar runtime buildati localmente e montati dal Keycloak locale.
+- [Dockerfile](./Dockerfile)
+  Build image che compila tema e provider direttamente dai sorgenti.
 
-- [realm](C:/Users/danie/workspace/Opex/Opex-main/auth/realm)
-  Base dichiarativa del realm.
-- [keycloakify](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify)
-  Sorgenti React/TypeScript del tema Keycloak custom.
-- [extensions/keycloak-onboarding-actions](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions)
-  Modulo Java con required actions e support classes custom.
-- [scripts](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts)
-  Source of truth per build e configurazione operativa del realm in locale e production.
-- [themes](C:/Users/danie/workspace/Opex/Opex-main/auth/themes)
-  Jar finali consumati dal runtime Keycloak locale.
-- [Dockerfile](C:/Users/danie/workspace/Opex/Opex-main/auth/Dockerfile)
-  Build image di Keycloak per ambienti non `docker compose`.
-
-## Responsabilita per area
-
-### Realm settings
-
-I file sotto [realm/local](C:/Users/danie/workspace/Opex/Opex-main/auth/realm/local) e [realm/production](C:/Users/danie/workspace/Opex/Opex-main/auth/realm/production) descrivono la base del realm:
-
-- realm metadata
-- client base
-- login settings di base
-- configurazioni importabili in locale o usabili come riferimento per deploy
-
-Questi file **non** coprono sempre tutto quello che iteriamo velocemente in locale tramite Admin API. Per esempio:
-
-- lingue
-- user profile settings
-- SMTP
-- Google IDP
-- token mappers
-- priorita e stato delle required actions custom
-- browser 2FA flow e metodi alternativi di login
-
-In locale queste parti vengono applicate dagli script sotto [auth/scripts/local](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local).
-
-In production lo stesso modello adesso e disponibile tramite:
-
-- [auth/scripts/production](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/production)
-- [deploy/cloud-run/apply-auth-production-settings.ps1](C:/Users/danie/workspace/Opex/Opex-main/deploy/cloud-run/apply-auth-production-settings.ps1)
+## Separazione delle responsabilita
 
 ### Tema Keycloakify
 
-Il tema in [keycloakify](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify) gestisce solo il lato presentazionale:
+Il tema decide:
 
-- branding
-- layout
+- layout, branding e CSS
 - copy e i18n
-- pagine custom del flow
-- componenti React e CSS
+- quali pagine `.ftl` custom hanno una UI React dedicata
+- come si presentano progress, errori, modal e auth pages
 
-Tra le pagine custom gestite dal tema rientra anche `login-update-password.ftl`, usata dal cambio password reale lanciato dall'app via Keycloak AIA.
+Il tema non decide:
 
-Quando il cambio password parte da `Settings > Security`, Opex usa la required action custom `OPEX_UPDATE_PASSWORD`, che mostra:
-
-- password attuale
-- nuova password
-- conferma nuova password
-
-riusando gli stessi controlli password custom del tema.
-
-Il tema **non** deve contenere logica server-side del flow.
+- quando uno step si attiva
+- quando uno step si salta
+- come vengono salvati gli attributi utente
+- come vengono configurati flow, SMTP, Google IDP o token mappers
 
 README dedicato:
-- [auth/keycloakify/README.md](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/README.md)
+- [auth/keycloakify/README.md](./keycloakify/README.md)
 
 ### Estensioni Java
 
-Le estensioni in [extensions/keycloak-onboarding-actions](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions) gestiscono:
+Le estensioni decidono:
 
-- required actions custom
-- navigazione server-side `Back` / `Skip`
-- supporto ai rami Google / TOTP / WebAuthn
-- salvataggio attributi custom sullo user Keycloak
+- quando un required action custom deve mostrarsi
+- come funziona la navigazione `Back` / `Skip`
+- come vengono salvati attributi custom su Keycloak
+- come vengono orchestrati i rami `email+password`, Google, TOTP e WebAuthn
+- come viene eseguito il cambio password custom lanciato dall'app
 
-Le estensioni **non** devono contenere branding o layout del tema.
+Le estensioni non decidono branding o configurazione realm.
 
 README dedicato:
-- [auth/extensions/keycloak-onboarding-actions/README.md](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions/README.md)
+- [auth/extensions/keycloak-onboarding-actions/README.md](./extensions/keycloak-onboarding-actions/README.md)
 
-### Script locali
+### Realm
 
- Gli script in [auth/scripts](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts) sono la source of truth operativa per:
+I file sotto [realm/local](./realm/local) e [realm/production](./realm/production) descrivono la base del realm:
 
-- build del tema
-- build del provider Java
+- realm metadata
+- client base
+- configurazioni importabili
+
+Non rappresentano da soli tutto lo stato runtime del realm. Alcune parti vengono applicate via script:
+
+- lingue supportate
+- login settings e password policy
+- SMTP
+- Google Identity Provider
+- token mappers
+- required actions, priorita e stato di default
+- browser flow 2FA
+
+### Script
+
+Gli script sotto [scripts](./scripts) sono la source of truth operativa:
+
+- build del tema e del provider Java
 - bootstrap locale completo
-- patch del realm locale via Admin API o `kcadm`
+- apply via Admin API per locale e production
+- riallineamento dei flow di autenticazione
 
 README dedicato:
-- [auth/scripts/README.md](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/README.md)
+- [auth/scripts/README.md](./scripts/README.md)
+
+## Flow attuale
+
+### 1. Nuovo utente `email + password`
+
+Flow runtime attuale:
+
+1. login / register standard Keycloak
+2. `SECURITY_SETUP_CHOICE`
+3. se l'utente sceglie `totp`, viene eseguito `OPTIONAL_CONFIGURE_TOTP`
+4. se l'utente sceglie `webauthn`, viene eseguito `OPTIONAL_WEBAUTHN_REGISTER`
+5. dopo un setup TOTP o WebAuthn riuscito, l'estensione aggiunge `CONFIGURE_RECOVERY_AUTHN_CODES` se i recovery codes non esistono ancora
+6. `PROFILE_BASICS`
+7. `COUNTRY_SELECTION`
+8. `OCCUPATION`
+9. `LEGAL_ACCEPTANCE`
+
+Note importanti:
+
+- scegliere `later` nello step sicurezza rimuove i setup TOTP/WebAuthn dal blocco onboarding e prosegue verso `PROFILE_BASICS`
+- `VERIFY_EMAIL` non fa parte di questo onboarding custom; viene lanciato dall'app/backend quando serve
+- il browser flow principale espone OTP, WebAuthn e recovery codes come alternative reali al login
+
+### 2. Nuovo utente Google
+
+Flow runtime attuale:
+
+1. login brokerizzato via Google
+2. first broker login flow dedicato per linkare l'account esistente tramite password se necessario
+3. `SECURITY_SETUP_CHOICE` viene saltato server-side
+4. `PROFILE_BASICS` chiede solo i campi davvero mancanti
+5. `COUNTRY_SELECTION`
+6. `OCCUPATION`
+7. `LEGAL_ACCEPTANCE`
+
+Note importanti:
+
+- `firstName` e `lastName` vengono normalmente presi da Google tramite mapper
+- `birthDate` resta raccolto da Opex se manca
+- dopo il ritorno dal broker, il post-login flow dedicato richiede il secondo fattore solo se l'utente ha gia un metodo configurato
+
+### 3. Utente gia configurato
+
+Per gli utenti gia onboardati:
+
+- il browser flow usa un subflow 2FA condizionale
+- se l'utente ha credenziali configurate, Keycloak propone OTP, WebAuthn o recovery code come alternative
+- se l'utente non ha alcun secondo fattore configurato, il login prosegue senza mostrare step 2FA
+
+### 4. Azioni lanciate dall'app Opex
+
+Da `Settings > Security`, Opex lancia required actions standard o custom via AIA:
+
+- `OPEX_UPDATE_PASSWORD`
+- `CONFIGURE_TOTP`
+- `webauthn-register`
+- `CONFIGURE_RECOVERY_AUTHN_CODES`
+
+Comportamento attuale:
+
+- il tema nasconde progress bar e step onboarding quando la pagina arriva da un'app-initiated action
+- `CONFIGURE_TOTP`, `webauthn-register` e `CONFIGURE_RECOVERY_AUTHN_CODES` sono configurate con `max_auth_age = 900`
+- `OPEX_UPDATE_PASSWORD` usa invece una pagina custom che chiede la password attuale e valida il cambio lato server
+
+### 5. Verify email
+
+La verify email non e un required action custom di questo onboarding.
+
+Il flow attuale e:
+
+1. il frontend chiama il backend Opex
+2. il backend invoca `sendVerifyEmail(...)` su Keycloak
+3. Keycloak usa lo SMTP configurato sul realm
+4. il link porta alla UI Keycloak standard/customizzata dal tema
+
+Per utenti Google, `emailVerified` resta normalmente gia coerente col broker.
 
 ## Source of truth
 
-Questa e la regola pratica da seguire:
+Usa questa regola pratica:
 
-- **UI / pagine / CSS / traduzioni**
-  Source of truth: [auth/keycloakify/src](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src)
-- **Required actions e helper server-side**
-  Source of truth: [auth/extensions/keycloak-onboarding-actions/src](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions/src)
-- **Configurazione realm dichiarativa di base**
-  Source of truth: [auth/realm](C:/Users/danie/workspace/Opex/Opex-main/auth/realm)
-- **Bootstrap e apply locali**
-  Source of truth: [auth/scripts](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts)
-- **Jar runtime usati da Keycloak**
-  Source of truth runtime locale: [auth/themes](C:/Users/danie/workspace/Opex/Opex-main/auth/themes)
+- UI, pagine, CSS, copy, i18n:
+  [auth/keycloakify/src](./keycloakify/src)
+- logica server-side del flow:
+  [auth/extensions/keycloak-onboarding-actions/src](./extensions/keycloak-onboarding-actions/src)
+- configurazione dichiarativa del realm:
+  [auth/realm](./realm)
+- build, bootstrap e apply via Admin API:
+  [auth/scripts](./scripts)
+- artefatti runtime locali:
+  [auth/themes](./themes)
 
-In altre parole:
+In breve:
 
 - `src` e `realm` sono sorgente
 - `scripts` applica e orchestra
-- `themes` contiene l'output finale da montare/eseguire
+- `themes` contiene solo output runtime buildato
 
-## Bootstrap locale
+## Loop locale consigliato
 
-Workflow consigliato dal root del repository:
+Dal root del repository:
 
 1. avvia l'infrastruttura locale
+
 ```powershell
 docker compose up -d
 ```
 
-2. esegui il bootstrap auth
+2. esegui il bootstrap auth completo
+
 ```powershell
 .\auth\scripts\local\bootstrap-auth-local.ps1
 ```
 
-Questo comando:
+Lo script:
 
-- builda il tema
-- builda il provider Java
-- ricarica Keycloak una volta sola
+- builda tema e provider
+- riavvia Keycloak una sola volta se i jar cambiano
 - aspetta che Keycloak sia `healthy`
-- applica i setting locali del realm
-- applica anche la password policy base del realm:
+- applica il realm locale via Admin API in un ordine preciso
+
+Ordine attuale di apply:
+
+1. `apply-local-languages.ps1`
+2. `apply-local-login-settings.ps1`
+3. `apply-local-browser-2fa-flow.ps1`
+4. `apply-local-password-update.ps1`
+5. `apply-local-user-profile-settings.ps1`
+6. `apply-local-security-setup-choice.ps1`
+7. `apply-local-profile-basics.ps1`
+8. `apply-local-country-selection.ps1`
+9. `apply-local-occupation.ps1`
+10. `apply-local-legal-acceptance.ps1`
+11. `apply-local-token-mappers.ps1`
+12. SMTP opzionale
+13. Google IDP opzionale
+
+Di default il bootstrap locale abilita anche:
+
+- lingue supportate `it`, `en`
+- lingua di default `it`
+- `resetPasswordAllowed = true`
+- password policy:
   `length(10) and lowerCase(1) and upperCase(1) and digits(1) and specialChars(1) and notUsername(undefined) and passwordHistory(3)`
-- riallinea il browser flow 2FA con `OTP Form`, `WebAuthn Authenticator` e `Recovery Authentication Code Form` come alternative
-- mantiene `CONFIGURE_RECOVERY_AUTHN_CODES` subito dopo il setup TOTP/WebAuthn nel blocco onboarding
-- applica il flow onboarding locale
-- applica i token mappers
+- `unmanagedAttributePolicy = ENABLED`
 
-SMTP e Google IDP restano opzionali e si attivano passando i parametri richiesti oppure salvando i rispettivi valori `SMTP_*` e `GOOGLE_*` nel file root `.env` locale.
+## Modello production
 
-## 2FA State
+Per production il modello raccomandato e:
 
-Lo stato attuale del sistema 2FA e questo:
+1. deploy del container Keycloak
+2. apply post-deploy delle impostazioni di realm via Admin API
 
-- il browser flow principale usa `OTP Form`, `WebAuthn Authenticator` e `Recovery Authentication Code Form` come alternative nello stesso blocco 2FA
-- anche il subflow `First broker login - Conditional 2FA` usa gli stessi tre metodi come alternative, quindi il ramo broker/social login e allineato al browser flow principale
-- il provider Google locale usa anche un `Post login flow` dedicato (`opex-google-post-login-2fa`) che riapplica lo stesso blocco 2FA dopo il ritorno dall'identity provider
-- l'onboarding puo portare a:
-  - setup TOTP
-  - setup WebAuthn
-  - setup recovery codes subito dopo il completamento del secondo fattore principale
-- il backend espone uno stato dedicato per il frontend tramite `GET /api/users/security`
-- il frontend usa direttamente `Settings > Security` per leggere dati reali e lanciare i flow Keycloak via AIA
-- le AIA usate da `Settings > Security` per `CONFIGURE_TOTP`, `webauthn-register` e `CONFIGURE_RECOVERY_AUTHN_CODES` riusano una finestra di autenticazione recente di `900` secondi prima di richiedere una nuova login Keycloak
-- il metodo 2FA mostrato al frontend viene derivato dalle credenziali reali Keycloak, non solo dagli attributi custom scritti in onboarding
+Questo e necessario perche molte parti non sono semplici env vars del container:
 
-## Bootstrap produzione
-
-Il deploy production di `auth` adesso e pensato in due fasi:
-
-1. deploy del container Keycloak su Cloud Run
-2. apply post-deploy dei setting di realm via Admin API
-
-Questo e importante perche alcune impostazioni production non sono semplici env del container, ma dati del realm salvati nel DB Keycloak:
-
-- SMTP del realm
-- Google Identity Provider
+- SMTP
+- Google IDP
+- flow browser / post-broker
 - token mappers
-- required actions e ordine del flow
+- required actions
 - lingue e user profile settings
 
-Per questo motivo la strategia consigliata e:
+Entry point:
 
-- **env vars / Secret Manager** per salvare i valori production
-- **script di apply realm** per scriverli davvero nel realm
+- [auth/scripts/production/bootstrap-auth-production.ps1](./scripts/production/bootstrap-auth-production.ps1)
+- wrapper Cloud Run:
+  [deploy/cloud-run/apply-auth-production-settings.ps1](../deploy/cloud-run/apply-auth-production-settings.ps1)
 
-Wrapper Cloud Run:
+## Runtime locale e packaging
 
-- [deploy/cloud-run/apply-auth-production-settings.ps1](C:/Users/danie/workspace/Opex/Opex-main/deploy/cloud-run/apply-auth-production-settings.ps1)
+Il Keycloak locale consuma questi jar:
 
-## Runtime locale
+- [auth/themes/keycloak-theme-opex.jar](./themes/keycloak-theme-opex.jar)
+- [auth/themes/keycloak-onboarding-actions.jar](./themes/keycloak-onboarding-actions.jar)
 
-Nel loop locale il container Keycloak legge i jar da:
+Questo significa:
 
-- [auth/themes/keycloak-theme-opex.jar](C:/Users/danie/workspace/Opex/Opex-main/auth/themes/keycloak-theme-opex.jar)
-- [auth/themes/keycloak-onboarding-actions.jar](C:/Users/danie/workspace/Opex/Opex-main/auth/themes/keycloak-onboarding-actions.jar)
+- se modifichi il tema, devi rebuildare il jar del tema
+- se modifichi le estensioni Java, devi rebuildare il jar del provider
+- il riavvio di Keycloak ricarica i jar aggiornati
 
-Questo significa che:
-
-- buildare il tema aggiorna il jar del tema in `auth/themes`
-- buildare il provider aggiorna il jar Java in `auth/themes`
-- riavviare Keycloak ricarica quei jar
-
-## Packaging
-
-Il [Dockerfile](C:/Users/danie/workspace/Opex/Opex-main/auth/Dockerfile) builda tema e provider direttamente dai sorgenti:
-
-- [auth/keycloakify](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify)
-- [auth/extensions/keycloak-onboarding-actions](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions)
-
-e poi copia i jar prodotti dentro `/opt/keycloak/providers`.
-
-Quindi l'immagine finale include:
-
-- tema custom
-- estensioni Java custom
-
-senza dipendere dai jar gia presenti in [auth/themes](C:/Users/danie/workspace/Opex/Opex-main/auth/themes).
+Il [Dockerfile](./Dockerfile) non dipende dai jar gia presenti in `auth/themes`: builda tema e provider direttamente dai sorgenti e li copia dentro `/opt/keycloak/providers`.
 
 ## Sorgente vs artefatti generati
 
 ### Sorgente vero
 
-- [auth/realm](C:/Users/danie/workspace/Opex/Opex-main/auth/realm)
-- [auth/keycloakify/src](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src)
-- [auth/extensions/keycloak-onboarding-actions/src](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions/src)
-- [auth/scripts](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts)
-- README e file di configurazione (`pom.xml`, `package.json`, `tsconfig`, ecc.)
+- [auth/realm](./realm)
+- [auth/keycloakify/src](./keycloakify/src)
+- [auth/extensions/keycloak-onboarding-actions/src](./extensions/keycloak-onboarding-actions/src)
+- [auth/scripts](./scripts)
+- file di configurazione (`pom.xml`, `package.json`, `tsconfig`, ecc.)
 
 ### Artefatti generati
 
-- [auth/themes](C:/Users/danie/workspace/Opex/Opex-main/auth/themes)
-  Artefatti runtime buildati localmente.
+- [auth/themes](./themes)
 - `auth/keycloakify/dist`
 - `auth/keycloakify/dist_keycloak`
 - `auth/keycloakify/node_modules`
 - `auth/keycloakify/.tools`
 - `auth/extensions/keycloak-onboarding-actions/target`
 
-Questi file o directory possono essere rigenerati.
+Questi artefatti possono essere rigenerati.
 
-## Da leggere prima di toccare qualcosa
+## Da dove partire
 
-- se cambi UI del flow: [auth/keycloakify/README.md](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/README.md)
-- se cambi logica server-side del flow: [auth/extensions/keycloak-onboarding-actions/README.md](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions/README.md)
-- se cambi bootstrap o setup locale: [auth/scripts/README.md](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/README.md)
+- vuoi cambiare UI o copy del flow:
+  [auth/keycloakify/README.md](./keycloakify/README.md)
+- vuoi cambiare logica server-side di onboarding o password update:
+  [auth/extensions/keycloak-onboarding-actions/README.md](./extensions/keycloak-onboarding-actions/README.md)
+- vuoi cambiare bootstrap, Google IDP, SMTP o flow realm:
+  [auth/scripts/README.md](./scripts/README.md)

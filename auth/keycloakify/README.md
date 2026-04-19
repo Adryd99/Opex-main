@@ -2,101 +2,167 @@
 
 Questa cartella contiene il tema custom Keycloak di Opex basato su Keycloakify.
 
-## Responsabilita
-
-Questa cartella gestisce solo il lato presentazionale del flow:
+Qui vive solo il lato presentazionale del flow:
 
 - login
 - register
-- reset password
-- logout confirm
-- pagine custom dell'onboarding
-- pagine standard Keycloak customizzate
-- branding
-- CSS
-- traduzioni
+- onboarding
+- password update
+- second-factor pages
+- verify email pages
+- logout / info / legal pages
+- branding, CSS e i18n
 
-Questa cartella **non** deve contenere:
+La logica server-side resta fuori da questa cartella.
 
-- logica server-side del flow
-- configurazione del realm
-- logica admin API di bootstrap
+## Cosa gestisce questa cartella
+
+Il tema decide:
+
+- quali pagine Keycloak ricevono una UI React custom
+- layout, spacing e branding
+- copy e traduzioni
+- progress bar onboarding
+- modal e schermate second-factor
+- differenza visiva tra onboarding e app-initiated actions
+
+Questa cartella non decide:
+
+- quando uno step si attiva o si salta
+- ordine e priorita dei required actions
+- Google IDP, SMTP, token mappers o flow browser
 
 Quelle responsabilita stanno rispettivamente in:
 
-- [auth/extensions/keycloak-onboarding-actions](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions)
-- [auth/realm](C:/Users/danie/workspace/Opex/Opex-main/auth/realm)
-- [auth/scripts](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts)
+- [../extensions/keycloak-onboarding-actions](../extensions/keycloak-onboarding-actions)
+- [../scripts](../scripts)
+- [../realm](../realm)
 
 ## Source of truth
 
 Source of truth del tema:
 
-- [src/login](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src/login)
-  Pagine, componenti, support, i18n e CSS del tema login/onboarding.
-- [src/kc.gen.ts](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src/kc.gen.ts)
+- [src/login](./src/login)
+  Pagine, componenti, support, CSS e i18n del login/onboarding.
+- [src/kc.gen.ts](./src/kc.gen.ts)
   Tipi generati Keycloakify.
-- [ONBOARDING_ROADMAP.md](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/ONBOARDING_ROADMAP.md)
-  Specifica funzionale e roadmap del flow.
-- [src/login/assets](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src/login/assets)
-  Asset del tema versionati insieme ai componenti.
+- [ONBOARDING_ROADMAP.md](./ONBOARDING_ROADMAP.md)
+  Specifica funzionale del flow desiderato e delle sue scelte.
 
-Source of truth operativa per build e apply locali:
+Output runtime locale:
 
-- [auth/scripts/build](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/build)
-- [auth/scripts/local](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local)
+- [../themes/keycloak-theme-opex.jar](../themes/keycloak-theme-opex.jar)
 
 ## Struttura di `src/login`
 
-La cartella [src/login](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src/login) e separata per responsabilita:
-
-- [pages/auth](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src/login/pages/auth)
-  Login, register, reset password, verify email.
-- [pages/onboarding](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src/login/pages/onboarding)
-  Security choice, TOTP, profile, country, occupation, legal, WebAuthn.
-- [pages/system](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src/login/pages/system)
-  Info, terms, logout confirm.
-- [components](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src/login/components)
+- [src/login/pages/auth](./src/login/pages/auth)
+  Login, register, verify email, password update, OTP, recovery code input, passkey auth.
+- [src/login/pages/onboarding](./src/login/pages/onboarding)
+  Security choice, TOTP setup, WebAuthn setup, profile basics, country, occupation, legal acceptance.
+- [src/login/pages/system](./src/login/pages/system)
+  Info, logout confirm, terms.
+- [src/login/components](./src/login/components)
   Componenti condivisi del tema.
-- [support](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src/login/support)
+- [src/login/support](./src/login/support)
   Helper non UI.
-- file root come [KcPage.tsx](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src/login/KcPage.tsx), [Template.tsx](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src/login/Template.tsx), [KcContext.ts](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src/login/KcContext.ts), [i18n.ts](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src/login/i18n.ts) e [main.css](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src/login/main.css)
+- file root come:
+  - [KcPage.tsx](./src/login/KcPage.tsx)
+  - [Template.tsx](./src/login/Template.tsx)
+  - [KcContext.ts](./src/login/KcContext.ts)
+  - [i18n.ts](./src/login/i18n.ts)
+  - [main.css](./src/login/main.css)
 
-## Differenza tra tema, estensioni e realm settings
+## Pagine `.ftl` custom attualmente coperte
 
-### Tema
+`KcPage.tsx` mappa esplicitamente queste pagine:
 
-Decide:
+### Auth e login
 
-- cosa vede l'utente
-- come sono composte le pagine
-- come sono tradotti i testi
-- come si presentano errori, bottoni, layout e modal
+- `login.ftl`
+- `register.ftl`
+- `info.ftl`
+- `login-update-password.ftl`
+- `login-verify-email.ftl`
+- `login-idp-link-confirm.ftl`
+- `login-idp-link-email.ftl`
+- `logout-confirm.ftl`
+- `terms.ftl`
 
-### Estensioni Java
+### Second factor e login alternatives
 
-Decidono:
+- `login-config-totp.ftl`
+- `login-otp.ftl`
+- `login-passkeys-conditional-authenticate.ftl`
+- `webauthn-authenticate.ftl`
+- `select-authenticator.ftl`
+- `login-recovery-authn-code-config.ftl`
+- `login-recovery-authn-code-input.ftl`
+- `webauthn-register.ftl`
 
-- quando uno step si mostra o si salta
-- come funzionano `Back` e `Skip`
-- come vengono salvati attributi su Keycloak
-- come si comportano TOTP, WebAuthn e legal acceptance lato server
+### Onboarding Opex
 
-### Realm settings
+- `security-setup-choice.ftl`
+- `login-update-profile.ftl`
+- `country-selection.ftl`
+- `occupation.ftl`
+- `legal-acceptance.ftl`
 
-Decidono:
+Per pagine non mappate esplicitamente, il fallback resta `DefaultPage`.
 
-- quali required actions sono registrate e default
-- quali locale sono supportate
-- SMTP
-- Google broker
-- token mappers
-- login settings
-- user profile settings
+## Comportamento condiviso del template
+
+Il file [Template.tsx](./src/login/Template.tsx) e il punto centrale della UI comune.
+
+Comportamenti importanti:
+
+- usa il logo brand del login
+- gestisce il language switch del tema
+- salva la lingua auth in `localStorage` sotto `opex_auth_locale`
+- supporta solo `it` e `en`
+- se non trova una preferenza salvata, forza l'italiano
+- imposta `document.documentElement.lang` coerentemente
+
+### Progress bar onboarding
+
+La progress bar appare solo quando la pagina appartiene davvero al flow onboarding.
+
+Viene nascosta quando:
+
+- la pagina e una second-factor page di login
+- la pagina arriva da un'app-initiated action lanciata dall'app Opex
+
+Questo evita di mostrare step `Account / Security / Profile / ...` durante:
+
+- cambio password dai settings
+- setup 2FA dai settings
+- login con OTP, passkey o recovery code
+
+### Try another way
+
+Il template contiene anche il wiring necessario per:
+
+- `Try another way`
+- cambio metodo tra OTP, WebAuthn e recovery code
+
+Questo wiring e importante perche alcune pagine usano il comportamento standard atteso dal JavaScript Keycloak.
+
+## Rapporto con le estensioni Java
+
+Il tema rende i form, ma non contiene la logica del flow.
+
+Esempi:
+
+- la pagina `security-setup-choice.ftl` viene renderizzata qui, ma la scelta `totp / webauthn / later` viene interpretata lato server dal provider Java
+- `login-update-password.ftl` e una pagina custom del tema, ma la validazione della password attuale avviene nel provider `OPEX_UPDATE_PASSWORD`
+- `login-update-profile.ftl` mostra i campi, ma e `PROFILE_BASICS` a decidere quali campi sono obbligatori o gia soddisfatti
+
+Se devi cambiare la logica del flow, non farlo qui:
+
+- [../extensions/keycloak-onboarding-actions](../extensions/keycloak-onboarding-actions)
 
 ## Build locale
 
-Comando consigliato dal root:
+Dal root del repository:
 
 ```powershell
 .\auth\scripts\build\build-local-theme.ps1 -RestartKeycloak
@@ -104,17 +170,15 @@ Comando consigliato dal root:
 
 Lo script:
 
-- installa `node_modules` se mancano usando il lockfile disponibile
-- usa `mvn` se disponibile
-- altrimenti scarica Maven in `auth/keycloakify/.tools`
-- builda il progetto Vite/TypeScript
+- installa `node_modules` se mancano
+- builda il progetto TypeScript/Vite
 - esegue `keycloakify build`
-- copia il jar in [auth/themes/keycloak-theme-opex.jar](C:/Users/danie/workspace/Opex/Opex-main/auth/themes/keycloak-theme-opex.jar)
-- riavvia il container `keycloak` solo se passi `-RestartKeycloak`
+- copia il jar in `auth/themes/keycloak-theme-opex.jar`
+- riavvia Keycloak solo se richiesto
 
-## Bootstrap locale completo
+## Bootstrap auth completo
 
-Se vuoi riallineare tutto il layer auth locale, non partire da qui ma dal bootstrap unico:
+Se vuoi riallineare tutto il layer auth locale, non partire dal package di questa cartella ma dal bootstrap unico:
 
 ```powershell
 .\auth\scripts\local\bootstrap-auth-local.ps1
@@ -123,48 +187,42 @@ Se vuoi riallineare tutto il layer auth locale, non partire da qui ma dal bootst
 Quel comando:
 
 - builda tema e provider
-- applica i setting locali del realm
-- riallinea flow e token mappers
+- applica il realm locale
+- riallinea flow, required actions, lingue, SMTP, Google e token mappers
 
-## Apply locali rilevanti per il tema
+## Cosa cambiare qui e cosa no
 
-Il tema dipende anche da alcune configurazioni realm applicate dagli script:
+Modifica qui se devi:
 
-- [apply-local-languages.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-languages.ps1)
-  Lingue supportate e default locale.
-- [apply-local-login-settings.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-login-settings.ps1)
-  Reset password e altri login settings.
-- [apply-local-user-profile-settings.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-user-profile-settings.ps1)
-  `unmanagedAttributePolicy = ENABLED`, importante per gli attributi custom salvati dal flow.
-- [apply-local-smtp-settings.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-smtp-settings.ps1)
-  SMTP per verify email.
-- [apply-local-google-idp.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-google-idp.ps1)
-  Broker Google e mapping base.
+- cambiare layout, CSS o spacing
+- cambiare copy o i18n
+- cambiare progress bar, hero o modal
+- aggiungere una pagina Keycloak custom
+- rifinire OTP, passkey, recovery code o onboarding dal lato UI
 
-## Output runtime
+Non modificare qui se devi:
 
-Il runtime locale non legge `src` direttamente. Legge il jar theme buildato in:
+- cambiare quando uno step si mostra o si salta
+- cambiare i dati scritti sugli utenti Keycloak
+- cambiare ordine, priorita o stato delle required actions
+- cambiare SMTP, Google IDP, token mappers o browser flow
 
-- [auth/themes/keycloak-theme-opex.jar](C:/Users/danie/workspace/Opex/Opex-main/auth/themes/keycloak-theme-opex.jar)
+In quei casi guarda:
 
-Se modifichi il tema e non rebuildi, Keycloak continuera a mostrare la versione precedente.
-
-## Packaging Docker
-
-Per il runtime locale il tema viene ancora buildato in [auth/themes/keycloak-theme-opex.jar](C:/Users/danie/workspace/Opex/Opex-main/auth/themes/keycloak-theme-opex.jar).
-
-Per l'immagine Docker `auth`, invece, il packaging non dipende piu da quel jar: [auth/Dockerfile](C:/Users/danie/workspace/Opex/Opex-main/auth/Dockerfile) builda il tema direttamente dai sorgenti di questa cartella.
+- [../extensions/keycloak-onboarding-actions](../extensions/keycloak-onboarding-actions)
+- [../scripts](../scripts)
+- [../realm](../realm)
 
 ## Sorgente vs artefatti generati
 
 ### Sorgente vero
 
-- [src](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/src)
-- [package.json](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/package.json)
-- [tsconfig.json](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/tsconfig.json)
-- [vite.config.ts](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/vite.config.ts)
-- [README.md](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/README.md)
-- [ONBOARDING_ROADMAP.md](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify/ONBOARDING_ROADMAP.md)
+- [src](./src)
+- [package.json](./package.json)
+- [tsconfig.json](./tsconfig.json)
+- [vite.config.ts](./vite.config.ts)
+- [README.md](./README.md)
+- [ONBOARDING_ROADMAP.md](./ONBOARDING_ROADMAP.md)
 
 ### Artefatti generati
 
@@ -174,28 +232,6 @@ Per l'immagine Docker `auth`, invece, il packaging non dipende piu da quel jar: 
 - `.tools`
 
 Queste directory possono essere rigenerate.
-
-## Quando modificare qui e quando no
-
-Modifica qui se devi:
-
-- cambiare UI/UX del flow
-- cambiare copy o i18n
-- cambiare layout, progress bar, modal o styling
-- aggiungere o customizzare una pagina Keycloak
-
-Non modificare qui se devi:
-
-- cambiare la logica di uno step
-- cambiare quando uno step si attiva o si salta
-- cambiare salvataggi attributi user
-- cambiare configurazione SMTP, Google, token mappers o realm
-
-In quei casi guarda:
-
-- [auth/extensions/keycloak-onboarding-actions](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions)
-- [auth/scripts](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts)
-- [auth/realm](C:/Users/danie/workspace/Opex/Opex-main/auth/realm)
 
 ## Riferimenti
 

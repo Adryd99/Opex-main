@@ -1,94 +1,252 @@
 # Keycloak Onboarding Actions
 
-Questa cartella contiene le estensioni Java di Keycloak usate da Opex per l'onboarding custom.
+Questa cartella contiene il modulo Java che estende Keycloak per il flow custom di Opex.
 
-## Responsabilita
-
-Questo modulo gestisce solo il lato server-side del flow custom:
+Qui vive il lato server-side del flow:
 
 - required actions custom
-- salvataggio attributi user su Keycloak
-- supporto a `Back` / `Skip`
-- gestione dei rami Google / TOTP / WebAuthn
-- helper per URL legali e navigazione tra step
+- salvataggio attributi utente su Keycloak
+- navigazione `Back` / `Skip`
+- supporto ai rami Google, TOTP e WebAuthn
+- cambio password custom lanciato dall'app
 
-Questo modulo **non** deve contenere:
+Il tema e la configurazione del realm restano fuori da questo modulo.
 
-- layout o CSS del flow
-- traduzioni UI
-- configurazione declarativa del realm
-- script locali di bootstrap
+## Cosa gestisce questo modulo
 
-Quelle responsabilita stanno rispettivamente in:
+Le estensioni decidono:
 
-- [auth/keycloakify](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify)
-- [auth/realm](C:/Users/danie/workspace/Opex/Opex-main/auth/realm)
-- [auth/scripts](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts)
+- quando mostrare uno step custom
+- quando saltarlo
+- quali attributi user leggere o scrivere
+- come gestire la navigazione tra step
+- come trattare diversamente login `email + password` e login Google
+
+Questo modulo non gestisce:
+
+- layout, CSS, i18n o branding
+- SMTP
+- Google IDP configuration
+- token mappers
+- ordine e requirement dei flow browser
+
+Quelle responsabilita stanno in:
+
+- [../../keycloakify](../../keycloakify)
+- [../../scripts](../../scripts)
+- [../../realm](../../realm)
 
 ## Source of truth
 
-Source of truth di questo modulo:
-
-- [src/main/java](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions/src/main/java)
-- [src/main/resources/META-INF/services/org.keycloak.authentication.RequiredActionFactory](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions/src/main/resources/META-INF/services/org.keycloak.authentication.RequiredActionFactory)
-- [pom.xml](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions/pom.xml)
-- [README.md](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions/README.md)
+- [src/main/java](./src/main/java)
+- [src/main/resources/META-INF/services/org.keycloak.authentication.RequiredActionFactory](./src/main/resources/META-INF/services/org.keycloak.authentication.RequiredActionFactory)
+- [pom.xml](./pom.xml)
+- [README.md](./README.md)
 
 ## Struttura del modulo
 
-Il codice Java e separato per responsabilita:
-
-- [requiredactions](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions/src/main/java/com/opex/keycloak/onboarding/requiredactions)
-  Provider e factory registrati davvero nel flow Keycloak.
-- [support](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions/src/main/java/com/opex/keycloak/onboarding/support)
-  Helper server-side per broker Google, navigazione, 2FA e URL legali.
-- [constants](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions/src/main/java/com/opex/keycloak/onboarding/constants)
-  Nomi condivisi per attributi user e IDs delle required actions.
+- [requiredactions](./src/main/java/com/opex/keycloak/onboarding/requiredactions)
+  Provider e factory realmente registrati nel realm.
+- [support](./src/main/java/com/opex/keycloak/onboarding/support)
+  Helper server-side per broker, navigazione, second factor e URL legali.
+- [constants](./src/main/java/com/opex/keycloak/onboarding/constants)
+  Alias dei required actions e nomi degli attributi utente.
 
 ## Provider registrati via SPI
 
-Le classi effettivamente registrate su Keycloak stanno in:
-
-- [RequiredActionFactory SPI file](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions/src/main/resources/META-INF/services/org.keycloak.authentication.RequiredActionFactory)
-
-Provider attuali:
+Il file SPI registra oggi questi provider:
 
 - `SECURITY_SETUP_CHOICE`
 - `OPEX_UPDATE_PASSWORD`
+- `OPTIONAL_CONFIGURE_TOTP`
+- `OPTIONAL_WEBAUTHN_REGISTER`
 - `PROFILE_BASICS`
 - `COUNTRY_SELECTION`
 - `OCCUPATION`
 - `LEGAL_ACCEPTANCE`
-- wrapper opzionali per TOTP e WebAuthn
 
-## Differenza tra tema, estensioni e realm settings
+## Ruolo dei provider principali
 
-### Estensioni Java
+### `SECURITY_SETUP_CHOICE`
 
-Decidono:
+Provider:
+- [SecuritySetupChoiceRequiredAction.java](./src/main/java/com/opex/keycloak/onboarding/requiredactions/SecuritySetupChoiceRequiredAction.java)
 
-- quando uno step si attiva
-- quando uno step si auto-salta
-- come si comporta `Back`
-- come vengono salvati attributi custom
-- come vengono orchestrati i rami Google / TOTP / WebAuthn
+Fa queste cose:
 
-### Tema
+- mostra la scelta tra `totp`, `webauthn` e `later`
+- salva `preferredSecondFactor`
+- pulisce o riallinea lo stato del secondo fattore
+- aggiunge il setup TOTP o WebAuthn corretto
+- assicura che `PROFILE_BASICS` sia il passo successivo
+- per login Google, salta completamente lo step e porta direttamente verso `PROFILE_BASICS`
 
-Decide:
+### `OPTIONAL_CONFIGURE_TOTP`
 
-- come si mostra uno step
-- come sono fatti i form
-- copy, pulsanti, messaggi, modal
+Provider:
+- [OptionalConfigureTotpRequiredAction.java](./src/main/java/com/opex/keycloak/onboarding/requiredactions/OptionalConfigureTotpRequiredAction.java)
 
-### Realm settings
+E un wrapper del provider standard `UpdateTotp`.
 
-Decidono:
+Aggiunge:
 
-- se una required action esiste davvero nel realm
-- se e default o no
-- in che ordine appare
-- SMTP, Google IDP, token mappers, user profile settings
+- supporto al pulsante `Back`
+- aggiornamento dello stato `secondFactorMethod`
+- enqueue di `CONFIGURE_RECOVERY_AUTHN_CODES` dopo un setup TOTP riuscito
+
+### `OPTIONAL_WEBAUTHN_REGISTER`
+
+Provider:
+- [OptionalWebAuthnRegister.java](./src/main/java/com/opex/keycloak/onboarding/requiredactions/OptionalWebAuthnRegister.java)
+
+E un wrapper del provider standard `WebAuthnRegister`.
+
+Aggiunge:
+
+- supporto al pulsante `Back`
+- aggiornamento dello stato `secondFactorMethod`
+- enqueue di `CONFIGURE_RECOVERY_AUTHN_CODES` dopo un setup WebAuthn riuscito
+
+### `PROFILE_BASICS`
+
+Provider:
+- [ProfileBasicsRequiredAction.java](./src/main/java/com/opex/keycloak/onboarding/requiredactions/ProfileBasicsRequiredAction.java)
+
+E un wrapper di `UpdateProfile`.
+
+Comportamento attuale:
+
+- richiede solo i campi davvero mancanti
+- usa `firstName`, `lastName`, `birthDate`
+- valida `birthDate` in formato ISO
+- impone eta minima di 18 anni
+- supporta `Back` verso `SECURITY_SETUP_CHOICE`
+- se il login arriva da Google, puo nascondere nome e cognome gia presenti e chiedere solo cio che manca
+
+### `COUNTRY_SELECTION`, `OCCUPATION`, `LEGAL_ACCEPTANCE`
+
+Questi provider raccolgono e persistono gli attributi aggiuntivi Opex necessari per completare il profilo.
+
+Insieme a `OnboardingStepNavigationSupport`, mantengono coerente il passaggio da uno step al successivo e il ritorno ai passi precedenti quando serve.
+
+### `OPEX_UPDATE_PASSWORD`
+
+Provider:
+- [OpexUpdatePasswordRequiredAction.java](./src/main/java/com/opex/keycloak/onboarding/requiredactions/OpexUpdatePasswordRequiredAction.java)
+
+E il cambio password custom lanciato da `Settings > Security`.
+
+Comportamento attuale:
+
+- richiede `password-current`
+- valida davvero la password corrente via credential manager
+- valida nuova password e conferma
+- supporta `logout-sessions`
+- aggiorna la credenziale direttamente
+- renderizza `login-update-password.ftl`
+- imposta `opexCurrentPasswordRequired = true` per il tema
+- usa un `max auth age` molto alto, perche la vera verifica forte viene fatta sul campo `password-current`
+
+## Support classes importanti
+
+- [BrokeredIdentitySupport.java](./src/main/java/com/opex/keycloak/onboarding/support/BrokeredIdentitySupport.java)
+  Rileva e ricorda il provider broker corrente, in particolare Google.
+- [OnboardingStepNavigationSupport.java](./src/main/java/com/opex/keycloak/onboarding/support/OnboardingStepNavigationSupport.java)
+  Implementa la logica comune `Back`, `Skip`, forced display e resume del required action sospeso.
+- [SecuritySetupFlowSupport.java](./src/main/java/com/opex/keycloak/onboarding/support/SecuritySetupFlowSupport.java)
+  Gestisce il ritorno dallo step TOTP/WebAuthn verso `SECURITY_SETUP_CHOICE`.
+- [SecondFactorSupport.java](./src/main/java/com/opex/keycloak/onboarding/support/SecondFactorSupport.java)
+  Aggiorna lo stato del secondo fattore e aggiunge i recovery codes come step successivo quando necessario.
+- [LegalUrlSupport.java](./src/main/java/com/opex/keycloak/onboarding/support/LegalUrlSupport.java)
+  Calcola gli URL dei documenti legali esposti al tema.
+
+## Flow server-side attuale
+
+### Nuovo utente `email + password`
+
+Sequenza logica:
+
+1. `SECURITY_SETUP_CHOICE`
+2. `OPTIONAL_CONFIGURE_TOTP` oppure `OPTIONAL_WEBAUTHN_REGISTER`, oppure salto con `later`
+3. `CONFIGURE_RECOVERY_AUTHN_CODES` se il secondo fattore principale e stato configurato e i recovery codes mancano
+4. `PROFILE_BASICS`
+5. `COUNTRY_SELECTION`
+6. `OCCUPATION`
+7. `LEGAL_ACCEPTANCE`
+
+### Nuovo utente Google
+
+Sequenza logica:
+
+1. broker login / link existing account
+2. `SECURITY_SETUP_CHOICE` viene saltato da `SecuritySetupChoiceRequiredAction`
+3. `PROFILE_BASICS` chiede solo i dati mancanti
+4. `COUNTRY_SELECTION`
+5. `OCCUPATION`
+6. `LEGAL_ACCEPTANCE`
+
+Nota:
+
+- il first broker login flow e il post-broker flow vengono configurati dagli script realm, non da questo modulo
+- questo modulo si limita a comportarsi correttamente quando il contesto corrente arriva da Google
+
+### App-initiated actions
+
+Questo modulo partecipa direttamente solo al cambio password custom:
+
+- `OPEX_UPDATE_PASSWORD`
+
+Le altre AIA principali (`CONFIGURE_TOTP`, `webauthn-register`, `CONFIGURE_RECOVERY_AUTHN_CODES`) usano provider standard Keycloak configurati dagli script di realm.
+
+## Cosa resta standard Keycloak
+
+Questo modulo non sostituisce tutto Keycloak. Restano standard:
+
+- `CONFIGURE_TOTP`
+- `webauthn-register`
+- `CONFIGURE_RECOVERY_AUTHN_CODES`
+- `VERIFY_EMAIL`
+- `UPDATE_PROFILE`
+- gli authenticator del browser flow:
+  - OTP form
+  - WebAuthn authenticator
+  - Recovery authentication code form
+
+Gli script decidono come registrarli, ordinarli e configurarli.
+
+## URL legali esposti al tema
+
+`LEGAL_ACCEPTANCE` espone al tema:
+
+- `privacyUrl`
+- `termsUrl`
+- `cookiesUrl`
+- `legalApiUrl`
+
+Valori di default in locale:
+
+- app base URL: `http://localhost:3000`
+- legal public API: `http://localhost:8080/api/legal/public`
+
+Override supportati:
+
+- `OPEX_LEGAL_APP_BASE_URL`
+- `OPEX_LEGAL_API_PUBLIC_URL`
+
+## Verify email
+
+La verify email non e implementata qui come step custom.
+
+Il flow attuale resta:
+
+- backend Opex -> `sendVerifyEmail(...)`
+- Keycloak -> SMTP del realm
+- tema -> solo rendering della pagina di verify email
+
+Quindi:
+
+- SMTP e send email non vivono in questo modulo
+- la verifica email non fa parte del blocco onboarding custom
 
 ## Build locale
 
@@ -100,21 +258,19 @@ Dal root del repository:
 
 Lo script:
 
-- usa `mvn` se disponibile
-- altrimenti riusa Maven locale scaricato in `auth/keycloakify/.tools`
 - esegue `mvn -DskipTests package`
-- copia il jar finale in [auth/themes/keycloak-onboarding-actions.jar](C:/Users/danie/workspace/Opex/Opex-main/auth/themes/keycloak-onboarding-actions.jar)
-- riavvia il container `keycloak` solo se passi `-RestartKeycloak`
+- copia il jar finale in `auth/themes/keycloak-onboarding-actions.jar`
+- riavvia Keycloak solo se richiesto
 
-## Bootstrap locale
+## Bootstrap locale completo
 
-Se vuoi riallineare tutto il layer auth locale, usa il bootstrap unico:
+Se vuoi riallineare tutto il layer auth locale:
 
 ```powershell
 .\auth\scripts\local\bootstrap-auth-local.ps1
 ```
 
-Se invece stai iterando solo sul flow server-side, ti interessano soprattutto:
+Se invece stai iterando solo su questo modulo, in genere ti servono:
 
 ```powershell
 .\auth\scripts\build\build-local-provider.ps1 -RestartKeycloak
@@ -123,123 +279,51 @@ Se invece stai iterando solo sul flow server-side, ti interessano soprattutto:
 .\auth\scripts\local\apply-local-country-selection.ps1
 .\auth\scripts\local\apply-local-occupation.ps1
 .\auth\scripts\local\apply-local-legal-acceptance.ps1
-.\auth\scripts\local\apply-local-token-mappers.ps1
 ```
 
-## Stato del flow locale
+## Output runtime e packaging
 
-Dopo aver applicato tutti gli script locali:
+Runtime locale:
 
-- `SECURITY_SETUP_CHOICE` e il primo step del blocco sicurezza
-- `CONFIGURE_TOTP` disponibile ma non default
-- `webauthn-register` disponibile ma non default
-- `CONFIGURE_RECOVERY_AUTHN_CODES` disponibile, abilitata e con priorita subito successiva al setup TOTP/WebAuthn
-- `OPEX_UPDATE_PASSWORD` disponibile come required action avviabile da `kc_action`, con validazione della password attuale prima del cambio password
-- il browser login flow espone `OTP Form`, `WebAuthn Authenticator` e `Recovery Authentication Code Form` come alternative dentro `Browser - Conditional 2FA`
-- seguono `PROFILE_BASICS`, `COUNTRY_SELECTION`, `OCCUPATION`, `LEGAL_ACCEPTANCE`
-- `UPDATE_PROFILE` non viene piu usato come default action
+- [../../themes/keycloak-onboarding-actions.jar](../../themes/keycloak-onboarding-actions.jar)
 
-## Legal URLs
-
-`LEGAL_ACCEPTANCE` espone al tema anche:
-
-- `privacyUrl`
-- `termsUrl`
-- `cookiesUrl`
-- `legalApiUrl`
-
-Per default in locale usa:
-
-- app: `http://localhost:3000`
-- API pubblica: `http://localhost:8080/api/legal/public`
-
-Per ambienti diversi puoi passare:
-
-- `OPEX_LEGAL_APP_BASE_URL`
-- `OPEX_LEGAL_API_PUBLIC_URL`
-
-## Verify email nei settings
-
-La verifica email non fa parte di questo onboarding custom.
-
-L'app Opex usa il flusso standard Keycloak:
-
-- il frontend chiama il backend Opex
-- il backend invoca `sendVerifyEmail(...)` su Keycloak
-- Keycloak invia il link usando lo SMTP configurato sul realm
-- per utenti `Google`, `emailVerified` resta confermato automaticamente
-
-Quindi:
-
-- SMTP e logica verify email vivono a livello realm / backend
-- questo modulo Java non implementa un suo step custom di verify email nell'onboarding
-
-## Claims sincronizzati
-
-Lo script [apply-local-token-mappers.ps1](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts/local/apply-local-token-mappers.ps1) crea o aggiorna la client scope `opex-onboarding` e pubblica:
-
-- `birthDate`
-- `country`
-- `occupation`
-- `profilePicture`
-- `identityProvider`
-- `legalAccepted`
-
-in access token, ID token e userinfo.
-
-## Regole broker Google
-
-- se l'utente entra da `email + password`, vede `SECURITY_SETUP_CHOICE`
-- se l'utente entra da `Google`, `SECURITY_SETUP_CHOICE` viene saltato
-- `PROFILE_BASICS` usa i dati gia presenti in Keycloak e chiede solo i campi mancanti
-- `birthDate` resta un dato raccolto da Opex anche nei login Google
-
-## Output runtime
-
-Il runtime locale non legge `src` direttamente. Legge il jar buildato in:
-
-- [auth/themes/keycloak-onboarding-actions.jar](C:/Users/danie/workspace/Opex/Opex-main/auth/themes/keycloak-onboarding-actions.jar)
-
-Se modifichi Java e non rebuildi il jar, Keycloak continuera a usare la versione precedente.
-
-## Packaging Docker
-
-Per il runtime locale il provider viene ancora buildato in [auth/themes/keycloak-onboarding-actions.jar](C:/Users/danie/workspace/Opex/Opex-main/auth/themes/keycloak-onboarding-actions.jar).
-
-Per l'immagine Docker `auth`, invece, il packaging non dipende piu da quel jar: [auth/Dockerfile](C:/Users/danie/workspace/Opex/Opex-main/auth/Dockerfile) builda il provider direttamente dai sorgenti di questo modulo.
+Il [../../Dockerfile](../../Dockerfile) non dipende da questo jar gia buildato: compila il provider direttamente dai sorgenti del modulo.
 
 ## Sorgente vs artefatti generati
 
 ### Sorgente vero
 
-- [src](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions/src)
-- [pom.xml](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions/pom.xml)
-- [README.md](C:/Users/danie/workspace/Opex/Opex-main/auth/extensions/keycloak-onboarding-actions/README.md)
+- [src](./src)
+- [pom.xml](./pom.xml)
+- [README.md](./README.md)
 
 ### Artefatti generati
 
 - `target`
-- [auth/themes/keycloak-onboarding-actions.jar](C:/Users/danie/workspace/Opex/Opex-main/auth/themes/keycloak-onboarding-actions.jar)
+- [../../themes/keycloak-onboarding-actions.jar](../../themes/keycloak-onboarding-actions.jar)
 
-`target` puo essere eliminato e rigenerato. Il jar in `auth/themes` e un artefatto runtime buildato localmente.
+`target` puo essere rigenerato. Il jar sotto `auth/themes` e solo l'artefatto runtime locale.
 
 ## Quando modificare qui e quando no
 
 Modifica qui se devi:
 
 - cambiare la logica di uno step onboarding
-- cambiare salvataggio attributi user
-- cambiare la logica `Back` / `Skip`
-- cambiare comportamento dei rami Google / TOTP / WebAuthn
+- cambiare la navigazione `Back` / `Skip`
+- cambiare il modo in cui vengono salvati attributi user
+- cambiare il comportamento dei rami Google / TOTP / WebAuthn
+- cambiare il password update custom lanciato dall'app
 
 Non modificare qui se devi:
 
-- cambiare il layout del flow
-- cambiare CSS, copy o traduzioni
-- cambiare SMTP, Google IDP, locale, token mappers o configurazione realm
+- cambiare layout, CSS o copy
+- cambiare traduzioni
+- cambiare SMTP
+- cambiare Google IDP o token mappers
+- cambiare requirement del browser flow
 
 In quei casi guarda:
 
-- [auth/keycloakify](C:/Users/danie/workspace/Opex/Opex-main/auth/keycloakify)
-- [auth/scripts](C:/Users/danie/workspace/Opex/Opex-main/auth/scripts)
-- [auth/realm](C:/Users/danie/workspace/Opex/Opex-main/auth/realm)
+- [../../keycloakify](../../keycloakify)
+- [../../scripts](../../scripts)
+- [../../realm](../../realm)
