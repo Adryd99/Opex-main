@@ -1,6 +1,19 @@
 # Cloud Run Deployment
 
-Reference production stack for the current clean deploy:
+This runbook is intended to be reusable for the next real production deploy.
+
+The values below describe the current clean deploy only as a working example.
+Do not copy them blindly into the next stack. For a new go-live, start from:
+
+- `deploy/cloud-run/env.stack.example`
+- `deploy/cloud-run/env.secrets.example`
+- `deploy/cloud-run/env.auth.example`
+- `deploy/cloud-run/env.auth.secrets.example`
+- `deploy/cloud-run/env.api.example`
+- `deploy/cloud-run/env.api.secrets.example`
+- `deploy/cloud-run/env.web.example`
+
+Current clean deploy example:
 
 - `PROJECT_ID=opex-v2-493902`
 - `REGION=europe-west1`
@@ -49,6 +62,8 @@ No manual SQL import is needed for the first deploy.
 - `env.api.example`: template for non-secret API deploy values, used by `deploy-api.ps1` after copying it to `env.api`
 - `env.api.secrets.example`: template for API Secret Manager secret names, used by `deploy-api.ps1` after copying it to `env.api.secrets`
 - `env.web.example`: template for frontend build/deploy values, used after copying it to `env.web`
+- `env.stack.example`: planning template for the next production stack, not read directly by scripts
+- `env.secrets.example`: planning template for the real secret values that will later go into Secret Manager, not read directly by scripts
 
 For auth, the deploy scripts read:
 
@@ -73,6 +88,50 @@ The `*.example` files are templates only and should be copied to the non-example
 
 There is intentionally no `env.web.secrets` file.
 The browser bundle must not contain passwords or secret tokens.
+
+## Before You Start
+
+For a brand-new deployment, decide these values before touching GCloud:
+
+- `PROJECT_ID`
+- `REGION`
+- `REPOSITORY`
+- `NETWORK`
+- `SUBNET`
+- `SUBNET_RANGE`
+- `BASE_DOMAIN`
+- `APP_DOMAIN`
+- `API_DOMAIN`
+- `AUTH_DOMAIN`
+- `SQL_INSTANCE`
+- `APP_DB`
+- `APP_DB_USER`
+- `KEYCLOAK_DB`
+- `KEYCLOAK_DB_USER`
+- `REALM`
+- `WEB_CLIENT_ID`
+
+And prepare the real secret values locally first:
+
+- `APP_PG_PASSWORD`
+- `KEYCLOAK_DB_PASSWORD`
+- `POSTGRES_SUPERUSER_PASSWORD`
+- `KC_ADMIN`
+- `KC_ADMIN_PW`
+- `SALTEDGE_APP_ID`
+- `SALTEDGE_SECRET`
+- `OPEX_SMTP_USERNAME`
+- `OPEX_SMTP_PASSWORD`
+- `OPEX_GOOGLE_CLIENT_ID`
+- `OPEX_GOOGLE_CLIENT_SECRET`
+
+Recommended workflow:
+
+1. Copy `env.stack.example` to `env.stack.local` and fill it in.
+2. Copy `env.secrets.example` to `env.secrets.local` and fill it in.
+3. Copy `env.auth.example`, `env.auth.secrets.example`, `env.api.example`, `env.api.secrets.example`, and `env.web.example` to their non-example names.
+4. Derive the real deploy values from `env.stack.local` and `env.secrets.local`.
+5. Only then run preflight and deploy.
 
 ## Secrets Used By Default
 
@@ -134,6 +193,8 @@ gcloud auth application-default set-quota-project $PROJECT_ID
 Prepare deploy files:
 
 ```powershell
+Copy-Item .\deploy\cloud-run\env.stack.example .\deploy\cloud-run\env.stack.local
+Copy-Item .\deploy\cloud-run\env.secrets.example .\deploy\cloud-run\env.secrets.local
 Copy-Item .\deploy\cloud-run\env.auth.example .\deploy\cloud-run\env.auth
 Copy-Item .\deploy\cloud-run\env.auth.secrets.example .\deploy\cloud-run\env.auth.secrets
 Copy-Item .\deploy\cloud-run\env.api.example .\deploy\cloud-run\env.api
@@ -143,12 +204,16 @@ Copy-Item .\deploy\cloud-run\env.web.example .\deploy\cloud-run\env.web
 
 Then edit:
 
+- `deploy/cloud-run/env.stack.local`
+- `deploy/cloud-run/env.secrets.local`
 - `deploy/cloud-run/env.auth`
 - `deploy/cloud-run/env.auth.secrets`
 - `deploy/cloud-run/env.api`
 - `deploy/cloud-run/env.api.secrets`
 - `deploy/cloud-run/env.web`
 
+`env.stack.local` is the single planning file for project, domains, network, and database names.
+`env.secrets.local` is the single planning file for the real secret values that you will later copy to Secret Manager.
 `env.auth` contains non-secret Keycloak container settings and non-secret realm apply inputs.
 `env.auth.secrets` contains only Secret Manager secret names for Keycloak bootstrap, database password, SMTP, and Google IDP credentials.
 `env.api` contains non-secret backend settings.
@@ -318,6 +383,8 @@ gcloud projects add-iam-policy-binding $PROJECT_ID `
   --role="roles/secretmanager.secretAccessor"
 ```
 
+If your project policies do not allow using the default compute service account as the Cloud Run runtime identity, create a dedicated runtime service account and use that instead for `opex-auth` and `opex-api`.
+
 ## Build And Deploy Order
 
 Build images:
@@ -421,6 +488,21 @@ After the auth domain is decided, update the Google OAuth client:
   - `https://auth.opes.dani.host/realms/opex/broker/google/endpoint`
 
 If the auth domain changes later, update these values again before testing Google login.
+
+## Real Go-Live Checklist
+
+Before calling the deployment truly live, confirm all of these:
+
+- `APP_DOMAIN`, `API_DOMAIN`, and `AUTH_DOMAIN` are the final production domains
+- Salt Edge credentials are the final production credentials
+- Google OAuth values are updated for the final auth domain
+- SMTP credentials are real production credentials
+- `LEGAL_*` values in `deploy/cloud-run/env.api` are final and not placeholders
+- Secret values exist in Secret Manager for the target project
+- Domain mappings are `Ready=True`
+- End-to-end login works with the final domains
+- Open Banking redirect returns to the final app domain
+- Any secret ever shared insecurely has been rotated before go-live
 
 ## Smoke Tests
 
