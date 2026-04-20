@@ -5,8 +5,8 @@ param(
   [string]$Network,
   [string]$Subnet,
   [string]$DatabaseHost,
-  [string]$ConfigFile = (Join-Path $PSScriptRoot 'env.api'),
-  [string]$SecretsFile = (Join-Path $PSScriptRoot 'env.api.secrets'),
+  [string]$ConfigFile = '',
+  [string]$SecretsFile = '',
   [string]$Region = 'us-central1',
   [string]$Repository = 'opex',
   [string]$ServiceName = 'opex-api',
@@ -27,6 +27,13 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'lib\EnvFile.ps1')
+
+$ConfigFile = Resolve-DeployPath -ProvidedPath $ConfigFile -DefaultPaths @(
+  (Join-Path $PSScriptRoot 'local\env.api')
+)
+$SecretsFile = Resolve-DeployPath -ProvidedPath $SecretsFile -DefaultPaths @(
+  (Join-Path $PSScriptRoot 'local\env.api.secrets')
+) -Optional
 
 $providedParameters = @{} + $PSBoundParameters
 $configValues = Import-EnvFile -Path $ConfigFile -Optional

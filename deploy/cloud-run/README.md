@@ -5,13 +5,13 @@ This runbook is intended to be reusable for the next real production deploy.
 The values below describe the current clean deploy only as a working example.
 Do not copy them blindly into the next stack. For a new go-live, start from:
 
-- `deploy/cloud-run/env.stack.example`
-- `deploy/cloud-run/env.secrets.example`
-- `deploy/cloud-run/env.auth.example`
-- `deploy/cloud-run/env.auth.secrets.example`
-- `deploy/cloud-run/env.api.example`
-- `deploy/cloud-run/env.api.secrets.example`
-- `deploy/cloud-run/env.web.example`
+- `deploy/cloud-run/templates/env.stack.example`
+- `deploy/cloud-run/templates/env.secrets.example`
+- `deploy/cloud-run/templates/env.auth.example`
+- `deploy/cloud-run/templates/env.auth.secrets.example`
+- `deploy/cloud-run/templates/env.api.example`
+- `deploy/cloud-run/templates/env.api.secrets.example`
+- `deploy/cloud-run/templates/env.web.example`
 
 Current clean deploy example:
 
@@ -52,39 +52,37 @@ No manual SQL import is needed for the first deploy.
 ## Files In This Folder
 
 - `build-images.ps1`: builds and pushes all three images
+- `generate-deploy-env.ps1`: generates deploy-ready env files from `local/stack.local` and `local/secrets.local`
 - `preflight-stack.ps1`: validates local templates and runs dry-run checks for the full production stack
 - `deploy-auth.ps1`: deploys Keycloak
 - `apply-auth-production-settings.ps1`: applies production realm settings to Keycloak via Admin API after deploy
 - `deploy-api.ps1`: deploys the API
 - `deploy-web.ps1`: deploys the frontend
-- `env.auth.example`: template for non-secret auth deploy values, used by `deploy-auth.ps1` and `apply-auth-production-settings.ps1` after copying it to `env.auth`
-- `env.auth.secrets.example`: template for auth Secret Manager secret names, used by `deploy-auth.ps1` and `apply-auth-production-settings.ps1` after copying it to `env.auth.secrets`
-- `env.api.example`: template for non-secret API deploy values, used by `deploy-api.ps1` after copying it to `env.api`
-- `env.api.secrets.example`: template for API Secret Manager secret names, used by `deploy-api.ps1` after copying it to `env.api.secrets`
-- `env.web.example`: template for frontend build/deploy values, used after copying it to `env.web`
-- `env.stack.example`: planning template for the next production stack, not read directly by scripts
-- `env.secrets.example`: planning template for the real secret values that will later go into Secret Manager, not read directly by scripts
+- `build/`: Cloud Build definitions used by `build-images.ps1`
+- `templates/`: versioned templates committed to git
+- `local/`: local-only planning files and generated deploy files
 
 For auth, the deploy scripts read:
 
-- `deploy/cloud-run/env.auth`
-- `deploy/cloud-run/env.auth.secrets`
+- `deploy/cloud-run/local/env.auth`
+- `deploy/cloud-run/local/env.auth.secrets`
 
 For the backend API, the deploy script reads:
 
-- `deploy/cloud-run/env.api`
-- `deploy/cloud-run/env.api.secrets`
+- `deploy/cloud-run/local/env.api`
+- `deploy/cloud-run/local/env.api.secrets`
 
 For the frontend web app, the production build/deploy reads:
 
-- `deploy/cloud-run/env.web`
+- `deploy/cloud-run/local/env.web`
 
 Ignored local-only helpers used during real deploys:
 
-- `deploy/cloud-run/env.stack.local`
-- `deploy/cloud-run/env.secrets.local`
+- `deploy/cloud-run/local/stack.local`
+- `deploy/cloud-run/local/secrets.local`
 
-The `*.example` files are templates only and should be copied to the non-example filenames above.
+The `templates/*.example` files are templates only.
+The generated deploy files in `local/` should not be committed.
 
 There is intentionally no `env.web.secrets` file.
 The browser bundle must not contain passwords or secret tokens.
@@ -127,10 +125,10 @@ And prepare the real secret values locally first:
 
 Recommended workflow:
 
-1. Copy `env.stack.example` to `env.stack.local` and fill it in.
-2. Copy `env.secrets.example` to `env.secrets.local` and fill it in.
-3. Copy `env.auth.example`, `env.auth.secrets.example`, `env.api.example`, `env.api.secrets.example`, and `env.web.example` to their non-example names.
-4. Derive the real deploy values from `env.stack.local` and `env.secrets.local`.
+1. Copy `templates/env.stack.example` to `local/stack.local` and fill it in.
+2. Copy `templates/env.secrets.example` to `local/secrets.local` and fill it in.
+3. Run `generate-deploy-env.ps1`.
+4. Review the generated files in `local/`.
 5. Only then run preflight and deploy.
 
 ## Secrets Used By Default
@@ -193,32 +191,32 @@ gcloud auth application-default set-quota-project $PROJECT_ID
 Prepare deploy files:
 
 ```powershell
-Copy-Item .\deploy\cloud-run\env.stack.example .\deploy\cloud-run\env.stack.local
-Copy-Item .\deploy\cloud-run\env.secrets.example .\deploy\cloud-run\env.secrets.local
-Copy-Item .\deploy\cloud-run\env.auth.example .\deploy\cloud-run\env.auth
-Copy-Item .\deploy\cloud-run\env.auth.secrets.example .\deploy\cloud-run\env.auth.secrets
-Copy-Item .\deploy\cloud-run\env.api.example .\deploy\cloud-run\env.api
-Copy-Item .\deploy\cloud-run\env.api.secrets.example .\deploy\cloud-run\env.api.secrets
-Copy-Item .\deploy\cloud-run\env.web.example .\deploy\cloud-run\env.web
+Copy-Item .\deploy\cloud-run\templates\env.stack.example .\deploy\cloud-run\local\stack.local
+Copy-Item .\deploy\cloud-run\templates\env.secrets.example .\deploy\cloud-run\local\secrets.local
 ```
 
 Then edit:
 
-- `deploy/cloud-run/env.stack.local`
-- `deploy/cloud-run/env.secrets.local`
-- `deploy/cloud-run/env.auth`
-- `deploy/cloud-run/env.auth.secrets`
-- `deploy/cloud-run/env.api`
-- `deploy/cloud-run/env.api.secrets`
-- `deploy/cloud-run/env.web`
+- `deploy/cloud-run/local/stack.local`
+- `deploy/cloud-run/local/secrets.local`
 
-`env.stack.local` is the single planning file for project, domains, network, and database names.
-`env.secrets.local` is the single planning file for the real secret values that you will later copy to Secret Manager.
-`env.auth` contains non-secret Keycloak container settings and non-secret realm apply inputs.
-`env.auth.secrets` contains only Secret Manager secret names for Keycloak bootstrap, database password, SMTP, and Google IDP credentials.
-`env.api` contains non-secret backend settings.
-`env.api.secrets` contains only Secret Manager secret names. The secret values themselves must already exist in Secret Manager.
-`env.web` contains only non-secret frontend build/deploy settings. If a value is secret, it does not belong in the web app.
+Then generate the deploy-ready files:
+
+```powershell
+.\deploy\cloud-run\generate-deploy-env.ps1
+```
+
+This writes:
+
+- `deploy/cloud-run/local/env.auth`
+- `deploy/cloud-run/local/env.auth.secrets`
+- `deploy/cloud-run/local/env.api`
+- `deploy/cloud-run/local/env.api.secrets`
+- `deploy/cloud-run/local/env.web`
+
+`local/stack.local` is the single planning file for project, domains, network, database names, SMTP metadata, and legal/public config.
+`local/secrets.local` is the single planning file for the real secret values that you will later copy to Secret Manager.
+The generated files in `local/` are technical inputs for the deploy scripts.
 
 Run the full preflight before any real production deploy:
 
@@ -338,8 +336,13 @@ gcloud sql instances describe $SQL_INSTANCE --format="json(ipAddresses)"
 
 Then update:
 
-- `KEYCLOAK_DB_HOST` in `deploy/cloud-run/env.auth`
-- `APP_PG_HOST` in `deploy/cloud-run/env.api`
+- `SQL_PRIVATE_IP` in `deploy/cloud-run/local/stack.local`
+
+Then regenerate:
+
+```powershell
+.\deploy\cloud-run\generate-deploy-env.ps1
+```
 
 Example from the current stack:
 
@@ -391,22 +394,22 @@ Build images:
 
 ```powershell
 .\deploy\cloud-run\build-images.ps1 `
-  -WebConfigFile .\deploy\cloud-run\env.web
+  -WebConfigFile .\deploy\cloud-run\local\env.web
 ```
 
 Deploy services:
 
 ```powershell
 .\deploy\cloud-run\deploy-auth.ps1 `
-  -ConfigFile .\deploy\cloud-run\env.auth `
-  -SecretsFile .\deploy\cloud-run\env.auth.secrets
+  -ConfigFile .\deploy\cloud-run\local\env.auth `
+  -SecretsFile .\deploy\cloud-run\local\env.auth.secrets
 
 .\deploy\cloud-run\deploy-api.ps1 `
-  -ConfigFile .\deploy\cloud-run\env.api `
-  -SecretsFile .\deploy\cloud-run\env.api.secrets
+  -ConfigFile .\deploy\cloud-run\local\env.api `
+  -SecretsFile .\deploy\cloud-run\local\env.api.secrets
 
 .\deploy\cloud-run\deploy-web.ps1 `
-  -ConfigFile .\deploy\cloud-run\env.web
+  -ConfigFile .\deploy\cloud-run\local\env.web
 ```
 
 Important:
@@ -443,22 +446,19 @@ gcloud beta run domain-mappings describe --domain=$API_DOMAIN --region=$REGION
 gcloud beta run domain-mappings describe --domain=$AUTH_DOMAIN --region=$REGION
 ```
 
-For the current setup, add:
-
-- `opes` -> `CNAME` -> `ghs.googlehosted.com.`
-- `api.opes` -> `CNAME` -> `ghs.googlehosted.com.`
-- `auth.opes` -> `CNAME` -> `ghs.googlehosted.com.`
+For the current setup, the mappings resolve to `ghs.googlehosted.com.`.
+For a new stack, always trust the output of `gcloud beta run domain-mappings describe` and publish the exact records it returns.
 
 Wait until the domain mappings report `Ready=True` before the next step.
 
 ## Auth Production Settings
 
-Once `auth.opes.dani.host` is live, apply production auth settings:
+Once the final auth domain is live, apply production auth settings:
 
 ```powershell
 .\deploy\cloud-run\apply-auth-production-settings.ps1 `
-  -ConfigFile .\deploy\cloud-run\env.auth `
-  -SecretsFile .\deploy\cloud-run\env.auth.secrets `
+  -ConfigFile .\deploy\cloud-run\local\env.auth `
+  -SecretsFile .\deploy\cloud-run\local\env.auth.secrets `
   -ApplySmtp `
   -ApplyGoogleIdp
 ```
@@ -469,8 +469,8 @@ If your local TLS stack cannot reach the custom auth domain yet, you can tempora
 
 ```powershell
 .\deploy\cloud-run\apply-auth-production-settings.ps1 `
-  -ConfigFile .\deploy\cloud-run\env.auth `
-  -SecretsFile .\deploy\cloud-run\env.auth.secrets `
+  -ConfigFile .\deploy\cloud-run\local\env.auth `
+  -SecretsFile .\deploy\cloud-run\local\env.auth.secrets `
   -AuthDomain opex-auth-504598836630.europe-west1.run.app `
   -ApplySmtp `
   -ApplyGoogleIdp
@@ -483,9 +483,9 @@ That workaround only changes the Admin API endpoint used by the script. It does 
 After the auth domain is decided, update the Google OAuth client:
 
 - Authorized JavaScript origins:
-  - `https://auth.opes.dani.host`
+  - `https://$AUTH_DOMAIN`
 - Authorized redirect URIs:
-  - `https://auth.opes.dani.host/realms/opex/broker/google/endpoint`
+  - `https://$AUTH_DOMAIN/realms/opex/broker/google/endpoint`
 
 If the auth domain changes later, update these values again before testing Google login.
 
@@ -497,7 +497,7 @@ Before calling the deployment truly live, confirm all of these:
 - Salt Edge credentials are the final production credentials
 - Google OAuth values are updated for the final auth domain
 - SMTP credentials are real production credentials
-- `LEGAL_*` values in `deploy/cloud-run/env.api` are final and not placeholders
+- `LEGAL_*` values in `deploy/cloud-run/local/stack.local` are final and not placeholders
 - Secret values exist in Secret Manager for the target project
 - Domain mappings are `Ready=True`
 - End-to-end login works with the final domains
@@ -518,14 +518,14 @@ gcloud beta run domain-mappings list --region=$REGION
 
 User-facing URLs:
 
-- `https://opes.dani.host`
-- `https://api.opes.dani.host/api/legal/public`
-- `https://auth.opes.dani.host`
+- `https://$APP_DOMAIN`
+- `https://$API_DOMAIN/api/legal/public`
+- `https://$AUTH_DOMAIN`
 
 ## Go-Live Notes
 
-- Replace placeholder `LEGAL_*` values in `deploy/cloud-run/env.api` before a real go-live.
-- Keep `deploy/cloud-run/env.stack.local` and `deploy/cloud-run/env.secrets.local` local only.
+- Replace placeholder `LEGAL_*` values in `deploy/cloud-run/local/stack.local` before a real go-live.
+- Keep `deploy/cloud-run/local/stack.local` and `deploy/cloud-run/local/secrets.local` local only.
 - If any secret was ever pasted in chat or shared insecurely, rotate it before production use.
 
 ## Recovery Note

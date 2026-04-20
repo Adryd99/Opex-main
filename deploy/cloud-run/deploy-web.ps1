@@ -5,7 +5,7 @@ param(
   [string]$ServiceName = 'opex-web',
   [string]$ImageTag = 'latest',
   [int]$MaxInstances = 2,
-  [string]$ConfigFile = (Join-Path $PSScriptRoot 'env.web'),
+  [string]$ConfigFile = '',
   [switch]$DryRun
 )
 
@@ -13,6 +13,10 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 . (Join-Path $PSScriptRoot 'lib\EnvFile.ps1')
+
+$ConfigFile = Resolve-DeployPath -ProvidedPath $ConfigFile -DefaultPaths @(
+  (Join-Path $PSScriptRoot 'local\env.web')
+)
 
 $providedParameters = @{} + $PSBoundParameters
 $configValues = Import-EnvFile -Path $ConfigFile -Optional

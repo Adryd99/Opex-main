@@ -25,13 +25,17 @@ function Write-StepHeader {
 function Resolve-ConfigPath {
     param(
         [Parameter(Mandatory = $true)]
-        [string]$PrimaryPath,
+        [string[]]$PrimaryPaths,
         [Parameter(Mandatory = $true)]
         [string]$ExamplePath
     )
 
-    if (-not $UseExamplesOnly -and (Test-Path -LiteralPath $PrimaryPath)) {
-        return $PrimaryPath
+    if (-not $UseExamplesOnly) {
+        foreach ($primaryPath in $PrimaryPaths) {
+            if (Test-Path -LiteralPath $primaryPath) {
+                return $primaryPath
+            }
+        }
     }
 
     return $ExamplePath
@@ -52,11 +56,11 @@ function Invoke-CheckedScript {
 
 $rootEnvExample = Join-Path $repoRoot ".env.example"
 $webLocalEnvExample = Join-Path $repoRoot "opex-web\.env.example"
-$authConfig = Resolve-ConfigPath -PrimaryPath (Join-Path $deployRoot "env.auth") -ExamplePath (Join-Path $deployRoot "env.auth.example")
-$authSecrets = Resolve-ConfigPath -PrimaryPath (Join-Path $deployRoot "env.auth.secrets") -ExamplePath (Join-Path $deployRoot "env.auth.secrets.example")
-$apiConfig = Resolve-ConfigPath -PrimaryPath (Join-Path $deployRoot "env.api") -ExamplePath (Join-Path $deployRoot "env.api.example")
-$apiSecrets = Resolve-ConfigPath -PrimaryPath (Join-Path $deployRoot "env.api.secrets") -ExamplePath (Join-Path $deployRoot "env.api.secrets.example")
-$webConfig = Resolve-ConfigPath -PrimaryPath (Join-Path $deployRoot "env.web") -ExamplePath (Join-Path $deployRoot "env.web.example")
+$authConfig = Resolve-ConfigPath -PrimaryPaths @((Join-Path $deployRoot "local\env.auth")) -ExamplePath (Join-Path $deployRoot "templates\env.auth.example")
+$authSecrets = Resolve-ConfigPath -PrimaryPaths @((Join-Path $deployRoot "local\env.auth.secrets")) -ExamplePath (Join-Path $deployRoot "templates\env.auth.secrets.example")
+$apiConfig = Resolve-ConfigPath -PrimaryPaths @((Join-Path $deployRoot "local\env.api")) -ExamplePath (Join-Path $deployRoot "templates\env.api.example")
+$apiSecrets = Resolve-ConfigPath -PrimaryPaths @((Join-Path $deployRoot "local\env.api.secrets")) -ExamplePath (Join-Path $deployRoot "templates\env.api.secrets.example")
+$webConfig = Resolve-ConfigPath -PrimaryPaths @((Join-Path $deployRoot "local\env.web")) -ExamplePath (Join-Path $deployRoot "templates\env.web.example")
 
 $authConfigValues = Import-EnvFile -Path $authConfig
 $authSecretValues = Import-EnvFile -Path $authSecrets

@@ -21,10 +21,6 @@ Repository root for the Opex application stack.
   Local infrastructure for Keycloak and PostgreSQL.
 - [.env.example](C:/Users/danie/workspace/Opex/Opex-main/.env.example)
   Template for root local infrastructure settings.
-- [cloudbuild-api.yaml](C:/Users/danie/workspace/Opex/Opex-main/cloudbuild-api.yaml)
-- [cloudbuild-auth.yaml](C:/Users/danie/workspace/Opex/Opex-main/cloudbuild-auth.yaml)
-- [cloudbuild-web.yaml](C:/Users/danie/workspace/Opex/Opex-main/cloudbuild-web.yaml)
-  Cloud Build definitions used by the deploy scripts.
 
 ## Local Bootstrap
 
@@ -78,6 +74,10 @@ Local URLs:
 For Cloud Run build and deploy flow, environment files, and secret handling, see:
 
 - [deploy/cloud-run/README.md](C:/Users/danie/workspace/Opex/Opex-main/deploy/cloud-run/README.md)
+
+Cloud Build definitions now live under:
+
+- [deploy/cloud-run/build](C:/Users/danie/workspace/Opex/Opex-main/deploy/cloud-run/build)
 
 The Cloud Run README is the authoritative production runbook and now reflects the current clean deployment on:
 

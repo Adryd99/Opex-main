@@ -6,7 +6,7 @@ param(
   [string]$Region = 'us-central1',
   [string]$Repository = 'opex',
   [string]$Tag = 'latest',
-  [string]$WebConfigFile = (Join-Path $PSScriptRoot 'env.web'),
+  [string]$WebConfigFile = '',
   [switch]$DryRun
 )
 
@@ -15,6 +15,10 @@ $ErrorActionPreference = 'Stop'
 
 $root = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 . (Join-Path $PSScriptRoot 'lib\EnvFile.ps1')
+
+$WebConfigFile = Resolve-DeployPath -ProvidedPath $WebConfigFile -DefaultPaths @(
+  (Join-Path $PSScriptRoot 'local\env.web')
+)
 
 $providedParameters = @{} + $PSBoundParameters
 $webConfigValues = Import-EnvFile -Path $WebConfigFile -Optional
@@ -110,9 +114,9 @@ function Invoke-CloudBuild {
 
 Push-Location $root
 try {
-  Invoke-CloudBuild -Config 'cloudbuild-auth.yaml'
-  Invoke-CloudBuild -Config 'cloudbuild-api.yaml'
-  Invoke-CloudBuild -Config 'cloudbuild-web.yaml' -ExtraSubstitutions (
+  Invoke-CloudBuild -Config 'deploy/cloud-run/build/cloudbuild-auth.yaml'
+  Invoke-CloudBuild -Config 'deploy/cloud-run/build/cloudbuild-api.yaml'
+  Invoke-CloudBuild -Config 'deploy/cloud-run/build/cloudbuild-web.yaml' -ExtraSubstitutions (
     "_BUILD_API_BASE_URL=$buildApiBaseUrl," +
     "_BUILD_API_ORIGIN=$buildApiOrigin," +
     "_BUILD_IDP_LOGIN_URL=$buildKeycloakAuthUrl," +

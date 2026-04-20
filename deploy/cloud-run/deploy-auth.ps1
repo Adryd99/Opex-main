@@ -6,8 +6,8 @@ param(
   [string]$Network,
   [string]$Subnet,
   [string]$DatabaseHost,
-  [string]$ConfigFile = (Join-Path $PSScriptRoot 'env.auth'),
-  [string]$SecretsFile = (Join-Path $PSScriptRoot 'env.auth.secrets'),
+  [string]$ConfigFile = '',
+  [string]$SecretsFile = '',
   [string]$Region = 'us-central1',
   [string]$Repository = 'opex',
   [string]$ServiceName = 'opex-auth',
@@ -27,6 +27,13 @@ $ErrorActionPreference = 'Stop'
 
 $root = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 . (Join-Path $PSScriptRoot 'lib\EnvFile.ps1')
+
+$ConfigFile = Resolve-DeployPath -ProvidedPath $ConfigFile -DefaultPaths @(
+  (Join-Path $PSScriptRoot 'local\env.auth')
+)
+$SecretsFile = Resolve-DeployPath -ProvidedPath $SecretsFile -DefaultPaths @(
+  (Join-Path $PSScriptRoot 'local\env.auth.secrets')
+) -Optional
 
 $providedParameters = @{} + $PSBoundParameters
 $configValues = Import-EnvFile -Path $ConfigFile -Optional
