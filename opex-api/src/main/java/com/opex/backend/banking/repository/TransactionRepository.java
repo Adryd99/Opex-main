@@ -28,7 +28,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
     // Trova una singola transazione verificando che sia davvero dell'utente
     Optional<Transaction> findByIdAndUserId(String id, String userId);
 
+    List<Transaction> findByUserIdAndBankAccountId(String userId, String bankAccountId);
+
     void deleteByConnectionId(String connectionId);
+
+    void deleteByUserIdAndConnectionId(String userId, String connectionId);
 
     // Aggrega tutte le transazioni per connectionId: totale, entrate (>0), uscite (<0)
     @Query("SELECT new com.opex.backend.banking.dto.AggregatedBalanceResponse(" +

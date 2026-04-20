@@ -57,28 +57,28 @@ export const TaxesPage = ({
       <div className="relative min-h-[calc(100vh-8rem)] space-y-8 md:min-h-[calc(100vh-6rem)]">
         <div className="mb-2 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h2 className="text-3xl font-black tracking-tight text-gray-900">{t('page.title')}</h2>
-            <p className="text-sm font-medium text-gray-500">{t('page.profileRequiredDescription')}</p>
+            <h2 className="text-3xl font-black tracking-tight text-app-primary">{t('page.title')}</h2>
+            <p className="text-sm font-medium text-app-secondary">{t('page.profileRequiredDescription')}</p>
           </div>
         </div>
 
-        <Card className="overflow-hidden border-amber-100 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/60">
+        <Card className="overflow-hidden border-amber-100 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/60 dark:border-amber-400/20 dark:from-app-surface dark:via-amber-500/10 dark:to-orange-500/10">
           <div className="flex flex-col gap-8 p-2 md:flex-row md:items-center">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.75rem] bg-opex-dark text-white shadow-lg shadow-slate-900/15">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.75rem] bg-opex-dark text-white shadow-lg shadow-slate-900/15 dark:bg-opex-teal dark:text-slate-950">
               <ShieldAlert size={30} />
             </div>
             <div className="flex-1 space-y-4">
               <div className="space-y-2">
                 <p className="text-[11px] font-black uppercase tracking-[0.24em] text-amber-600">{t('page.setupRequiredBadge')}</p>
-                <h3 className="text-2xl font-black tracking-tight text-gray-900">{t('page.setupRequiredHeading')}</h3>
-                <p className="max-w-2xl text-sm font-medium leading-relaxed text-gray-600">{t('page.setupRequiredBody')}</p>
+                <h3 className="text-2xl font-black tracking-tight text-app-primary">{t('page.setupRequiredHeading')}</h3>
+                <p className="max-w-2xl text-sm font-medium leading-relaxed text-app-secondary">{t('page.setupRequiredBody')}</p>
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Button size="lg" icon={MoveRight} onClick={handleOpenTaxSettings}>
                   {t('page.openTaxSettings')}
                 </Button>
-                <p className="text-xs font-medium text-gray-500">{t('page.settingsHint')}</p>
+                <p className="text-xs font-medium text-app-secondary">{t('page.settingsHint')}</p>
               </div>
             </div>
           </div>
@@ -91,8 +91,8 @@ export const TaxesPage = ({
     <div className="relative min-h-[calc(100vh-8rem)] space-y-8 md:min-h-[calc(100vh-6rem)]">
       <div className="mb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 relative z-20">
         <div>
-          <h2 className="text-3xl font-black text-gray-900 tracking-tight">{t('page.title')}</h2>
-          <p className="text-sm text-gray-500 font-medium">
+          <h2 className="text-3xl font-black tracking-tight text-app-primary">{t('page.title')}</h2>
+          <p className="text-sm font-medium text-app-secondary">
             {selectedProviderName ? t('page.providerSelected', { provider: selectedProviderName }) : t('page.providerAll')}
           </p>
         </div>
@@ -104,7 +104,7 @@ export const TaxesPage = ({
 
       {isLoading && (
         <Card>
-          <div className="flex items-center gap-3 text-sm text-gray-500 font-medium">
+          <div className="flex items-center gap-3 text-sm font-medium text-app-secondary">
             <Loader2 size={16} className="animate-spin" />
             {t('page.loading')}
           </div>

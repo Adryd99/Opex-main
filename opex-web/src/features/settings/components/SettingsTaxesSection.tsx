@@ -19,24 +19,24 @@ export const SettingsTaxesSection = ({
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
       <Card title={t('taxesSection.title')}>
       <div className="space-y-6">
-        <div className="rounded-[2rem] border border-gray-100 bg-gradient-to-br from-white via-gray-50 to-amber-50/60 p-6 md:p-8">
+        <div className="rounded-[2rem] border border-app-border bg-gradient-to-br from-app-surface via-app-muted to-amber-100/50 p-6 md:p-8 dark:to-amber-500/10 transition-colors duration-200">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-opex-dark text-white shadow-lg shadow-slate-900/10">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-opex-dark text-white shadow-lg shadow-slate-900/10 dark:bg-opex-teal dark:text-slate-950 transition-colors duration-200">
               <Landmark size={22} />
             </div>
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-gray-400">{t('taxesSection.badge')}</p>
-              <h2 className="mt-1 text-2xl font-black tracking-tight text-gray-900">
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-app-tertiary">{t('taxesSection.badge')}</p>
+              <h2 className="mt-1 text-2xl font-black tracking-tight text-app-primary">
                 {t('taxesSection.heroTitle')}
               </h2>
-              <p className="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-gray-500">
+              <p className="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-app-secondary">
                 {t('taxesSection.heroDescription')}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm md:p-8">
+        <div className="rounded-[2rem] border border-app-border bg-app-surface p-6 shadow-sm transition-colors duration-200 md:p-8">
           <TaxProfileSetupForm
             userProfile={userProfile}
             onSave={onSaveProfile}

@@ -22,10 +22,10 @@ export const TaxLiabilitySplitCard = ({ liabilities }: TaxLiabilitySplitCardProp
         {liabilities.map((item) => (
           <div key={item.label} className="space-y-3">
             <div className="flex justify-between items-end">
-              <span className="text-base font-bold text-gray-500">{item.label}</span>
-              <span className="text-lg font-black text-gray-900">{formatTaxMoney(item.amount, 'EUR', language)}</span>
+              <span className="text-base font-bold text-app-secondary">{item.label}</span>
+              <span className="text-lg font-black text-app-primary">{formatTaxMoney(item.amount, 'EUR', language)}</span>
             </div>
-            <div className="w-full h-2.5 bg-gray-50 rounded-full overflow-hidden">
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-app-muted">
               <div
                 className="h-full bg-opex-teal rounded-full transition-all duration-700"
                 style={{ width: `${Math.max(0, Math.min(item.percentage || 0, 100))}%` }}

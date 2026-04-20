@@ -6,5 +6,7 @@ deploy/cloud-run/env.api.secrets
 deploy/cloud-run/env.auth
 deploy/cloud-run/env.auth.secrets
 deploy/cloud-run/env.web
+deploy/cloud-run/env.stack.local
+deploy/cloud-run/env.secrets.local
 auth/extensions/**/target/
 auth/themes/keycloak-onboarding-actions.jar

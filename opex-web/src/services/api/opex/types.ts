@@ -30,6 +30,14 @@ export interface LocalBankAccountPayload {
   nature: string;
 }
 
+export interface ManualBankConnectionPayload {
+  providerName: string;
+}
+
+export interface ManualBankConnectionUpdatePayload {
+  providerName: string;
+}
+
 export interface LocalBankAccountUpdatePayload extends Partial<LocalBankAccountPayload> {
   connectionId?: string | null;
   country?: string | null;
@@ -70,10 +78,12 @@ export interface TaxBufferDashboardQuery {
 
 export type BankIntegrationResponse = {
   url?: string;
+  connectUrl?: string;
   redirectUrl?: string;
   authorizationUrl?: string;
   data?: {
     url?: string;
+    connectUrl?: string;
     redirectUrl?: string;
     authorizationUrl?: string;
   };

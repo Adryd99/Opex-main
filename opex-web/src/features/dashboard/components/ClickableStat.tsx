@@ -22,10 +22,10 @@ export const ClickableStat = ({
 }: ClickableStatProps) => (
   <button
     onClick={onClick}
-    className="flex flex-col text-left justify-center bg-white rounded-2xl border border-gray-100 shadow-sm p-5 overflow-hidden transition-all duration-200 hover:shadow-md hover:border-opex-teal/30 hover:bg-gray-50/30 active:scale-[0.98] group w-full"
+    className="group flex w-full flex-col justify-center overflow-hidden rounded-2xl border border-app-border bg-app-surface p-5 text-left shadow-sm transition-all duration-200 hover:border-opex-teal/30 hover:bg-app-muted/80 hover:shadow-md active:scale-[0.98]"
   >
     <div className="flex justify-between items-start mb-3 w-full">
-      <div className="p-2 bg-gray-50 rounded-xl text-gray-600 group-hover:bg-opex-teal group-hover:text-white transition-colors">
+      <div className="rounded-xl bg-app-muted p-2 text-app-secondary transition-colors group-hover:bg-opex-teal group-hover:text-white dark:group-hover:text-slate-950">
         <Icon size={18} />
       </div>
       {trend && (
@@ -34,10 +34,10 @@ export const ClickableStat = ({
         </span>
       )}
     </div>
-    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">{title}</p>
+    <p className="mb-0.5 text-[10px] font-black uppercase tracking-widest text-app-tertiary">{title}</p>
     <div className="flex items-baseline gap-1">
-      <span className="text-lg font-bold text-gray-400">{currencySymbol}</span>
-      <span className="text-xl font-bold text-gray-900 tracking-tight">{amount}</span>
+      <span className="text-lg font-bold text-app-tertiary">{currencySymbol}</span>
+      <span className="text-xl font-bold tracking-tight text-app-primary">{amount}</span>
     </div>
   </button>
 );

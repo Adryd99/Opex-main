@@ -25,29 +25,29 @@ export const TaxBreakdownCard = ({ incomeSocial, vat }: TaxBreakdownCardProps) =
 
   return (
     <Card title={t('breakdown.title')}>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+      <div className="grid grid-cols-1 gap-12 divide-y divide-app-border md:grid-cols-2 md:divide-x md:divide-y-0">
         <div className="space-y-6 pb-6 md:pb-0 md:pr-12">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-600">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-app-muted text-app-secondary">
               <Calculator size={16} />
             </div>
-            <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">{t('breakdown.incomeSocial')}</h4>
+            <h4 className="text-sm font-black uppercase tracking-widest text-app-primary">{t('breakdown.incomeSocial')}</h4>
           </div>
           <div className="space-y-4">
             <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-500 font-medium">{t('breakdown.taxableIncome')}</span>
-              <span className="text-gray-900 font-bold">{formatTaxMoney(incomeSocial.taxableIncome, 'EUR', language)}</span>
+              <span className="font-medium text-app-secondary">{t('breakdown.taxableIncome')}</span>
+              <span className="font-bold text-app-primary">{formatTaxMoney(incomeSocial.taxableIncome, 'EUR', language)}</span>
             </div>
             <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-500 font-medium">{t('breakdown.incomeTax')}</span>
-              <span className="text-gray-900 font-bold">{formatTaxMoney(incomeSocial.incomeTax, 'EUR', language)}</span>
+              <span className="font-medium text-app-secondary">{t('breakdown.incomeTax')}</span>
+              <span className="font-bold text-app-primary">{formatTaxMoney(incomeSocial.incomeTax, 'EUR', language)}</span>
             </div>
             <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-500 font-medium">{t('breakdown.socialContributions')}</span>
-              <span className="text-gray-900 font-bold">{formatTaxMoney(incomeSocial.socialContributions, 'EUR', language)}</span>
+              <span className="font-medium text-app-secondary">{t('breakdown.socialContributions')}</span>
+              <span className="font-bold text-app-primary">{formatTaxMoney(incomeSocial.socialContributions, 'EUR', language)}</span>
             </div>
-            <div className="pt-3 border-t border-dashed border-gray-100 flex justify-between items-center">
-              <span className="text-[10px] font-black text-gray-400 uppercase">{t('breakdown.subtotal')}</span>
+            <div className="flex items-center justify-between border-t border-dashed border-app-border pt-3">
+              <span className="text-[10px] font-black uppercase text-app-tertiary">{t('breakdown.subtotal')}</span>
               <span className="text-lg font-black text-opex-teal">{formatTaxMoney(incomeSocial.subtotal, 'EUR', language)}</span>
             </div>
           </div>
@@ -55,24 +55,24 @@ export const TaxBreakdownCard = ({ incomeSocial, vat }: TaxBreakdownCardProps) =
 
         <div className="space-y-6 pt-6 md:pt-0 md:pl-12">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-600">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-app-muted text-app-secondary">
               <Receipt size={16} />
             </div>
-            <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">{t('breakdown.vat')}</h4>
+            <h4 className="text-sm font-black uppercase tracking-widest text-app-primary">{t('breakdown.vat')}</h4>
           </div>
           <div className="space-y-4">
             <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-500 font-medium">{t('breakdown.vatRegime')}</span>
+              <span className="font-medium text-app-secondary">{t('breakdown.vatRegime')}</span>
               <Badge variant={vat.regime.toLowerCase().includes('kor') ? 'success' : 'neutral'}>
                 {vat.regime || t('breakdown.notAvailable')}
               </Badge>
             </div>
             <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-500 font-medium">{t('breakdown.contributionRate')}</span>
-              <span className="text-gray-900 font-bold">{(vat.rate * 100).toFixed(0)}%</span>
+              <span className="font-medium text-app-secondary">{t('breakdown.contributionRate')}</span>
+              <span className="font-bold text-app-primary">{(vat.rate * 100).toFixed(0)}%</span>
             </div>
-            <div className="pt-3 border-t border-dashed border-gray-100 flex justify-between items-center">
-              <span className="text-[10px] font-black text-gray-400 uppercase">{t('breakdown.vatLiability')}</span>
+            <div className="flex items-center justify-between border-t border-dashed border-app-border pt-3">
+              <span className="text-[10px] font-black uppercase text-app-tertiary">{t('breakdown.vatLiability')}</span>
               <span className="text-lg font-black text-opex-teal">{formatTaxMoney(vat.vatLiability, 'EUR', language)}</span>
             </div>
           </div>

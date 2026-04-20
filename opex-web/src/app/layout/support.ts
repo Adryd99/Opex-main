@@ -50,7 +50,7 @@ const PROVIDER_COLORS = [
 export const buildQuickActionItems = (t: TranslateFn) => [
   { label: t('app:quickActions.addIncome'), icon: ArrowUp, color: 'text-green-500', bg: 'bg-green-50', id: APP_TABS.QUICK_INCOME },
   { label: t('app:quickActions.addExpense'), icon: ArrowDownRight, color: 'text-red-500', bg: 'bg-red-50', id: APP_TABS.QUICK_EXPENSE },
-  { label: t('app:quickActions.openBanking'), icon: Building2, color: 'text-purple-500', bg: 'bg-purple-50', id: APP_TABS.OPEN_BANKING }
+  { label: t('app:quickActions.banking'), icon: Building2, color: 'text-purple-500', bg: 'bg-purple-50', id: APP_TABS.BANKING }
 ] as const;
 
 export const buildNavItems = (t: TranslateFn): Array<{ id: AppTab; label: string; icon: IconComponent }> => [

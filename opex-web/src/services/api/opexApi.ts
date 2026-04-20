@@ -21,6 +21,8 @@ export type {
   LocalBankAccountUpdatePayload,
   LocalTaxPayload,
   LocalTransactionPayload,
+  ManualBankConnectionPayload,
+  ManualBankConnectionUpdatePayload,
   SaltedgeBankAccountUpdatePayload,
   TaxBufferDashboardQuery,
   UserProfilePatchPayload

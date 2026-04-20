@@ -1,6 +1,6 @@
 import {
   BankAccountRecord,
-  BankOption,
+  BankConnectionRecord,
   LegalPublicInfoRecord,
   OpenBankingConsentPayload,
   TaxBufferProviderItem,
@@ -31,11 +31,26 @@ export type SettingsPageProps = {
   onSaveProfile: (profile: UserProfile) => Promise<void>;
   onRequestEmailVerification: () => Promise<EmailVerificationRequestResult>;
   onNavigate: (view: string) => void;
+  bankConnections: BankConnectionRecord[];
   bankAccounts: BankAccountRecord[];
   taxBufferProviders: TaxBufferProviderItem[];
   legalPublicInfo: LegalPublicInfoRecord | null;
-  onBankSelect: (bank: BankOption) => void;
-  onConnectionSelect: (account: BankAccountRecord, providerName: string) => void;
+  onCreateManualBankConnection: (providerName: string) => Promise<BankConnectionRecord>;
+  onUpdateManualBankConnection: (
+    connectionId: string,
+    providerName: string
+  ) => Promise<BankConnectionRecord>;
+  onRemoveManualBankConnection: (connectionId: string) => Promise<void>;
+  onCreateManualBankAccount: (
+    connectionId: string,
+    payload: {
+      institutionName: string;
+      balance: number;
+      currency: string;
+      isForTax: boolean;
+      nature: string;
+    }
+  ) => Promise<BankAccountRecord>;
   onCreateOpenBankConnection: (consent: OpenBankingConsentPayload) => Promise<void>;
   onRemoveOpenBankConnection: (connectionId: string) => Promise<void>;
   onUpdateBankAccount?: (
@@ -45,8 +60,15 @@ export type SettingsPageProps = {
       institutionName: string;
       nature: string;
       isForTax: boolean;
+    },
+    reviewContext?: {
+      connectionId: string | null | undefined;
+      connectionAccountIds: string[];
     }
   ) => Promise<void>;
+  pendingConnectionReviewById?: Record<string, string[]>;
+  initialBankConnectionId?: string | null;
+  onInitialBankConnectionHandled?: () => void;
   onDownloadDataExport: () => Promise<void>;
   onDeleteAccount: () => Promise<void>;
   isConnectingOpenBank?: boolean;

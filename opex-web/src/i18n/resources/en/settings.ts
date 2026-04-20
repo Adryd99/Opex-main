@@ -3,7 +3,7 @@ export const settingsEn = {
     profile: 'Profile',
     security: 'Security',
     taxes: 'Taxes',
-    banking: 'Open Banking',
+    banking: 'Banks & accounts',
     preferences: 'Preferences',
     privacy: 'Data & Privacy',
     help: 'Help & Legal'
@@ -34,25 +34,77 @@ export const settingsEn = {
     },
     banking: {
       title: 'Connect your first account',
-      description: 'Use Open Banking for live balances and transactions, or add a manual account if you prefer to track everything locally.'
+      description: 'Use Open Banking to connect live banks, or create a manual bank to organize local accounts inside Opex.'
     }
   },
   preferences: {
     quickManagement: 'Quick Management',
     support: 'Support',
     fastSettings: 'Fast Settings',
-    categoryManagement: 'Category Management',
     notificationDetails: 'Notification Details',
     appPreferences: 'App Preferences',
     display: 'Display',
     appTheme: 'App Theme',
+    appThemeDescription: 'Choose the appearance used across the Opex interface.',
     languageLabel: 'Language',
     languageDescription: 'Choose the language used across the Opex interface.',
-    languageHint: 'Your language preference is saved on your account and mirrored on this browser.',
     lightTheme: 'Light theme',
     darkTheme: 'Dark theme',
+    lightThemeShort: 'Light',
+    darkThemeShort: 'Dark',
     businessMode: 'Business mode',
-    comingSoon: 'Coming Soon'
+    comingSoon: 'Coming Soon',
+    notifications: {
+      expand: 'Open',
+      collapse: 'Close',
+      summaryTitle: 'Notification summary',
+      summaryDescription: 'Open this section to manage balance threshold, banking alerts and tax reminders.',
+      summaryThreshold: 'Threshold {{amount}} EUR',
+      summaryActiveCount_one: '{{count}} notification enabled',
+      summaryActiveCount_other: '{{count}} notifications enabled',
+      thresholdTitle: 'Balance threshold',
+      thresholdDescription: 'Set the level below which Opex should warn you when your combined balance gets too low.',
+      thresholdHelper: 'You will receive a push and in-app notification when the total of your accounts drops below this threshold.',
+      invalidThreshold: 'Enter a valid balance threshold.',
+      saveError: 'Unable to save notification preferences.',
+      saving: 'Saving...',
+      save: 'Save notification preferences',
+      sections: {
+        transactions: 'Transactions & balance',
+        banking: 'Open Banking',
+        tax: 'Taxes & deadlines'
+      },
+      items: {
+        criticalBalance: {
+          label: 'Critical balance',
+          description: 'Send an alert when your total balance drops below the configured threshold.'
+        },
+        significantIncome: {
+          label: 'Significant income',
+          description: 'Notify you when an important incoming transfer reaches one of your accounts.'
+        },
+        abnormalOutflow: {
+          label: 'Abnormal outflow',
+          description: 'Flag suspicious, unusual or potentially duplicated outgoing movements.'
+        },
+        consentExpiration: {
+          label: 'Consent expiration',
+          description: 'Remind you ahead of time when a connected bank requires consent renewal.'
+        },
+        syncErrors: {
+          label: 'Sync errors',
+          description: 'Alert you immediately when a connected bank stops syncing correctly.'
+        },
+        quarterlyVat: {
+          label: 'Quarterly VAT',
+          description: 'Send a reminder before the quarterly VAT payment deadline.'
+        },
+        monthlyAnalysis: {
+          label: 'Monthly analysis',
+          description: 'Send a summary of the month that has just ended.'
+        }
+      }
+    }
   },
   profile: {
     title: 'Profile',
@@ -276,15 +328,17 @@ export const settingsEn = {
     }
   },
   bankingSection: {
-    title: 'Open Banking',
-    badge: 'Open Banking',
+    title: 'Banks & accounts',
+    badge: 'Banks & accounts',
     heroTitleConnected: 'Keep your banking workspace in sync',
-    heroTitleEmpty: 'Connect your first bank or add a manual account',
-    heroDescriptionConnected: 'Live balances and transactions can flow into Opex through Salt Edge, while manual accounts stay available for custom tracking.',
-    heroDescriptionEmpty: 'Use Open Banking to import balances and transactions securely through Salt Edge, or create manual accounts when you prefer local tracking only.',
+    heroTitleEmpty: 'Connect your first bank or create a manual bank',
+    heroDescriptionConnected: 'Banks connected through Salt Edge and manual banks now live in the same workspace, with their accounts grouped under each bank.',
+    heroDescriptionEmpty: 'Use Open Banking to import balances and transactions securely through Salt Edge, or create a manual bank and add its accounts directly in Opex.',
     statusReady: 'Ready to connect',
     statusLiveConnection_one: '{{count}} live connection',
     statusLiveConnection_other: '{{count}} live connections',
+    statusManualBanks_one: '{{count}} manual bank',
+    statusManualBanks_other: '{{count}} manual banks',
     summary: {
       connectedBanks: 'Connected banks',
       accountsTracked: 'Accounts tracked',
@@ -303,50 +357,115 @@ export const settingsEn = {
     secureFlowDescription: 'Salt Edge handles the bank authorization step. Opex stores the connection result and still lets you mix live feeds with manual accounts.'
   },
   bankingList: {
-    connectionActions: 'Connection Actions',
+    connectionActions: 'Connect or create',
     connectWithOpenBanking: 'Connect with Open Banking',
     preparingConsent: 'Preparing the Salt Edge consent flow...',
     addAnotherBank: 'Link another bank and keep balances or transactions synced automatically.',
     connectFirstBank: 'Securely connect your first bank through the Salt Edge authorization flow.',
-    addManualAccount: 'Add manual account',
-    addManualDescription: 'Track a local account inside Opex without creating a live Open Banking connection.',
-    currentConnections: 'Current Connections',
+    createManualBank: 'Create manual bank',
+    createManualDescription: 'Create a local bank inside Opex and then use that bank to add one or more manual accounts.',
+    currentConnections: 'Banks and accounts in the workspace',
+    connectedBanks: 'Connected banks',
+    manualBanks: 'Manual banks',
     sources_one: '{{count}} source',
     sources_other: '{{count}} sources',
     noSourcesTitle: 'No banking sources yet',
-    noSourcesDescription: 'Start with Open Banking for live imports or create a manual account for local tracking.',
-    liveSource: 'Open Banking - Salt Edge',
-    localSource: 'Local Account',
+    noSourcesDescription: 'Start with Open Banking for live imports or create a manual bank to organize local accounts.',
+    liveSource: 'Bank connected with Open Banking',
+    manualSource: 'Manual bank',
     account_one: '{{count}} account',
-    account_other: '{{count}} accounts'
+    account_other: '{{count}} accounts',
+    requiresReview: 'Needs review',
+    reviewPendingCount_one: '{{count}} account still needs review',
+    reviewPendingCount_other: '{{count}} accounts still need review'
   },
   bankingDetail: {
-    fallbackTitle: 'Connection',
-    backToConnections: 'Back to all connections',
-    liveSource: 'Open Banking - Salt Edge',
-    localSource: 'Local Account',
-    accountsInConnection: 'Accounts in this connection',
+    fallbackTitle: 'Connected bank',
+    backToConnections: 'Back to banks and accounts',
+    liveSource: 'Bank connected with Open Banking',
+    localSource: 'Manual bank',
+    connectionActions: 'Connection actions',
+    manualBankActions: 'Manual bank actions',
+    connectedBankTitle: 'Connected bank',
+    connectedBankDescription: 'This view represents the linked bank as a live connection. From here you can review every imported and synced account under the same bank.',
+    manualBankTitle: 'Manual bank',
+    manualBankDescription: 'This view represents a local manual bank. From here you can review every manual account grouped under the same bank.',
+    manualBankSettings: 'Manual bank settings',
+    renameManualBank: 'Rename bank',
+    renameManualBankDescription:
+      'Update the manual bank name without leaving this view. Accounts that still use the inherited bank label will be aligned automatically.',
+    manualBankNameLabel: 'Bank name',
+    manualBankNamePlaceholder: 'e.g. Family bank',
+    manualBankNameRequired: 'Enter a name for the manual bank.',
+    renameManualBankError: 'Unable to rename the manual bank.',
+    savingManualBank: 'Saving...',
+    saveManualBank: 'Save bank name',
+    requiresReview: 'Needs review',
+    pendingStatus: 'Needs review',
+    configuredStatus: 'Configured',
+    reviewNoticeTitle: 'This bank still has accounts to review',
+    reviewNoticeDescription_one:
+      'There is still {{count}} account to configure. Open it to finish account type and tax reserve.',
+    reviewNoticeDescription_other:
+      'There are still {{count}} accounts to configure. Open them to finish account type and tax reserve.',
+    accountsInConnection: 'Accounts under this bank',
+    accountsInConnectionDescription: 'Open an account to tell Opex how it should be used. Account type and tax reserve stay separate settings for both imported and manual accounts.',
+    addManualAccount: 'Add account',
     noAccountsFound: 'No accounts found.',
-    taxBuffer: 'Tax Buffer',
-    dangerZone: 'Danger Zone',
-    removeConnection: 'Remove this connection',
-    removeConnectionDescription: 'All imported accounts and transactions from this Salt Edge connection will be permanently deleted.',
-    remove: 'Remove',
+    noManualAccountsTitle: 'No manual accounts yet',
+    noManualAccountsDescription: 'This manual bank is ready, but it does not contain any accounts yet. Add the first account to start tracking it in Opex.',
+    addFirstManualAccount: 'Add first account',
+    taxBuffer: 'Tax reserve',
+    secondaryConnectionActionDescription:
+      'If you need to stop this link, you can disconnect the bank here. It is a secondary action and removes only the data imported through this connection.',
+    secondaryManualBankActionDescription:
+      'If you no longer need this manual bank, you can remove it here. Removal deletes the bank, its child manual accounts and their local transactions.',
+    removeConnection: 'Disconnect this bank',
+    removeConnectionDescription: 'All accounts and transactions imported from this bank through Salt Edge will be permanently deleted.',
+    removeManualBank: 'Remove this manual bank',
+    remove: 'Disconnect',
+    removeManualBankCta: 'Remove',
     areYouSure: 'Are you sure?',
     removeWarning: 'This permanently deletes all accounts and transactions from {{provider}}. This cannot be undone.',
+    removeWarningCopy: 'This permanently deletes all imported accounts and transactions from {{provider}}. This cannot be undone.',
+    manualRemoveWarningCopy:
+      'This permanently deletes the manual bank {{provider}}, the manual accounts under it and their local transactions. This cannot be undone.',
     cancel: 'Cancel',
     removing: 'Removing...',
-    deleteConnection: 'Delete Connection'
+    removingManualBank: 'Removing bank...',
+    deleteConnection: 'Disconnect bank',
+    deleteManualBank: 'Remove manual bank'
+  },
+  manualBankCreate: {
+    shellTitle: 'Create manual bank',
+    backToSources: 'Back to banks and accounts',
+    badge: 'Manual bank',
+    title: 'Create a manual bank',
+    description: 'First create the local bank you want to track in Opex. You will then be able to add one or more accounts under the same bank, still inside Settings.',
+    nameLabel: 'Bank name',
+    namePlaceholder: 'e.g. Manual Fineco',
+    helperTitle: 'Why create a manual bank',
+    helperDescription: 'The manual bank becomes the container for your local accounts. This keeps manual accounts grouped correctly under the same bank.',
+    cancel: 'Cancel',
+    creating: 'Creating...',
+    create: 'Create manual bank',
+    nameRequired: 'Enter a name for the manual bank.',
+    createError: 'Unable to create the manual bank.'
   },
   bankingEdit: {
     fallbackTitle: 'Account',
-    backToConnection: 'Back to connection',
-    editAccount: 'Edit Account',
-    liveSource: 'Open Banking account',
+    backToConnection: 'Back to imported accounts',
+    backToBank: 'Back to bank',
+    editAccount: 'Configure account',
+    editAccountDescription: 'You are configuring a single account here, not the connected bank as a whole.',
+    liveSource: 'Account imported with Open Banking',
     localSource: 'Local account',
+    manualSource: 'Manual account',
     accountName: 'Account Name',
     accountNamePlaceholder: 'e.g. ING current account',
-    accountCategory: 'Account Category',
+    initialBalance: 'Initial balance',
+    currency: 'Currency',
+    accountCategory: 'Account type',
     categoryLabel: {
       personal: 'Personal',
       business: 'Business',
@@ -357,13 +476,39 @@ export const settingsEn = {
       business: 'Business operations, professional income and expenses.',
       savings: 'Savings goals, deposits and long-term reserves.'
     },
-    fiscalSettings: 'Fiscal Settings',
-    taxBufferTitle: 'Tax Buffer',
-    taxBufferDescription: 'Include this account in tax buffer calculations. Opex uses its balance to compute how much to set aside.',
-    taxBufferEnabled: 'Tax Buffer Enabled',
+    categoryHelperCopy: 'Account type describes how you use this account day to day. It is separate from the tax reserve.',
+    fiscalSettings: 'Tax reserve',
+    taxBufferTitle: 'Use for tax reserve',
+    taxBufferDescription: 'When enabled, Opex includes this account balance in how much to set aside for taxes.',
+    taxBufferHelper: 'This does not change the account type. It only tells Opex whether this balance counts as tax money set aside.',
+    savingsSuggestionTitle: 'This account might be a good fit',
+    savingsSuggestionDescription: 'Savings accounts are often used to set money aside for taxes. If that matches your setup, you can include it in the tax reserve.',
+    savingsSuggestionAction: 'Use for tax reserve',
+    taxBufferEnabled: 'Tax reserve enabled',
+    taxBufferEnabledDescriptionCopy: 'This account balance is included in fiscal calculations.',
     taxBufferEnabledDescription: 'This account’s balance is included in fiscal calculations.',
     savingChanges: 'Saving Changes...',
     saveChanges: 'Save Changes'
+  },
+  manualAccountCreate: {
+    shellTitle: 'Add manual account',
+    backToBank: 'Back to manual bank',
+    badge: 'Manual account',
+    title: 'Add a manual account',
+    description: 'This account will be added under {{bank}} and will stay grouped under the same manual bank.',
+    accountNameLabel: 'Account name',
+    accountNamePlaceholder: 'e.g. Main account',
+    initialBalanceLabel: 'Initial balance',
+    currencyLabel: 'Currency',
+    helperTitle: 'How this account will be used',
+    helperDescription: 'Set the account role and tax reserve here from the start. You can still edit it later from the same manual bank.',
+    cancel: 'Cancel',
+    creating: 'Creating...',
+    create: 'Add account',
+    missingConnection: 'Open a valid manual bank first.',
+    nameRequired: 'Enter a name for the manual account.',
+    invalidBalance: 'Enter a valid numeric balance.',
+    createError: 'Unable to create the manual account.'
   },
   bankingConsent: {
     badge: 'Open Banking Notice',
@@ -416,7 +561,36 @@ export const settingsEn = {
   },
   help: {
     title: 'Opex Support',
-    reportBug: 'Report a Bug',
-    visitHelpCenter: 'Visit Help Center'
+    summaryTitle: 'Help and legal references, without leaving settings',
+    summaryDescription:
+      'This section keeps FAQs, direct support contact and a shortcut to the legal documents already used across the product.',
+    faq: {
+      title: 'Frequently asked questions',
+      description:
+        'The final answers will arrive later. For now we keep a clear placeholder structure that can be filled in during future iterations.',
+      placeholderAnswer: 'Answer in preparation. It will appear here in a future update.',
+      items: {
+        foreignBank: {
+          question: 'How do I connect a foreign bank?'
+        },
+        excelExport: {
+          question: 'Can I export my data to Excel?'
+        },
+        taxBuffer: {
+          question: 'How is the tax reserve calculated?'
+        },
+        dataSafety: {
+          question: 'Are my data safe?'
+        }
+      }
+    },
+    support: {
+      title: 'Contact support',
+      description:
+        'For now product support is handled by email. The address comes from the real legal public info, not from a hardcoded placeholder.',
+      emailLabel: 'Support email',
+      emailUnavailable: 'Support email unavailable',
+      cta: 'Email support'
+    }
   }
 } as const;

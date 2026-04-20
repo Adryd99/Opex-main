@@ -1,6 +1,7 @@
 package com.opex.backend.banking.saltedge;
 
 import com.opex.backend.banking.model.BankConnection;
+import com.opex.backend.banking.model.BankConnectionType;
 import com.opex.backend.user.model.User;
 import com.opex.backend.banking.repository.BankAccountRepository;
 import com.opex.backend.banking.repository.BankConnectionRepository;
@@ -46,13 +47,15 @@ class SaltEdgeConnectionLifecycleServiceTest {
         BankConnection connection = new BankConnection();
         connection.setId("conn-1");
         connection.setUserId("user-1");
+        connection.setType(BankConnectionType.SALTEDGE);
+        connection.setExternalConnectionId("conn-1");
 
         User user = new User("user-1", "user@example.com", "User", "One");
         user.setIsActiveSaltedge(true);
 
         when(bankConnectionRepository.findByIdAndUserId("conn-1", "user-1")).thenReturn(Optional.of(connection));
         when(userRepository.findById("user-1")).thenReturn(Optional.of(user));
-        when(bankConnectionRepository.findByUserId("user-1")).thenReturn(List.of());
+        when(bankConnectionRepository.findByUserIdAndType("user-1", BankConnectionType.SALTEDGE)).thenReturn(List.of());
 
         saltEdgeConnectionLifecycleService.removeConnection("user-1", "conn-1");
 

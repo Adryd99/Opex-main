@@ -27,7 +27,7 @@ export const TaxComplianceCalendarCard = ({ deadlines }: TaxComplianceCalendarCa
     <Card title={t('calendar.title')}>
       <div className="space-y-4">
         {deadlines.length === 0 && (
-          <p className="text-sm text-gray-500 font-medium">{t('calendar.noDeadlines')}</p>
+          <p className="text-sm font-medium text-app-secondary">{t('calendar.noDeadlines')}</p>
         )}
         {deadlines.map((item) => {
           const isOverdue = item.status.toLowerCase().includes('overdue');
@@ -37,21 +37,21 @@ export const TaxComplianceCalendarCard = ({ deadlines }: TaxComplianceCalendarCa
           return (
             <div
               key={`calendar-${item.id || `${item.title}-${item.dueDate}`}`}
-              className={`rounded-[1.75rem] border p-5 transition-all ${isOverdue ? 'border-red-100 bg-red-50/70' : 'border-gray-100 bg-white'}`}
+              className={`rounded-[1.75rem] border p-5 transition-all ${isOverdue ? 'border-red-100 bg-red-50/70 dark:border-red-400/20 dark:bg-red-500/10' : 'border-app-border bg-app-surface'}`}
             >
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-base font-black text-gray-900">{item.title}</p>
+                    <p className="text-base font-black text-app-primary">{item.title}</p>
                     {item.category && <Badge variant="neutral">{item.category}</Badge>}
                     {item.systemGenerated && <Badge variant="info">{t('calendar.system')}</Badge>}
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-widest text-app-tertiary">
                     <span>{item.periodLabel || t('calendar.customDeadline')}</span>
                     <span>{t('calendar.duePrefix', { date: formatTaxDate(item.dueDate, language) })}</span>
                   </div>
                   {item.description && (
-                    <p className="text-sm text-gray-500 font-medium leading-relaxed">{item.description}</p>
+                    <p className="text-sm font-medium leading-relaxed text-app-secondary">{item.description}</p>
                   )}
                 </div>
                 <Badge variant={badgeVariant}>{item.status}</Badge>

@@ -1,6 +1,11 @@
 package com.opex.backend.banking.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -15,14 +20,23 @@ import java.time.LocalDate;
 public class BankConnection {
 
     @Id
-    private String id; // Chiave Primaria (PK). È il vero connection_id di SaltEdge.
+    private String id;
 
     @Column(name = "user_id")
-    private String userId; // Chiave Esterna (FK). Collega la connessione all'utente in users.
+    private String userId;
 
-    private String providerName; // Nome della banca (es. "Intesa Sanpaolo"). Utile per la UI!
+    @Column(name = "provider_name")
+    private String providerName;
 
-    private String status; // Stato (es. "active", "inactive"). Fondamentale perché in Europa le connessioni bancarie scadono ogni 90/180 giorni!
+    @Enumerated(EnumType.STRING)
+    @Column(name = "connection_type")
+    private BankConnectionType type;
 
-    private LocalDate createdAt; // Data in cui l'utente ha collegato questa banca.
+    @Column(name = "external_connection_id")
+    private String externalConnectionId;
+
+    private String status;
+
+    @Column(name = "created_at")
+    private LocalDate createdAt;
 }

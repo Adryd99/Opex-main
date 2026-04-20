@@ -13,8 +13,6 @@ import {
   normalizeTransactionsPage
 } from '../normalizers/finance';
 import {
-  LocalBankAccountPayload,
-  LocalBankAccountUpdatePayload,
   LocalTaxPayload,
   LocalTransactionPayload,
   SaltedgeBankAccountUpdatePayload,
@@ -81,18 +79,6 @@ export const financeClient = {
         })}`
       )
     ),
-
-  createLocalBankAccount: (payload: LocalBankAccountPayload) =>
-    request<BankAccountRecord>('/api/bank-accounts/local', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    }),
-
-  updateLocalBankAccount: (bankAccountId: string, payload: LocalBankAccountUpdatePayload) =>
-    request<BankAccountRecord>(`/api/bank-accounts/local/${bankAccountId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(payload)
-    }),
 
   updateSaltedgeBankAccount: (bankAccountId: string, payload: SaltedgeBankAccountUpdatePayload) =>
     request<BankAccountRecord>(`/api/bank-accounts/saltedge/${bankAccountId}`, {

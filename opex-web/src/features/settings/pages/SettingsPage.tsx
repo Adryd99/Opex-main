@@ -29,14 +29,19 @@ export const SettingsPage = ({
   onSaveProfile,
   onRequestEmailVerification,
   onNavigate,
+  bankConnections,
   bankAccounts,
-  taxBufferProviders,
   legalPublicInfo,
-  onBankSelect,
-  onConnectionSelect,
+  onCreateManualBankConnection,
+  onUpdateManualBankConnection,
+  onRemoveManualBankConnection,
+  onCreateManualBankAccount,
   onCreateOpenBankConnection,
   onRemoveOpenBankConnection,
   onUpdateBankAccount,
+  pendingConnectionReviewById = {},
+  initialBankConnectionId = null,
+  onInitialBankConnectionHandled,
   onDownloadDataExport,
   onDeleteAccount,
   isConnectingOpenBank = false,
@@ -46,7 +51,6 @@ export const SettingsPage = ({
   const { t } = useTranslation('settings');
   const { language } = useAppLanguage();
   const [activeSection, setActiveSection] = useState<SettingsSectionId>(initialSection as SettingsSectionId);
-  const [theme, setTheme] = useState(() => localStorage.getItem('app-theme') || 'light');
   const [isExportingData, setIsExportingData] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -65,7 +69,7 @@ export const SettingsPage = ({
     && securityStatus.recoveryCodesAvailable
   );
   const isTaxProfileComplete = hasTaxProfileConfigured(userProfile);
-  const isBankingSetupComplete = bankAccounts.length > 0;
+  const isBankingSetupComplete = bankConnections.length > 0;
   const settingsSections = buildSettingsSections(t);
   const sectionAttentionById: Partial<Record<SettingsSectionId, boolean>> = {
     PROFILE: !isProfileSetupComplete,
@@ -134,15 +138,6 @@ export const SettingsPage = ({
   })();
 
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('app-theme', theme);
-  }, [theme]);
-
-  useEffect(() => {
     setActiveSection(initialSection as SettingsSectionId);
   }, [initialSection]);
 
@@ -183,13 +178,18 @@ export const SettingsPage = ({
         return (
           <SettingsBankingSection
             onNavigate={onNavigate}
-            onBankSelect={onBankSelect}
-            onConnectionSelect={onConnectionSelect}
+            onCreateManualBankConnection={onCreateManualBankConnection}
+            onUpdateManualBankConnection={onUpdateManualBankConnection}
+            onRemoveManualBankConnection={onRemoveManualBankConnection}
+            onCreateManualBankAccount={onCreateManualBankAccount}
             onUpdateBankAccount={onUpdateBankAccount}
+            bankConnections={bankConnections}
             bankAccounts={bankAccounts}
-            taxBufferProviders={taxBufferProviders}
             onCreateOpenBankConnection={onCreateOpenBankConnection}
             onRemoveOpenBankConnection={onRemoveOpenBankConnection}
+            pendingConnectionReviewById={pendingConnectionReviewById}
+            initialBankConnectionId={initialBankConnectionId}
+            onInitialBankConnectionHandled={onInitialBankConnectionHandled}
             legalPublicInfo={legalPublicInfo}
             openBankingNoticeVersion={legalPublicInfo?.openBankingNotice.version ?? null}
             isConnectingOpenBank={isConnectingOpenBank}
@@ -206,9 +206,6 @@ export const SettingsPage = ({
       case 'PREFERENCES':
         return (
           <SettingsPreferencesSection
-            theme={theme}
-            onThemeChange={setTheme}
-            onNavigate={onNavigate}
             userProfile={userProfile}
             onSaveProfile={onSaveProfile}
           />
@@ -231,7 +228,11 @@ export const SettingsPage = ({
           />
         );
       case 'HELP':
-        return <SettingsHelpSection onNavigate={onNavigate} />;
+        return (
+          <SettingsHelpSection
+            legalPublicInfo={legalPublicInfo}
+          />
+        );
       default:
         return null;
     }

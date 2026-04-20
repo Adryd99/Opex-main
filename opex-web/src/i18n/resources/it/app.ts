@@ -17,7 +17,7 @@ export const appIt = {
     incomeTransactions: 'Transazioni in entrata',
     expenseTransactions: 'Transazioni in uscita',
     financialInsights: 'Insight finanziari',
-    allActivity: 'Tutta l’attività',
+    allActivity: "Tutta l'attivita'",
     settings: 'Impostazioni',
     newTransaction: 'Nuova transazione',
     opex: 'Opex'
@@ -26,7 +26,7 @@ export const appIt = {
     title: 'Azioni rapide',
     addIncome: 'Aggiungi entrata',
     addExpense: 'Aggiungi uscita',
-    openBanking: 'Open Banking'
+    banking: 'Banche e conti'
   },
   accountSelector: {
     selectAccount: 'Seleziona account',
@@ -40,7 +40,7 @@ export const appIt = {
   workspacePreparation: {
     badge: 'Workspace Opex',
     title: 'Stiamo preparando il tuo workspace',
-    description: 'Stiamo sincronizzando il tuo profilo, lo stato di sicurezza e gli ultimi dati bancari prima di aprire l’app.'
+    description: "Stiamo sincronizzando il tuo profilo, lo stato di sicurezza e gli ultimi dati bancari prima di aprire l'app."
   },
   notifications: {
     title: 'Notifiche',

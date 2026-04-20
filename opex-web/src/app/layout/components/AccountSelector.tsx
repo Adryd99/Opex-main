@@ -88,23 +88,23 @@ export const AccountSelector = ({ compact = false }: { compact?: boolean }) => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`${compact ? 'h-8 px-2 rounded-lg' : 'h-12 px-4 rounded-2xl'} bg-white border border-gray-100 shadow-sm hover:border-opex-teal/30 hover:shadow-md transition-all flex items-center gap-3 group active:scale-95`}
+        className={`${compact ? 'h-8 px-2 rounded-lg' : 'h-12 px-4 rounded-2xl'} bg-app-surface border border-app-border shadow-sm hover:border-opex-teal/30 hover:shadow-md transition-all flex items-center gap-3 group active:scale-95`}
       >
         <div className={`w-6 h-6 rounded-lg ${selectedAccount.color} text-white flex items-center justify-center text-[10px] font-black shadow-sm`}>
           {selectedAccount.id === 'all' ? <LayoutGrid size={12} /> : selectedAccount.icon}
         </div>
         {!compact && (
           <>
-            <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{selectedAccount.name}</span>
-            <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            <span className="text-sm font-bold text-app-primary whitespace-nowrap">{selectedAccount.name}</span>
+            <ChevronDown size={14} className={`text-app-tertiary transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
           </>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-          <div className="px-4 py-2 border-b border-gray-50 mb-1">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('accountSelector.selectAccount')}</p>
+        <div className="absolute right-0 mt-3 w-56 bg-app-surface rounded-2xl shadow-2xl border border-app-border py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+          <div className="px-4 py-2 border-b border-app-border mb-1">
+            <p className="text-[10px] font-bold text-app-tertiary uppercase tracking-widest">{t('accountSelector.selectAccount')}</p>
           </div>
           {providerOptions.map((account) => (
             <button
@@ -117,9 +117,9 @@ export const AccountSelector = ({ compact = false }: { compact?: boolean }) => {
                 setSelectedProviderName(nextProviderName);
                 setIsOpen(false);
               }}
-              className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group ${
+              className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-app-muted transition-colors group ${
                 account.id === 'all' ? selectedProviderName.length === 0 : selectedProviderName === account.name
-                  ? 'bg-gray-50'
+                  ? 'bg-app-muted'
                   : ''
               }`}
             >
@@ -127,8 +127,8 @@ export const AccountSelector = ({ compact = false }: { compact?: boolean }) => {
                 {account.id === 'all' ? <LayoutGrid size={16} /> : account.icon}
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold text-gray-700 leading-none">{account.name}</p>
-                <p className="text-[10px] text-gray-400 font-medium mt-1">{account.type}</p>
+                <p className="text-sm font-semibold text-app-primary leading-none">{account.name}</p>
+                <p className="text-[10px] text-app-tertiary font-medium mt-1">{account.type}</p>
               </div>
               {(account.id === 'all' ? selectedProviderName.length === 0 : selectedProviderName === account.name) && (
                 <Check size={14} className="ml-auto text-opex-teal" />

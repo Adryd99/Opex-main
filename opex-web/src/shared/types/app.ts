@@ -1,18 +1,9 @@
-import type { ReactNode } from 'react';
-
 export interface Account {
   id: string;
   name: string;
   icon: string;
   color: string;
   type: string;
-}
-
-export interface BankOption {
-  name: string;
-  color: string;
-  icon: string | ReactNode;
-  isManual?: boolean;
 }
 
 export interface ChartDataPoint {

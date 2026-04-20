@@ -82,8 +82,8 @@ export const BudgetPage = ({
     <div className="space-y-3">
       <div className="flex justify-between items-center px-1 relative z-20">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">{t('page.title')}</h2>
-          <p className="text-xs text-gray-500 font-semibold">
+          <h2 className="text-xl font-bold text-app-primary">{t('page.title')}</h2>
+          <p className="text-xs font-semibold text-app-secondary">
             {selectedProviderName ? t('page.providerSelected', { provider: selectedProviderName }) : t('page.providerAll')}
           </p>
         </div>
@@ -93,17 +93,17 @@ export const BudgetPage = ({
         </div>
       </div>
 
-      <div className="bg-white rounded-[2rem] py-4 px-5 border border-gray-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden min-h-[130px]">
+      <div className="relative flex min-h-[130px] flex-col items-center justify-center overflow-hidden rounded-[2rem] border border-app-border bg-app-surface px-5 py-4 shadow-sm">
         <div className="absolute top-0 right-0 p-10 bg-opex-teal/5 rounded-full translate-x-6 -translate-y-6 blur-xl" />
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1 relative z-10">{t('page.safeToSpend')}</p>
+        <p className="relative z-10 mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-app-tertiary">{t('page.safeToSpend')}</p>
         <div className="relative z-10">
-          <span className="text-5xl font-black text-gray-900 tracking-tight">
+          <span className="text-5xl font-black tracking-tight text-app-primary">
             {formatCurrency(Math.max(safeToSpend, 0), language)}
           </span>
         </div>
         <div className="text-center relative z-10">
-          <p className="text-xs font-bold text-gray-900">{t('page.safeAmountDescription')}</p>
-          <p className="text-[10px] font-bold text-gray-400">
+          <p className="text-xs font-bold text-app-primary">{t('page.safeAmountDescription')}</p>
+          <p className="text-[10px] font-bold text-app-tertiary">
             {t('page.incomeExpensesSummary', {
               income: formatCurrency(totalIncome, language),
               expenses: formatCurrency(totalExpenses, language)
@@ -114,27 +114,27 @@ export const BudgetPage = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 items-stretch">
         <div className={`${clientConcentration > 50 ? 'lg:col-span-6' : 'lg:col-span-10'}`}>
-          <div className="bg-white rounded-[2rem] p-5 border border-gray-100 shadow-sm h-full flex flex-col justify-center">
+          <div className="flex h-full flex-col justify-center rounded-[2rem] border border-app-border bg-app-surface p-5 shadow-sm">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300">
                   <Calendar size={20} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('page.financialRunway')}</p>
-                  <h3 className="text-xl font-black text-gray-900">{t('page.monthsOfCoverage', { count: runwayMonths.toFixed(1) })}</h3>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-app-tertiary">{t('page.financialRunway')}</p>
+                  <h3 className="text-xl font-black text-app-primary">{t('page.monthsOfCoverage', { count: runwayMonths.toFixed(1) })}</h3>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">
+                <p className="text-[9px] font-bold uppercase tracking-tighter text-app-tertiary">
                   <span className="text-emerald-600 font-black">{t('page.reachedTarget', { progress: Math.round(runwayProgress) })}</span> • {t('page.targetMonths')}
                 </p>
               </div>
             </div>
-            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden mb-2">
+            <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-app-muted">
               <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${runwayProgress}%` }} />
             </div>
-            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">
+            <p className="text-[9px] font-bold uppercase tracking-tight text-app-tertiary">
               {t('page.basedOnExpenses', { amount: formatCurrency(totalExpenses, language) })}
             </p>
           </div>
@@ -142,14 +142,14 @@ export const BudgetPage = ({
 
         {clientConcentration > 50 && (
           <div className="lg:col-span-4 relative">
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem] pointer-events-auto select-none">
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-[2rem] bg-app-surface/75 backdrop-blur-sm pointer-events-auto select-none">
               <div className="flex flex-col items-center gap-2 text-center px-4">
-                <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
-                  <Lock size={20} className="text-gray-400" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-app-muted">
+                  <Lock size={20} className="text-app-tertiary" />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-gray-700 tracking-tight">{t('page.comingSoon')}</p>
-                  <p className="text-xs text-gray-400 font-medium mt-0.5 max-w-xs">{t('page.clientRiskComingSoon')}</p>
+                  <p className="text-sm font-black tracking-tight text-app-primary">{t('page.comingSoon')}</p>
+                  <p className="mt-0.5 max-w-xs text-xs font-medium text-app-tertiary">{t('page.clientRiskComingSoon')}</p>
                 </div>
               </div>
             </div>
@@ -163,10 +163,10 @@ export const BudgetPage = ({
                 </div>
                 <Badge variant={risk.badge}>{risk.label}</Badge>
               </div>
-              <p className="text-sm font-bold text-gray-900 leading-tight">
+              <p className="text-sm font-bold leading-tight text-app-primary">
                 <span className={`${risk.text} text-lg`}>{t('page.revenueFromOneClient', { value: clientConcentration })}</span>
               </p>
-              <p className="text-[10px] text-gray-400 font-bold mt-1">{risk.message}</p>
+              <p className="mt-1 text-[10px] font-bold text-app-tertiary">{risk.message}</p>
             </div>
           </div>
         )}

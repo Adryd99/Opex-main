@@ -22,7 +22,7 @@ public class SaltEdgeAccountSyncService {
     private final SaltEdgeApiService saltEdgeApiService;
 
     public void syncConnection(User user, BankConnection connection) {
-        SaltEdgeAccountResponse accountsResponse = saltEdgeApiService.getAccounts(connection.getId());
+        SaltEdgeAccountResponse accountsResponse = saltEdgeApiService.getAccounts(resolveExternalConnectionId(connection));
         if (accountsResponse == null || accountsResponse.getData() == null) {
             return;
         }
@@ -57,7 +57,7 @@ public class SaltEdgeAccountSyncService {
 
     private void syncTransactions(User user, BankConnection connection, SaltEdgeAccountResponse.AccountItem accountItem) {
         SaltEdgeTransactionResponse transactionsResponse =
-                saltEdgeApiService.getTransactions(connection.getId(), accountItem.getId());
+                saltEdgeApiService.getTransactions(resolveExternalConnectionId(connection), accountItem.getId());
         if (transactionsResponse == null || transactionsResponse.getData() == null) {
             return;
         }
@@ -90,5 +90,12 @@ public class SaltEdgeAccountSyncService {
 
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private String resolveExternalConnectionId(BankConnection connection) {
+        if (hasText(connection.getExternalConnectionId())) {
+            return connection.getExternalConnectionId();
+        }
+        return connection.getId();
     }
 }

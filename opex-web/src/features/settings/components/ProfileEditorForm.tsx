@@ -85,11 +85,11 @@ export const ProfileEditorForm = ({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[2rem] border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-6 md:p-8">
+      <div className="rounded-[2rem] border border-app-border bg-gradient-to-br from-app-muted to-app-surface p-6 md:p-8 transition-colors duration-200">
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col items-center gap-4 md:flex-row md:items-center">
             <div className="relative">
-              <div className="w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-opex-teal/10 flex items-center justify-center">
+              <div className="w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 border-white/60 dark:border-app-border shadow-2xl bg-opex-teal/10 dark:bg-opex-teal/15 flex items-center justify-center transition-colors duration-200">
                 {logo
                   ? <img src={logo} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   : <span className="text-3xl font-black text-opex-teal select-none">{initials}</span>
@@ -106,7 +106,7 @@ export const ProfileEditorForm = ({
                 <button
                   type="button"
                   onClick={() => setLogo(null)}
-                  className="absolute -top-2 -right-2 bg-white border border-gray-200 text-gray-400 hover:text-red-500 p-1.5 rounded-xl shadow-md hover:scale-110 active:scale-95 transition-all"
+                  className="absolute -top-2 -right-2 bg-app-surface border border-app-border text-app-tertiary hover:text-red-500 p-1.5 rounded-xl shadow-md hover:scale-110 active:scale-95 transition-all"
                   title={t('profileEditor.removePhoto')}
                 >
                   <X size={14} />
@@ -123,8 +123,8 @@ export const ProfileEditorForm = ({
 
             <div className="space-y-2 text-center md:text-left">
               <div className="space-y-1">
-                <p className="text-xl font-black tracking-tight text-gray-900">{t('profileEditor.editProfileDetails')}</p>
-                <p className="text-sm font-medium text-gray-500">
+                <p className="text-xl font-black tracking-tight text-app-primary">{t('profileEditor.editProfileDetails')}</p>
+                <p className="text-sm font-medium text-app-secondary">
                   {t('profileEditor.editProfileDescription')}
                 </p>
               </div>
@@ -137,39 +137,39 @@ export const ProfileEditorForm = ({
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white/80 border border-gray-100 px-4 py-3 text-sm text-gray-500 shadow-sm">
-            <p className="font-semibold text-gray-700">{t('profileEditor.profilePhoto')}</p>
+          <div className="rounded-2xl bg-app-surface/80 border border-app-border px-4 py-3 text-sm text-app-secondary shadow-sm transition-colors duration-200">
+            <p className="font-semibold text-app-primary">{t('profileEditor.profilePhoto')}</p>
             <p>{t('profileEditor.profilePhotoDescription')}</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm space-y-6">
+        <div className="rounded-[2rem] border border-app-border bg-app-surface p-6 shadow-sm space-y-6 transition-colors duration-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-opex-teal/10 text-opex-teal flex items-center justify-center">
               <UserRound size={18} />
             </div>
             <div>
-              <p className="text-sm font-black text-gray-900">{t('profileEditor.identity')}</p>
-              <p className="text-xs font-medium text-gray-500">{t('profileEditor.identityDescription')}</p>
+              <p className="text-sm font-black text-app-primary">{t('profileEditor.identity')}</p>
+              <p className="text-xs font-medium text-app-secondary">{t('profileEditor.identityDescription')}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('profile.firstName')}</label>
-              <input value={firstName} onChange={event => setFirstName(event.target.value)} disabled={isGoogleManagedIdentity} className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none disabled:text-gray-400 disabled:cursor-not-allowed disabled:bg-gray-100" />
+              <label className="text-[10px] font-black text-app-tertiary uppercase tracking-widest">{t('profile.firstName')}</label>
+              <input value={firstName} onChange={event => setFirstName(event.target.value)} disabled={isGoogleManagedIdentity} className="w-full p-4 bg-app-muted border-none rounded-2xl text-sm font-bold text-app-primary focus:ring-2 focus:ring-opex-teal/10 outline-none disabled:text-app-tertiary disabled:cursor-not-allowed disabled:bg-app-base transition-colors duration-200" />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('profile.lastName')}</label>
-              <input value={lastName} onChange={event => setLastName(event.target.value)} disabled={isGoogleManagedIdentity} className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none disabled:text-gray-400 disabled:cursor-not-allowed disabled:bg-gray-100" />
+              <label className="text-[10px] font-black text-app-tertiary uppercase tracking-widest">{t('profile.lastName')}</label>
+              <input value={lastName} onChange={event => setLastName(event.target.value)} disabled={isGoogleManagedIdentity} className="w-full p-4 bg-app-muted border-none rounded-2xl text-sm font-bold text-app-primary focus:ring-2 focus:ring-opex-teal/10 outline-none disabled:text-app-tertiary disabled:cursor-not-allowed disabled:bg-app-base transition-colors duration-200" />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('profile.email')}</label>
-            <input value={email} onChange={event => setEmail(event.target.value)} disabled={isGoogleManagedIdentity} className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none disabled:text-gray-400 disabled:cursor-not-allowed disabled:bg-gray-100" />
+            <label className="text-[10px] font-black text-app-tertiary uppercase tracking-widest">{t('profile.email')}</label>
+            <input value={email} onChange={event => setEmail(event.target.value)} disabled={isGoogleManagedIdentity} className="w-full p-4 bg-app-muted border-none rounded-2xl text-sm font-bold text-app-primary focus:ring-2 focus:ring-opex-teal/10 outline-none disabled:text-app-tertiary disabled:cursor-not-allowed disabled:bg-app-base transition-colors duration-200" />
           </div>
 
           {isGoogleManagedIdentity && (
@@ -182,39 +182,39 @@ export const ProfileEditorForm = ({
           )}
         </div>
 
-        <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm space-y-6">
+        <div className="rounded-[2rem] border border-app-border bg-app-surface p-6 shadow-sm space-y-6 transition-colors duration-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-opex-teal/10 text-opex-teal flex items-center justify-center">
               <CalendarDays size={18} />
             </div>
             <div>
-              <p className="text-sm font-black text-gray-900">{t('profileEditor.personalDetails')}</p>
-              <p className="text-xs font-medium text-gray-500">{t('profileEditor.personalDetailsDescription')}</p>
+              <p className="text-sm font-black text-app-primary">{t('profileEditor.personalDetails')}</p>
+              <p className="text-xs font-medium text-app-secondary">{t('profileEditor.personalDetailsDescription')}</p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('profileEditor.displayName')}</label>
+            <label className="text-[10px] font-black text-app-tertiary uppercase tracking-widest">{t('profileEditor.displayName')}</label>
             <input
               value={displayName}
               onChange={event => setDisplayName(event.target.value)}
-              className="w-full p-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none"
+              className="w-full p-4 bg-app-muted border-none rounded-2xl text-sm font-bold text-app-primary focus:ring-2 focus:ring-opex-teal/10 outline-none transition-colors duration-200"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('profileEditor.birthDate')}</label>
+              <label className="text-[10px] font-black text-app-tertiary uppercase tracking-widest">{t('profileEditor.birthDate')}</label>
               <div className="relative">
-                <CalendarDays size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input type="date" value={dob} max={maxBirthDate} onChange={event => setDob(event.target.value)} className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none" />
+                <CalendarDays size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-app-tertiary" />
+                <input type="date" value={dob} max={maxBirthDate} onChange={event => setDob(event.target.value)} className="w-full pl-12 pr-4 py-4 bg-app-muted border-none rounded-2xl text-sm font-bold text-app-primary focus:ring-2 focus:ring-opex-teal/10 outline-none transition-colors duration-200" />
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('profileEditor.occupation')}</label>
+              <label className="text-[10px] font-black text-app-tertiary uppercase tracking-widest">{t('profileEditor.occupation')}</label>
               <div className="relative">
-                <BriefcaseBusiness size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input value={occupation} onChange={event => setOccupation(event.target.value)} className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-opex-teal/10 outline-none" />
+                <BriefcaseBusiness size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-app-tertiary" />
+                <input value={occupation} onChange={event => setOccupation(event.target.value)} className="w-full pl-12 pr-4 py-4 bg-app-muted border-none rounded-2xl text-sm font-bold text-app-primary focus:ring-2 focus:ring-opex-teal/10 outline-none transition-colors duration-200" />
               </div>
             </div>
           </div>
@@ -222,7 +222,7 @@ export const ProfileEditorForm = ({
         </div>
       </div>
 
-      <div className="rounded-[2rem] border border-gray-100 bg-white p-5 shadow-sm space-y-4">
+      <div className="rounded-[2rem] border border-app-border bg-app-surface p-5 shadow-sm space-y-4 transition-colors duration-200">
         <div className="flex flex-col-reverse sm:flex-row gap-3">
           {onCancel && (
             <Button fullWidth variant="secondary" size="lg" onClick={onCancel} disabled={isSaving}>

@@ -103,12 +103,12 @@ export const TaxProfileSetupForm = ({
   return (
     <div className="space-y-8">
       <div className="flex items-start gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.35rem] bg-opex-dark text-white shadow-lg shadow-slate-900/15">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.35rem] bg-opex-dark text-white shadow-lg shadow-slate-900/15 dark:bg-opex-teal dark:text-slate-950 transition-colors duration-200">
           <Calculator size={26} />
         </div>
         <div>
-          <h3 className="text-3xl font-black tracking-tight text-gray-900">{resolvedTitle}</h3>
-          <p className="mt-1 text-sm font-medium text-slate-500">
+          <h3 className="text-3xl font-black tracking-tight text-app-primary">{resolvedTitle}</h3>
+          <p className="mt-1 text-sm font-medium text-app-secondary">
             {resolvedDescription}
           </p>
         </div>
@@ -118,7 +118,7 @@ export const TaxProfileSetupForm = ({
         <div className="space-y-6">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{t('taxForm.taxRegime')}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-app-tertiary">{t('taxForm.taxRegime')}</p>
             </div>
             <div className="space-y-3">
               {TAX_REGIME_OPTIONS.map((option) => {
@@ -136,20 +136,20 @@ export const TaxProfileSetupForm = ({
                     }}
                     className={`w-full rounded-[1.5rem] border p-4 text-left transition-all ${
                       isSelected
-                        ? 'border-opex-dark bg-slate-50 shadow-sm'
-                        : 'border-gray-200 bg-white hover:border-slate-300'
+                        ? 'border-opex-dark bg-slate-50 shadow-sm dark:border-opex-teal dark:bg-opex-teal/10'
+                        : 'border-app-border bg-app-surface hover:border-slate-300 dark:hover:border-app-tertiary/50'
                     }`}
                     disabled={isSaving}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-base font-black text-gray-900">
+                        <p className="text-base font-black text-app-primary">
                           {option.labelKey ? t(option.labelKey) : option.label}
                         </p>
-                        <p className="mt-1 text-xs font-medium text-slate-500">{t(option.descriptionKey)}</p>
+                        <p className="mt-1 text-xs font-medium text-app-secondary">{t(option.descriptionKey)}</p>
                       </div>
                       <div className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full border ${
-                        isSelected ? 'border-opex-dark bg-opex-dark text-white' : 'border-slate-200 text-transparent'
+                        isSelected ? 'border-opex-dark bg-opex-dark text-white dark:border-opex-teal dark:bg-opex-teal dark:text-slate-950' : 'border-app-border text-transparent'
                       }`}>
                         <Check size={14} />
                       </div>
@@ -161,7 +161,7 @@ export const TaxProfileSetupForm = ({
           </div>
 
           <div className="space-y-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{t('taxForm.fiscalResidence')}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-app-tertiary">{t('taxForm.fiscalResidence')}</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {TAX_RESIDENCE_OPTIONS.map((option) => {
                 const isSelected = selectedFiscalResidence === option.value;
@@ -178,13 +178,13 @@ export const TaxProfileSetupForm = ({
                     }}
                     className={`rounded-[1.2rem] border px-4 py-3 text-left transition-all ${
                       isSelected
-                        ? 'border-opex-dark bg-slate-50 shadow-sm'
-                        : 'border-gray-200 bg-white hover:border-slate-300'
+                        ? 'border-opex-dark bg-slate-50 shadow-sm dark:border-opex-teal dark:bg-opex-teal/10'
+                        : 'border-app-border bg-app-surface hover:border-slate-300 dark:hover:border-app-tertiary/50'
                     }`}
                     disabled={isSaving}
                   >
-                    <p className="text-sm font-black text-gray-900">{option.label}</p>
-                    <p className="mt-1 text-[11px] font-medium text-slate-500">{t(option.descriptionKey)}</p>
+                    <p className="text-sm font-black text-app-primary">{option.label}</p>
+                    <p className="mt-1 text-[11px] font-medium text-app-secondary">{t(option.descriptionKey)}</p>
                   </button>
                 );
               })}
@@ -192,7 +192,7 @@ export const TaxProfileSetupForm = ({
           </div>
 
           <div className="space-y-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-app-tertiary">
               {t('taxForm.vatFiling')}
             </p>
             <div className="grid grid-cols-3 gap-3">
@@ -211,17 +211,17 @@ export const TaxProfileSetupForm = ({
                     }}
                     className={`rounded-[1.2rem] border px-4 py-3 text-left transition-all ${
                       isSelected
-                        ? 'border-opex-dark bg-slate-50 shadow-sm'
-                        : 'border-gray-200 bg-white hover:border-slate-300'
+                        ? 'border-opex-dark bg-slate-50 shadow-sm dark:border-opex-teal dark:bg-opex-teal/10'
+                        : 'border-app-border bg-app-surface hover:border-slate-300 dark:hover:border-app-tertiary/50'
                     }`}
                     disabled={isSaving}
                   >
-                    <p className="text-sm font-black text-gray-900">{option.label}</p>
+                    <p className="text-sm font-black text-app-primary">{option.label}</p>
                   </button>
                 );
               })}
             </div>
-            <p className="text-xs font-medium text-slate-500">
+            <p className="text-xs font-medium text-app-secondary">
               {t('taxForm.vatFilingDescription')}
             </p>
           </div>
@@ -229,8 +229,8 @@ export const TaxProfileSetupForm = ({
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{t('taxForm.activityType')}</p>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-app-tertiary">{t('taxForm.activityType')}</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-app-tertiary/70">
               {selectedRegime ? t('taxForm.selectBusinessArea') : t('taxForm.selectRegimeFirst')}
             </p>
           </div>
@@ -254,29 +254,29 @@ export const TaxProfileSetupForm = ({
                   }}
                   className={`rounded-[1.5rem] border p-4 text-left transition-all ${
                     isDisabled
-                      ? 'cursor-not-allowed border-gray-100 bg-gray-50 text-slate-300'
+                      ? 'cursor-not-allowed border-app-border bg-app-muted text-app-tertiary/70'
                       : isSelected
-                        ? 'border-opex-dark bg-slate-50 shadow-sm'
-                        : 'border-gray-200 bg-white hover:border-slate-300'
+                        ? 'border-opex-dark bg-slate-50 shadow-sm dark:border-opex-teal dark:bg-opex-teal/10'
+                        : 'border-app-border bg-app-surface hover:border-slate-300 dark:hover:border-app-tertiary/50'
                   }`}
                   disabled={isSaving || isDisabled}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className={`text-base font-black ${isDisabled ? 'text-slate-300' : 'text-gray-900'}`}>
+                      <p className={`text-base font-black ${isDisabled ? 'text-app-tertiary/70' : 'text-app-primary'}`}>
                         {option.labelKey ? t(option.labelKey) : option.label}
                       </p>
-                      <p className={`mt-1 text-xs font-medium ${isDisabled ? 'text-slate-300' : 'text-slate-500'}`}>
+                      <p className={`mt-1 text-xs font-medium ${isDisabled ? 'text-app-tertiary/70' : 'text-app-secondary'}`}>
                         {t(option.descriptionKey)}
                       </p>
                       {option.meta && (
-                        <p className={`mt-2 text-[11px] font-black uppercase tracking-widest ${isDisabled ? 'text-slate-300' : 'text-slate-400'}`}>
+                        <p className={`mt-2 text-[11px] font-black uppercase tracking-widest ${isDisabled ? 'text-app-tertiary/70' : 'text-app-tertiary'}`}>
                           {option.meta}
                         </p>
                       )}
                     </div>
                     <div className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full border ${
-                      isSelected ? 'border-opex-dark bg-opex-dark text-white' : 'border-slate-200 text-transparent'
+                      isSelected ? 'border-opex-dark bg-opex-dark text-white dark:border-opex-teal dark:bg-opex-teal dark:text-slate-950' : 'border-app-border text-transparent'
                     }`}>
                       <Check size={14} />
                     </div>
@@ -298,8 +298,8 @@ export const TaxProfileSetupForm = ({
           onClick={() => void handleSave()}
           className={`flex h-14 w-full items-center justify-center gap-2 rounded-[1.2rem] text-base font-black text-white shadow-[0_20px_40px_-20px_rgba(12,33,49,0.55)] transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
             isSaved
-              ? 'bg-emerald-600 hover:bg-emerald-600'
-              : 'bg-opex-dark hover:bg-slate-800'
+              ? 'bg-emerald-600 hover:bg-emerald-600 dark:bg-emerald-500 dark:text-slate-950 dark:hover:bg-emerald-500'
+              : 'bg-opex-dark hover:bg-slate-800 dark:bg-opex-teal dark:text-slate-950 dark:hover:bg-opex-teal/90'
           }`}
           disabled={!isComplete || isSaving}
         >
@@ -314,15 +314,7 @@ export const TaxProfileSetupForm = ({
             resolvedSaveLabel
           )}
         </button>
-        <p
-          className={`mt-3 text-center text-xs font-semibold transition-colors ${
-            isSaved ? 'text-emerald-600' : 'text-slate-500'
-          }`}
-          aria-live="polite"
-        >
-          {isSaved ? t('taxForm.savedMessage') : t('taxForm.saveHint')}
-        </p>
-        <p className="mt-4 text-center text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+        <p className="mt-4 text-center text-[11px] font-black uppercase tracking-[0.2em] text-app-tertiary">
           {resolvedFooterNote}
         </p>
       </div>

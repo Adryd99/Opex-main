@@ -4,6 +4,7 @@ import com.opex.backend.common.exception.BadRequestException;
 import com.opex.backend.common.exception.ExternalServiceException;
 import com.opex.backend.common.exception.ResourceNotFoundException;
 import com.opex.backend.banking.model.BankConnection;
+import com.opex.backend.banking.model.BankConnectionType;
 import com.opex.backend.user.model.User;
 import com.opex.backend.banking.repository.BankAccountRepository;
 import com.opex.backend.banking.repository.BankConnectionRepository;
@@ -27,12 +28,13 @@ public class SaltEdgeConnectionLifecycleService {
     public String refreshConnection(String userId, String connectionId) {
         BankConnection connection = getOwnedConnection(userId, connectionId);
         User user = getUser(userId);
+        validateSaltEdgeConnection(connection);
 
         if (user.getCustomerId() == null || user.getCustomerId().isBlank()) {
             throw new BadRequestException("Missing Salt Edge customerId. Create a connection first.");
         }
 
-        SaltEdgeConnectResponse refreshResponse = saltEdgeApiService.refreshConnection(connection.getId());
+        SaltEdgeConnectResponse refreshResponse = saltEdgeApiService.refreshConnection(resolveExternalConnectionId(connection));
         if (refreshResponse == null || refreshResponse.getData() == null || refreshResponse.getData().getConnectUrl() == null) {
             throw new ExternalServiceException("Unable to refresh Salt Edge connection.");
         }
@@ -44,14 +46,15 @@ public class SaltEdgeConnectionLifecycleService {
     public void removeConnection(String userId, String connectionId) {
         BankConnection connection = getOwnedConnection(userId, connectionId);
         User user = getUser(userId);
+        validateSaltEdgeConnection(connection);
 
-        saltEdgeApiService.removeConnection(connection.getId());
+        saltEdgeApiService.removeConnection(resolveExternalConnectionId(connection));
 
         transactionRepository.deleteByConnectionId(connection.getId());
         bankAccountRepository.deleteByConnectionId(connection.getId());
         bankConnectionRepository.delete(connection);
 
-        boolean hasRemainingConnections = !bankConnectionRepository.findByUserId(userId).isEmpty();
+        boolean hasRemainingConnections = !bankConnectionRepository.findByUserIdAndType(userId, BankConnectionType.SALTEDGE).isEmpty();
         user.setIsActiveSaltedge(hasRemainingConnections);
         userRepository.save(user);
     }
@@ -64,5 +67,18 @@ public class SaltEdgeConnectionLifecycleService {
     private User getUser(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+    }
+
+    private void validateSaltEdgeConnection(BankConnection connection) {
+        if (connection.getType() != BankConnectionType.SALTEDGE) {
+            throw new BadRequestException("Operation denied. This connection is not managed by Salt Edge.");
+        }
+    }
+
+    private String resolveExternalConnectionId(BankConnection connection) {
+        if (connection.getExternalConnectionId() != null && !connection.getExternalConnectionId().isBlank()) {
+            return connection.getExternalConnectionId();
+        }
+        return connection.getId();
     }
 }

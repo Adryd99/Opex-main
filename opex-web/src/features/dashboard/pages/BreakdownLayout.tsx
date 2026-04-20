@@ -76,8 +76,8 @@ export const BreakdownLayout = ({ type, onBack }: BreakdownLayoutProps) => {
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
-                <h2 className="text-3xl font-bold text-gray-900">{isIncome ? t('breakdown.incomeBreakdown') : t('breakdown.expenseBreakdown')}</h2>
-                <p className="text-sm font-medium text-gray-400 transition-all duration-300">{getSubtitle(filter)}</p>
+                <h2 className="text-3xl font-bold text-app-primary">{isIncome ? t('breakdown.incomeBreakdown') : t('breakdown.expenseBreakdown')}</h2>
+                <p className="text-sm font-medium text-app-tertiary transition-all duration-300">{getSubtitle(filter)}</p>
               </div>
               <ToggleFilter
                 options={[
@@ -90,7 +90,7 @@ export const BreakdownLayout = ({ type, onBack }: BreakdownLayoutProps) => {
               />
             </div>
 
-            <div className="bg-white rounded-[2rem] p-8 md:p-10 border border-gray-100 shadow-sm overflow-hidden min-h-[400px] flex flex-col justify-center">
+            <div className="flex min-h-[400px] flex-col justify-center overflow-hidden rounded-[2rem] border border-app-border bg-app-surface p-8 shadow-sm md:p-10">
               <EnhancedLineChart color={isIncome ? '#22C55E' : '#3B82F6'} period={filter} heightPixels={300} />
             </div>
           </div>
@@ -103,23 +103,23 @@ export const BreakdownLayout = ({ type, onBack }: BreakdownLayoutProps) => {
               <div className="flex flex-col items-center gap-4">
                 <MiniPieChart type={isIncome ? 'income' : 'expense'} />
                 <div className="text-center">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('breakdown.activeRate')}</p>
-                  <p className="text-xl font-black text-gray-900">82.4%</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-app-tertiary">{t('breakdown.activeRate')}</p>
+                  <p className="text-xl font-black text-app-primary">82.4%</p>
                 </div>
               </div>
               <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-6">
                 {sources.map((source) => (
-                  <div key={`${source.name}-${source.tag}`} className="flex items-center justify-between group cursor-pointer hover:bg-gray-50/50 p-2 -m-2 rounded-xl transition-colors">
+                  <div key={`${source.name}-${source.tag}`} className="group -m-2 flex cursor-pointer items-center justify-between rounded-xl p-2 transition-colors hover:bg-app-muted/60">
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-xl ${source.color} flex items-center justify-center text-white text-xs font-bold shadow-sm`}>{source.icon}</div>
                       <div>
-                        <p className="text-sm font-bold text-gray-900 leading-tight">{source.name}</p>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{source.tag}</span>
+                        <p className="text-sm font-bold leading-tight text-app-primary">{source.name}</p>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-app-tertiary">{source.tag}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-gray-900">{formatCurrency(source.amount, language)}</span>
-                      <ChevronRight size={14} className="text-gray-300 group-hover:text-gray-900 transition-colors" />
+                      <span className="text-sm font-bold text-app-primary">{formatCurrency(source.amount, language)}</span>
+                      <ChevronRight size={14} className="text-app-tertiary transition-colors group-hover:text-app-primary" />
                     </div>
                   </div>
                 ))}
@@ -130,7 +130,7 @@ export const BreakdownLayout = ({ type, onBack }: BreakdownLayoutProps) => {
 
         <div className="w-full lg:w-[380px] space-y-6 lg:sticky lg:top-24">
           <div className="flex items-center justify-between px-2">
-            <h3 className="text-xl font-bold text-gray-900">{t('breakdown.activityHistory')}</h3>
+            <h3 className="text-xl font-bold text-app-primary">{t('breakdown.activityHistory')}</h3>
             <button className="text-[10px] font-black text-opex-teal uppercase tracking-widest hover:underline">{t('breakdown.downloadCsv')}</button>
           </div>
 
@@ -138,30 +138,30 @@ export const BreakdownLayout = ({ type, onBack }: BreakdownLayoutProps) => {
             {groupedTransactions.map((group) => (
               <div key={group.date} className="space-y-4">
                 <div className="flex justify-between items-center px-2">
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-app-tertiary">
                     {formatDateForLanguage(language, `${group.date}T12:00:00`, { day: 'numeric', month: 'short' })}
                   </span>
-                  <span className={`text-[10px] font-black ${isIncome ? 'text-green-500' : 'text-gray-900'}`}>
+                  <span className={`text-[10px] font-black ${isIncome ? 'text-green-500 dark:text-emerald-300' : 'text-app-primary'}`}>
                     {group.total > 0 ? '+' : '-'}{formatCurrency(Math.abs(group.total), language)}
                   </span>
                 </div>
-                <div className="bg-white rounded-[2rem] overflow-hidden border border-gray-100 shadow-sm divide-y divide-gray-50">
+                <div className="divide-y divide-app-border overflow-hidden rounded-[2rem] border border-app-border bg-app-surface shadow-sm">
                   {group.items.map((item) => (
-                    <div key={`${group.date}-${item.name}`} className="p-5 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer group">
+                    <div key={`${group.date}-${item.name}`} className="group flex cursor-pointer items-center justify-between p-5 transition-colors hover:bg-app-muted/60">
                       <div className="flex items-center gap-4">
                         <div className={`w-12 h-12 rounded-2xl ${item.color} flex items-center justify-center text-white text-xs font-bold transition-transform group-hover:scale-105 shadow-sm`}>
                           {item.icon}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-gray-900">{item.name}</p>
+                          <p className="text-sm font-bold text-app-primary">{item.name}</p>
                           <Badge>{item.tag}</Badge>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className={`text-sm font-bold ${item.amount > 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                        <p className={`text-sm font-bold ${item.amount > 0 ? 'text-green-600 dark:text-emerald-300' : 'text-app-primary'}`}>
                           {item.amount > 0 ? '+' : '-'}{formatCurrency(Math.abs(item.amount), language)}
                         </p>
-                        <p className="text-[10px] text-gray-400 font-bold">14:24</p>
+                        <p className="text-[10px] font-bold text-app-tertiary">14:24</p>
                       </div>
                     </div>
                   ))}

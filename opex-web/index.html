@@ -4,50 +4,70 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#F8F9FB" />
     <title>Opex - Financial Assistant</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      (function () {
+        const storageKey = 'app-theme';
+        const defaultTheme = 'light';
+        let storedTheme = null;
+        try {
+          storedTheme = window.localStorage.getItem(storageKey);
+        } catch (_) {}
+        const theme = storedTheme === 'dark' ? 'dark' : defaultTheme;
+        const root = document.documentElement;
+
+        root.dataset.theme = theme;
+        root.classList.toggle('dark', theme === 'dark');
+        root.style.colorScheme = theme;
+
+        const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeColorMeta) {
+          themeColorMeta.setAttribute('content', theme === 'dark' ? '#08131B' : '#F8F9FB');
+        }
+
+        window.__OPEX_BOOT_THEME__ = theme;
+      })();
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-            },
-            colors: {
-              opex: {
-                dark: '#112633', // Dark Navy for buttons
-                teal: '#1F4650', // Logo color
-                green: '#E5F8ED', // Light green bg
-                greenText: '#22C55E',
-                red: '#FEF2F2',
-                redText: '#EF4444',
-                gray: '#F8F9FB', // App background
-              }
-            },
-            boxShadow: {
-              'up': '0 -4px 6px -1px rgba(0, 0, 0, 0.1)',
-            }
-          }
-        }
-      }
-    </script>
     <style>
+      :root {
+        --app-base: 248 249 251;
+        --app-surface: 255 255 255;
+        --app-muted: 243 244 246;
+        --app-border: 229 231 235;
+        --app-primary: 17 38 51;
+        --app-secondary: 107 114 128;
+        --app-tertiary: 156 163 175;
+        --app-inverse: 255 255 255;
+        --boot-background-start: 251 252 253;
+        --boot-background-end: 244 247 248;
+        --boot-glow-top: 17 183 165;
+      }
+      [data-theme="dark"] {
+        --app-base: 8 19 27;
+        --app-surface: 15 23 42;
+        --app-muted: 22 31 49;
+        --app-border: 51 65 85;
+        --app-primary: 241 245 249;
+        --app-secondary: 148 163 184;
+        --app-tertiary: 100 116 139;
+        --app-inverse: 8 19 27;
+        --boot-background-start: 8 19 27;
+        --boot-background-end: 11 29 40;
+        --boot-glow-top: 31 70 80;
+      }
       html, body {
         margin: 0;
         min-height: 100%;
       }
       body {
-        background-color: #F8F9FB;
+        background-color: rgb(var(--app-base));
+        color: rgb(var(--app-primary));
         font-family: 'Inter', sans-serif;
         -webkit-tap-highlight-color: transparent;
-      }
-      /* Dark mode styles */
-      .dark body {
-        background-color: #0f172a;
-        color: #e2e8f0;
+        transition: background-color 200ms ease, color 200ms ease;
       }
       .dark {
         color-scheme: dark;
@@ -66,8 +86,8 @@
         z-index: 9999;
         overflow: hidden;
         background:
-          radial-gradient(circle at top, rgba(17, 183, 165, 0.12), transparent 38%),
-          linear-gradient(180deg, #fbfcfd 0%, #f4f7f8 100%);
+          radial-gradient(circle at top, rgb(var(--boot-glow-top) / 0.18), transparent 38%),
+          linear-gradient(180deg, rgb(var(--boot-background-start)) 0%, rgb(var(--boot-background-end)) 100%);
         transition: opacity 220ms ease, visibility 220ms ease;
       }
       #boot-splash.boot-splash-hidden {
@@ -128,8 +148,8 @@
         gap: 2rem;
       }
       .boot-splash__logo-wrap {
-        border: 1px solid rgba(255, 255, 255, 0.7);
-        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgb(var(--app-border) / 0.45);
+        background: rgb(var(--app-surface) / 0.8);
         border-radius: 2.5rem;
         padding: 2rem 2.5rem;
         box-shadow: 0 24px 80px rgba(11, 36, 53, 0.08);
@@ -143,7 +163,7 @@
       }
       .boot-splash__eyebrow {
         margin: 0 0 0.75rem;
-        color: #9ca3af;
+        color: rgb(var(--app-tertiary));
         font-size: 0.6875rem;
         font-weight: 900;
         letter-spacing: 0.38em;
@@ -151,7 +171,7 @@
       }
       .boot-splash__title {
         margin: 0;
-        color: #112633;
+        color: rgb(var(--app-primary));
         font-size: clamp(2rem, 4vw, 2.75rem);
         font-weight: 900;
         letter-spacing: -0.04em;
@@ -159,7 +179,7 @@
       .boot-splash__description {
         margin: 0.75rem auto 0;
         max-width: 32rem;
-        color: #6b7280;
+        color: rgb(var(--app-secondary));
         font-size: 1rem;
         line-height: 1.65;
       }
@@ -167,8 +187,8 @@
         display: inline-flex;
         align-items: center;
         gap: 0.75rem;
-        border: 1px solid rgba(255, 255, 255, 0.7);
-        background: rgba(255, 255, 255, 0.75);
+        border: 1px solid rgb(var(--app-border) / 0.45);
+        background: rgb(var(--app-surface) / 0.75);
         border-radius: 9999px;
         padding: 0.875rem 1.25rem;
         box-shadow: 0 10px 30px rgba(17, 38, 51, 0.06);
@@ -231,7 +251,7 @@
         <div class="boot-splash__stack">
           <div class="boot-splash__panel">
             <div class="boot-splash__logo-wrap">
-              <img class="boot-splash__logo" src="/Opes_large_dark.png" alt="Opex" />
+              <img class="boot-splash__logo" data-boot-logo alt="Opex" width="320" height="112" fetchpriority="high" />
             </div>
             <div>
               <p class="boot-splash__eyebrow">Opex Workspace</p>
@@ -249,6 +269,15 @@
         </div>
       </div>
     </div>
+    <script>
+      (function () {
+        const bootLogo = document.querySelector('[data-boot-logo]');
+        if (bootLogo) {
+          const theme = window.__OPEX_BOOT_THEME__ === 'dark' ? 'dark' : 'light';
+          bootLogo.setAttribute('src', theme === 'dark' ? '/Opes_large_light.png' : '/Opes_large_dark.png');
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/app/main.tsx"></script>
   </body>

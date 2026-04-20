@@ -28,14 +28,14 @@ export const SettingsSecuritySection = () => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
       <Card title={t('securitySection.password')}>
-        <div className="flex flex-col gap-5 rounded-[2rem] border border-gray-100 bg-gray-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-5 rounded-[2rem] border border-app-border bg-app-muted px-5 py-5 sm:flex-row sm:items-center sm:justify-between transition-colors duration-200">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-gray-400 shadow-sm border border-gray-100 shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-app-surface flex items-center justify-center text-app-tertiary shadow-sm border border-app-border shrink-0 transition-colors duration-200">
               <Key size={24} />
             </div>
             <div>
-              <p className="text-base font-black text-gray-900">{t('securitySection.changePasswordTitle')}</p>
-              <p className="text-sm text-gray-500 font-medium">
+              <p className="text-base font-black text-app-primary">{t('securitySection.changePasswordTitle')}</p>
+              <p className="text-sm text-app-secondary font-medium">
                 {t('securitySection.changePasswordDescription')}
               </p>
             </div>

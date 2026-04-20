@@ -18,16 +18,16 @@ export const SettingsSectionNotice = ({
 }: SettingsSectionNoticeProps) => {
   const toneClasses = tone === 'warning'
     ? {
-        shell: 'border-amber-100 bg-amber-50/80',
-        icon: 'bg-white text-amber-700 border-amber-100',
-        title: 'text-amber-950',
-        description: 'text-amber-800/80'
+        shell: 'border-amber-200/70 bg-amber-50/85 dark:border-amber-400/20 dark:bg-amber-500/10',
+        icon: 'bg-white text-amber-700 border-amber-100 dark:bg-amber-400/10 dark:text-amber-200 dark:border-amber-400/20',
+        title: 'text-amber-950 dark:text-amber-100',
+        description: 'text-amber-800/80 dark:text-amber-100/75'
       }
     : {
-        shell: 'border-blue-100 bg-blue-50/80',
-        icon: 'bg-white text-blue-700 border-blue-100',
-        title: 'text-slate-900',
-        description: 'text-slate-600'
+        shell: 'border-blue-100 bg-blue-50/80 dark:border-sky-400/20 dark:bg-sky-500/10',
+        icon: 'bg-white text-blue-700 border-blue-100 dark:bg-sky-400/10 dark:text-sky-200 dark:border-sky-400/20',
+        title: 'text-slate-900 dark:text-sky-50',
+        description: 'text-slate-600 dark:text-sky-100/75'
       };
 
   return (

@@ -5,6 +5,8 @@ import com.opex.backend.banking.dto.BankAccountRequest;
 import com.opex.backend.banking.dto.SaltedgeBankAccountUpdateRequest;
 import com.opex.backend.banking.dto.TimeAggregatedResponse;
 import com.opex.backend.banking.model.BankAccount;
+import com.opex.backend.banking.model.BankConnection;
+import com.opex.backend.banking.model.BankConnectionType;
 import com.opex.backend.banking.repository.BankAccountRepository;
 import com.opex.backend.common.exception.BadRequestException;
 import com.opex.backend.common.exception.ResourceNotFoundException;
@@ -24,6 +26,7 @@ public class BankAccountService {
 
     private final BankAccountRepository bankAccountRepository;
     private final BankingAnalyticsService bankingAnalyticsService;
+    private final BankConnectionService bankConnectionService;
 
     public List<AggregatedBalanceResponse> getAggregatedBalances(String userId) {
         return bankingAnalyticsService.getAggregatedAccountBalances(userId);
@@ -39,14 +42,16 @@ public class BankAccountService {
     }
 
     @Transactional
-    public BankAccount createLocalAccount(String userId, BankAccountRequest request) {
+    public BankAccount createLocalAccountInConnection(String userId, String connectionId, BankAccountRequest request) {
+        BankConnection connection = bankConnectionService.getOwnedConnectionByType(userId, connectionId, BankConnectionType.MANUAL);
+
         BankAccount account = new BankAccount();
         account.setSaltedgeAccountId("local_" + UUID.randomUUID());
         account.setUserId(userId);
         account.setIsSaltedge(false);
-        account.setConnectionId(null);
+        account.setConnectionId(connection.getId());
         account.setBalance(request.getBalance());
-        account.setInstitutionName(request.getInstitutionName());
+        account.setInstitutionName(resolveLocalAccountName(request, connection));
         account.setCountry(request.getCountry());
         account.setCurrency(request.getCurrency());
         account.setIsForTax(request.getIsForTax());
@@ -55,11 +60,15 @@ public class BankAccountService {
     }
 
     @Transactional
-    public BankAccount updateLocalAccount(String userId, String accountId, BankAccountRequest request) {
-        BankAccount account = getOwnedAccount(userId, accountId);
+    public BankAccount updateLocalAccountInConnection(String userId, String connectionId, String accountId, BankAccountRequest request) {
+        bankConnectionService.getOwnedConnectionByType(userId, connectionId, BankConnectionType.MANUAL);
 
+        BankAccount account = getOwnedAccount(userId, accountId);
         if (Boolean.TRUE.equals(account.getIsSaltedge())) {
-            throw new BadRequestException("Operazione negata. Usa l'endpoint SaltEdge per modificare questo conto.");
+            throw new BadRequestException("Operation denied. Use the Salt Edge endpoint to modify this account.");
+        }
+        if (!connectionId.equals(account.getConnectionId())) {
+            throw new ResourceNotFoundException("Bank account not found in the selected manual connection.");
         }
 
         applyLocalAccountUpdates(account, request);
@@ -71,7 +80,7 @@ public class BankAccountService {
         BankAccount account = getOwnedAccount(userId, accountId);
 
         if (!Boolean.TRUE.equals(account.getIsSaltedge())) {
-            throw new BadRequestException("Operazione negata. Questo endpoint supporta solo conti SaltEdge.");
+            throw new BadRequestException("Operation denied. This endpoint supports Salt Edge accounts only.");
         }
 
         applyEditableSaltEdgeFields(account, request);
@@ -113,6 +122,23 @@ public class BankAccountService {
 
     private BankAccount getOwnedAccount(String userId, String accountId) {
         return bankAccountRepository.findBySaltedgeAccountIdAndUserId(accountId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Conto non trovato o non autorizzato"));
+                .orElseThrow(() -> new ResourceNotFoundException("Bank account not found or not authorized."));
+    }
+
+    private String resolveLocalAccountName(BankAccountRequest request, BankConnection connection) {
+        String accountName = normalizeInstitutionName(request != null ? request.getInstitutionName() : null);
+        if (!accountName.isBlank()) {
+            return accountName;
+        }
+
+        if (connection.getProviderName() != null && !connection.getProviderName().isBlank()) {
+            return connection.getProviderName();
+        }
+
+        throw new BadRequestException("institutionName is required");
+    }
+
+    private String normalizeInstitutionName(String institutionName) {
+        return institutionName != null ? institutionName.trim() : "";
     }
 }

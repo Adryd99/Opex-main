@@ -1,6 +1,7 @@
 package com.opex.backend.banking.saltedge;
 
 import com.opex.backend.banking.model.BankConnection;
+import com.opex.backend.banking.model.BankConnectionType;
 import com.opex.backend.banking.repository.BankConnectionRepository;
 import com.opex.backend.banking.saltedge.dto.SaltEdgeConnectionsResponse;
 import com.opex.backend.user.model.User;
@@ -25,6 +26,8 @@ public class SaltEdgeConnectionSyncService {
             connection.setId(item.getId());
             connection.setUserId(user.getId());
             connection.setProviderName(item.getProviderName());
+            connection.setType(BankConnectionType.SALTEDGE);
+            connection.setExternalConnectionId(item.getId());
             connection.setStatus(item.getStatus());
 
             if (connection.getCreatedAt() == null) {

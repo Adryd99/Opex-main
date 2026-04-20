@@ -19,6 +19,10 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, String
 
     List<BankAccount> findByUserIdAndConnectionId(String userId, String connectionId);
 
+    List<BankAccount> findByConnectionIdIsNullAndIsSaltedgeFalse();
+
+    List<BankAccount> findByConnectionIdIsNotNullAndIsSaltedgeTrue();
+
     // Trova tutti i conti dell'utente
     Page<BankAccount> findByUserId(String userId, Pageable pageable);
 
@@ -29,6 +33,8 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, String
     Optional<BankAccount> findBySaltedgeAccountIdAndUserId(String saltedgeAccountId, String userId);
 
     void deleteByConnectionId(String connectionId);
+
+    void deleteByUserIdAndConnectionId(String userId, String connectionId);
 
     // Aggrega i balance per connection_id: totalBalance, totalIncome (>0), totalExpenses (<0)
     @Query("SELECT new com.opex.backend.banking.dto.AggregatedBalanceResponse(" +

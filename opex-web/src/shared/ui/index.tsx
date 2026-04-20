@@ -50,20 +50,20 @@ const BUTTON_SIZES: Record<ButtonSize, string> = {
 };
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  primary: 'bg-opex-dark text-white shadow-lg shadow-blue-900/10 hover:bg-slate-800',
-  secondary: 'bg-opex-teal text-white hover:bg-opacity-90',
-  outline: 'border border-gray-300 text-gray-700 bg-white hover:bg-gray-50',
-  ghost: 'text-gray-500 hover:text-gray-900 hover:bg-gray-100',
-  black: 'bg-black text-white hover:bg-gray-800 shadow-md',
-  danger: 'bg-red-50 text-red-600 hover:bg-red-100'
+  primary: 'bg-opex-dark text-white shadow-lg shadow-blue-900/10 hover:bg-slate-800 dark:bg-opex-teal dark:text-slate-950 dark:hover:bg-teal-300',
+  secondary: 'bg-opex-teal text-white hover:bg-opacity-90 dark:text-slate-950',
+  outline: 'border border-app-border text-app-secondary bg-app-surface hover:bg-app-muted hover:text-app-primary',
+  ghost: 'text-app-secondary hover:text-app-primary hover:bg-app-muted',
+  black: 'bg-app-primary text-app-inverse hover:opacity-90 shadow-md',
+  danger: 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20'
 };
 
 const BADGE_VARIANTS: Record<BadgeVariant, string> = {
-  neutral: 'bg-gray-100 text-gray-600',
-  success: 'bg-green-50 text-green-700',
-  warning: 'bg-yellow-50 text-yellow-700',
-  danger: 'bg-red-50 text-red-700',
-  info: 'bg-blue-50 text-blue-700'
+  neutral: 'bg-app-muted text-app-secondary',
+  success: 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300',
+  warning: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-200',
+  danger: 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300',
+  info: 'bg-blue-50 text-blue-700 dark:bg-sky-500/10 dark:text-sky-300'
 };
 
 export const Button = ({
@@ -102,16 +102,16 @@ export const Card = ({
 }: CardProps) => (
   <div
     onClick={onClick}
-    className={`bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm ${className} overflow-hidden flex flex-col h-full transition-colors duration-200 ${
+    className={`bg-app-surface rounded-2xl border border-app-border shadow-sm ${className} overflow-hidden flex flex-col h-full transition-colors duration-200 ${
       onClick
-        ? 'cursor-pointer hover:shadow-md hover:border-gray-200 dark:hover:border-slate-600 transition-all active:scale-[0.99]'
+        ? 'cursor-pointer hover:shadow-md hover:border-app-secondary/20 transition-all active:scale-[0.99]'
         : ''
     }`}
   >
     {(title || action) && (
-      <div className="flex justify-between items-center px-6 py-2.5 border-b border-gray-50 dark:border-slate-700">
+      <div className="flex justify-between items-center px-6 py-2.5 border-b border-app-border">
         {title && (
-          <h3 className="font-black text-gray-900 dark:text-gray-100 text-[10px] uppercase tracking-widest">
+          <h3 className="font-black text-app-primary text-[10px] uppercase tracking-widest">
             {title}
           </h3>
         )}
@@ -129,7 +129,7 @@ export const Badge = ({ children, variant = 'neutral' }: BadgeProps) => (
 );
 
 export const ToggleFilter = ({ options, active, onChange }: ToggleFilterProps) => (
-  <div className="flex bg-gray-100 p-1 rounded-lg">
+  <div className="flex bg-app-muted p-1 rounded-lg transition-colors duration-200">
     {options.map((option) => (
       <button
         key={typeof option === 'string' ? option : option.value}
@@ -140,8 +140,8 @@ export const ToggleFilter = ({ options, active, onChange }: ToggleFilterProps) =
         }}
         className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
           active === (typeof option === 'string' ? option : option.value)
-            ? 'bg-white text-opex-dark shadow-sm'
-            : 'text-gray-500 hover:text-gray-900'
+            ? 'bg-app-surface text-app-primary shadow-sm'
+            : 'text-app-secondary hover:text-app-primary'
         }`}
       >
         {typeof option === 'string' ? option : option.label}

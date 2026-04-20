@@ -1,8 +1,12 @@
 package com.opex.backend.banking.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,13 +23,18 @@ public class BankAccount {
 
     @Id
     @Column(name = "saltedge_account_id")
-    private String saltedgeAccountId; // Usato per l'ID di SaltEdge, oppure conterrà un UUID per i conti locali
+    private String saltedgeAccountId;
 
     @Column(name = "user_id")
-    private String userId; // L'ID di Keycloak del proprietario
+    private String userId;
 
     @Column(name = "connection_id")
-    private String connectionId; // Null per i conti locali, valorizzato per quelli di SaltEdge
+    private String connectionId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "connection_id", referencedColumnName = "id", insertable = false, updatable = false)
+    @JsonIgnore
+    private BankConnection connection;
 
     private BigDecimal balance;
 
@@ -40,7 +49,6 @@ public class BankAccount {
 
     private String nature;
 
-    // Flag fondamentale per distinguere la provenienza
     @Column(name = "is_saltedge")
     private Boolean isSaltedge;
 }

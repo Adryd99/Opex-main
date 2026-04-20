@@ -1,1 +1,4 @@
-export { PostBankConnectionGdprPage } from './pages/PostBankConnectionGdprPage';
+export {
+  PostBankConnectionGdprPage,
+  PostBankConnectionSuccessOverlay
+} from './pages/PostBankConnectionGdprPage';

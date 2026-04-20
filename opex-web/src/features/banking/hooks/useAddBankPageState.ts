@@ -10,15 +10,11 @@ import {
   toAccountCategory
 } from '../utils';
 
-type ConnectionCardItem = {
-  conn: ProviderConnectionCard;
-  providerName: string;
-};
-
 type UseAddBankPageStateArgs = {
-  allConnectionCards: ConnectionCardItem[];
+  allConnectionCards: ProviderConnectionCard[];
   onUpdateBankAccount: AddBankPageProps['onUpdateBankAccount'];
   onRemoveOpenBankConnection: AddBankPageProps['onRemoveOpenBankConnection'];
+  onRemoveManualBankConnection: AddBankPageProps['onRemoveManualBankConnection'];
   onCreateOpenBankConnection: AddBankPageProps['onCreateOpenBankConnection'];
   openBankingNoticeVersion: string | null;
 };
@@ -27,6 +23,7 @@ export const useAddBankPageState = ({
   allConnectionCards,
   onUpdateBankAccount,
   onRemoveOpenBankConnection,
+  onRemoveManualBankConnection,
   onCreateOpenBankConnection,
   openBankingNoticeVersion
 }: UseAddBankPageStateArgs) => {
@@ -37,6 +34,8 @@ export const useAddBankPageState = ({
   const [selectedAccountRecordId, setSelectedAccountRecordId] = useState<string | null>(null);
 
   const [editAccountName, setEditAccountName] = useState('');
+  const [editAccountBalance, setEditAccountBalance] = useState('0');
+  const [editAccountCurrency, setEditAccountCurrency] = useState('EUR');
   const [editAccountCategory, setEditAccountCategory] = useState<AccountCategory>('Personal');
   const [editIsTaxBuffer, setEditIsTaxBuffer] = useState(false);
   const [isSavingAccount, setIsSavingAccount] = useState(false);
@@ -53,7 +52,7 @@ export const useAddBankPageState = ({
   const [isSubmittingOpenBankingConsent, setIsSubmittingOpenBankingConsent] = useState(false);
 
   const liveConnection = useMemo(
-    () => allConnectionCards.find(({ conn }) => conn.key === selectedConnectionKey) ?? null,
+    () => allConnectionCards.find((conn) => conn.key === selectedConnectionKey) ?? null,
     [allConnectionCards, selectedConnectionKey]
   );
 
@@ -62,7 +61,7 @@ export const useAddBankPageState = ({
       return null;
     }
 
-    return liveConnection.conn.allAccounts.find(
+    return liveConnection.allAccounts.find(
       (account) => resolveConnectionRecordId(account) === selectedAccountRecordId
     ) ?? null;
   }, [liveConnection, selectedAccountRecordId]);
@@ -79,6 +78,8 @@ export const useAddBankPageState = ({
     const recordId = resolveConnectionRecordId(account);
     setSelectedAccountRecordId(recordId);
     setEditAccountName(resolveConnectionAccountName(account, selectedConnectionProviderName));
+    setEditAccountBalance(String(account.balance ?? 0));
+    setEditAccountCurrency((account.currency ?? 'EUR').trim().toUpperCase() || 'EUR');
     setEditAccountCategory(toAccountCategory(account.nature));
     setEditIsTaxBuffer(Boolean(account.isForTax));
     setAccountEditError(null);
@@ -96,14 +97,31 @@ export const useAddBankPageState = ({
       return;
     }
 
+    const isManualAccount = !liveAccount.isSaltedge;
+    const parsedBalance = Number.parseFloat(editAccountBalance);
+    if (isManualAccount && !Number.isFinite(parsedBalance)) {
+      setAccountEditError(t('errors.invalidBalance'));
+      return;
+    }
+
     setIsSavingAccount(true);
     setAccountEditError(null);
 
     try {
+      const connectionAccountIds = liveConnection?.allAccounts
+        .map((account) => resolveConnectionRecordId(account))
+        .filter((accountId): accountId is string => Boolean(accountId)) ?? [];
       await onUpdateBankAccount(accountId, Boolean(liveAccount.isSaltedge), {
         institutionName: editAccountName.trim() || resolveConnectionAccountName(liveAccount, selectedConnectionProviderName),
         nature: ACCOUNT_CATEGORY_TO_NATURE[editAccountCategory],
-        isForTax: editIsTaxBuffer
+        isForTax: editIsTaxBuffer,
+        balance: isManualAccount ? parsedBalance : undefined,
+        currency: isManualAccount
+          ? (editAccountCurrency.trim().toUpperCase() || liveAccount.currency || 'EUR')
+          : undefined
+      }, {
+        connectionId: liveAccount.connectionId,
+        connectionAccountIds
       });
       setBankingView('connection-detail');
     } catch (error) {
@@ -114,7 +132,7 @@ export const useAddBankPageState = ({
   };
 
   const removeConnection = async () => {
-    const connectionId = liveConnection?.conn.connectionId;
+    const connectionId = liveConnection?.connectionId;
     if (!connectionId) {
       return;
     }
@@ -123,7 +141,11 @@ export const useAddBankPageState = ({
     setRemoveConnectionError(null);
 
     try {
-      await onRemoveOpenBankConnection(connectionId);
+      if (liveConnection?.isManagedConnection) {
+        await onRemoveOpenBankConnection(connectionId);
+      } else {
+        await onRemoveManualBankConnection(connectionId);
+      }
       setBankingView('list');
       setSelectedConnectionKey(null);
     } catch (error) {
@@ -177,6 +199,10 @@ export const useAddBankPageState = ({
     liveAccount,
     editAccountName,
     setEditAccountName,
+    editAccountBalance,
+    setEditAccountBalance,
+    editAccountCurrency,
+    setEditAccountCurrency,
     editAccountCategory,
     setEditAccountCategory,
     editIsTaxBuffer,

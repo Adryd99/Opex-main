@@ -84,12 +84,12 @@ const SecurityActionCard = ({
       <div className="space-y-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gray-50 text-opex-dark flex items-center justify-center shrink-0">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-app-muted text-opex-dark dark:bg-opex-teal/15 dark:text-opex-teal transition-colors duration-200">
               {icon}
             </div>
             <div className="space-y-1.5">
-              <h3 className="text-lg font-black text-gray-900 leading-tight">{title}</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
+              <h3 className="text-lg font-black text-app-primary leading-tight">{title}</h3>
+              <p className="text-sm text-app-secondary leading-relaxed">{description}</p>
             </div>
           </div>
           {statusBadges ? (
@@ -99,9 +99,9 @@ const SecurityActionCard = ({
           ) : null}
         </div>
 
-        <div className="rounded-[1.5rem] border border-gray-100 bg-gray-50 px-4 py-4">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-gray-400">{statusLabel}</p>
-          <p className="mt-2 text-sm font-semibold text-gray-700 leading-relaxed">{statusSummary}</p>
+        <div className="rounded-[1.5rem] border border-app-border bg-app-muted px-4 py-4 transition-colors duration-200">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-app-tertiary">{statusLabel}</p>
+          <p className="mt-2 text-sm font-semibold text-app-primary leading-relaxed">{statusSummary}</p>
         </div>
       </div>
 
@@ -119,7 +119,7 @@ const SecurityActionCard = ({
             {isSecondaryLoading ? savingLabel : secondaryButtonLabel}
           </Button>
         ) : null}
-        <p className="text-xs text-gray-500 leading-relaxed">{helperText}</p>
+        <p className="text-xs text-app-secondary leading-relaxed">{helperText}</p>
       </div>
     </div>
   </Card>
@@ -127,11 +127,11 @@ const SecurityActionCard = ({
 
 const SecurityStatusSkeleton = () => (
   <div className="space-y-6 animate-pulse">
-    <div className="h-36 bg-white rounded-3xl border border-gray-100" />
+    <div className="h-36 rounded-3xl border border-app-border bg-app-surface transition-colors duration-200" />
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="h-80 bg-white rounded-3xl border border-gray-100" />
-      <div className="h-80 bg-white rounded-3xl border border-gray-100" />
-      <div className="h-80 bg-white rounded-3xl border border-gray-100" />
+      <div className="h-80 rounded-3xl border border-app-border bg-app-surface transition-colors duration-200" />
+      <div className="h-80 rounded-3xl border border-app-border bg-app-surface transition-colors duration-200" />
+      <div className="h-80 rounded-3xl border border-app-border bg-app-surface transition-colors duration-200" />
     </div>
   </div>
 );
@@ -237,15 +237,15 @@ export const SecurityWorkspace = ({
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${overview.tone === 'success' ? 'bg-green-500 text-white' : 'bg-opex-dark text-white'}`}>
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${overview.tone === 'success' ? 'bg-green-500 text-white dark:bg-emerald-500 dark:text-slate-950' : 'bg-opex-dark text-white dark:bg-opex-teal dark:text-slate-950'} transition-colors duration-200`}>
                       {status.hasFallbackSecondFactor ? <ShieldCheck size={22} /> : <ShieldOff size={22} />}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-gray-500 uppercase tracking-[0.2em]">{t('securityWorkspace.security')}</p>
-                      <h1 className="text-2xl md:text-3xl font-black text-gray-900">{t('securityWorkspace.accountProtection')}</h1>
+                      <p className="text-sm font-bold uppercase tracking-[0.2em] text-app-tertiary">{t('securityWorkspace.security')}</p>
+                      <h1 className="text-2xl md:text-3xl font-black text-app-primary">{t('securityWorkspace.accountProtection')}</h1>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600 max-w-2xl leading-relaxed">
+                  <p className="max-w-2xl text-sm leading-relaxed text-app-secondary">
                     {resolvedDescription}
                   </p>
                 </div>
@@ -256,12 +256,12 @@ export const SecurityWorkspace = ({
                 </div>
               </div>
 
-              <div className={`rounded-[1.75rem] border px-5 py-5 ${overview.tone === 'success' ? 'border-green-100 bg-green-50/70' : 'border-yellow-100 bg-yellow-50/80'}`}>
+              <div className={`rounded-[1.75rem] border px-5 py-5 transition-colors duration-200 ${overview.tone === 'success' ? 'border-green-100 bg-green-50/70 dark:border-emerald-400/20 dark:bg-emerald-500/10' : 'border-yellow-100 bg-yellow-50/80 dark:border-amber-400/20 dark:bg-amber-500/10'}`}>
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-2">
-                    <p className="text-lg font-black text-gray-900">{overview.title}</p>
-                    <p className="max-w-2xl text-sm leading-relaxed text-gray-600">{overview.description}</p>
-                    <p className="text-sm font-semibold text-opex-dark">
+                    <p className="text-lg font-black text-app-primary">{overview.title}</p>
+                    <p className="max-w-2xl text-sm leading-relaxed text-app-secondary">{overview.description}</p>
+                    <p className="text-sm font-semibold text-opex-dark dark:text-opex-teal">
                       {t('securityWorkspace.recommendedNextStep', { action: recommendedAction })}
                     </p>
                   </div>
@@ -278,12 +278,12 @@ export const SecurityWorkspace = ({
           </Card>
 
           {actionMessage && (
-            <div className="rounded-2xl border border-blue-100 bg-blue-50 text-blue-800 px-5 py-4 text-sm font-medium">
+            <div className="rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 text-sm font-medium text-blue-800 dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-200 transition-colors duration-200">
               {actionMessage}
             </div>
           )}
           {errorMessage && (
-            <div className="rounded-2xl border border-red-100 bg-red-50 text-red-700 px-5 py-4 text-sm font-medium">
+            <div className="rounded-2xl border border-red-100 bg-red-50 px-5 py-4 text-sm font-medium text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-200 transition-colors duration-200">
               {errorMessage}
             </div>
           )}
@@ -388,8 +388,8 @@ export const SecurityWorkspace = ({
         <div className={containerClassName || undefined}>
           <Card>
             <div className="space-y-4 text-center">
-              <p className="text-lg font-black text-gray-900">{t('securityWorkspace.loadingTitle')}</p>
-              <p className="text-sm text-gray-500">{errorMessage}</p>
+              <p className="text-lg font-black text-app-primary">{t('securityWorkspace.loadingTitle')}</p>
+              <p className="text-sm text-app-secondary">{errorMessage}</p>
               <div className="flex justify-center">
                 <Button onClick={() => void refresh()}>{t('securityWorkspace.loadingRetry')}</Button>
               </div>

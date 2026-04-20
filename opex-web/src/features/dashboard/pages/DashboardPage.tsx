@@ -149,8 +149,8 @@ export const DashboardPage = ({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2 relative z-20">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{t('overview.title')}</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-2xl font-bold text-app-primary">{t('overview.title')}</h2>
+          <p className="text-sm text-app-secondary">
             {isLoading
               ? t('overview.subtitleLoading', { name: firstName })
               : t('overview.subtitleReady', { name: firstName })}{' '}
@@ -169,8 +169,8 @@ export const DashboardPage = ({
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-opex-dark to-slate-800 rounded-[2.5rem] p-8 md:p-10 text-white relative overflow-hidden shadow-xl">
-        <div className="absolute top-0 right-0 p-32 bg-white/5 rounded-full translate-x-10 -translate-y-10 blur-3xl" />
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-opex-dark to-slate-800 p-8 text-white shadow-xl dark:from-slate-900 dark:via-opex-dark dark:to-opex-teal/40 md:p-10">
+        <div className="absolute top-0 right-0 p-32 rounded-full bg-white/5 translate-x-10 -translate-y-10 blur-3xl dark:bg-opex-teal/10" />
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div className="relative">
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl pointer-events-auto select-none">
@@ -193,17 +193,17 @@ export const DashboardPage = ({
                   ? t('overview.monthlyInsightWaitingTitle')
                   : activeMonthlyInsight?.name ?? t('overview.monthlyInsightUnavailableTitle')}
               </h2>
-              <p className="text-gray-400 text-sm max-w-sm">
+              <p className="max-w-sm text-sm text-slate-300">
                 {isLoading
                   ? t('overview.monthlyInsightWaitingDescription')
                   : activeMonthlyInsight?.description ?? t('overview.monthlyInsightUnavailableDescription')}
               </p>
             </div>
           </div>
-          <div className="lg:text-right bg-white/10 backdrop-blur-md p-6 md:p-8 rounded-3xl border border-white/5 flex flex-col items-start lg:items-end justify-center">
-            <p className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-2 flex items-center gap-2">
-              <Wallet size={14} /> {t('overview.totalBalance')}
-            </p>
+            <div className="flex flex-col items-start justify-center rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur-md lg:items-end lg:text-right md:p-8 dark:border-white/5 dark:bg-white/5">
+              <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-300">
+                <Wallet size={14} /> {t('overview.totalBalance')}
+              </p>
             <div className="flex items-baseline gap-2">
               <span className="text-4xl md:text-5xl font-bold tracking-tight">
                 {isLoading ? '...' : formatCurrency(totalBalance, language)}
@@ -246,17 +246,17 @@ export const DashboardPage = ({
               {values.map((v, i) => (
                 <div key={labels[i]} className="flex-1 flex flex-col items-center group relative h-full">
                   <div className="w-full flex-1 flex items-end relative">
-                    <div className="w-full h-full bg-gray-50 rounded-t-lg absolute bottom-0 opacity-40" />
+                    <div className="absolute bottom-0 h-full w-full rounded-t-lg bg-app-muted opacity-40" />
                     <div
                       className="w-full bg-opex-teal rounded-t-lg transition-all duration-700 ease-out group-hover:bg-opex-dark relative"
                       style={{ height: `${(v / maxValue) * 100}%` }}
                     >
-                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-bold">
+                      <div className="absolute -top-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded bg-app-primary px-1.5 py-0.5 text-[10px] font-bold text-app-inverse opacity-0 transition-opacity group-hover:opacity-100">
                         {formatCurrency(v, language)}
                       </div>
                     </div>
                   </div>
-                  <div className="mt-3 text-[10px] text-gray-400 font-bold whitespace-nowrap overflow-hidden text-ellipsis w-full text-center shrink-0">
+                  <div className="mt-3 w-full shrink-0 overflow-hidden text-ellipsis whitespace-nowrap text-center text-[10px] font-bold text-app-tertiary">
                     {labels[i]}
                   </div>
                 </div>
@@ -281,8 +281,8 @@ export const DashboardPage = ({
             noPadding
           >
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-gray-600">
-                <thead className="bg-gray-50 text-gray-900 font-semibold border-b border-gray-100">
+              <table className="w-full text-left text-sm text-app-secondary">
+                <thead className="border-b border-app-border bg-app-muted text-app-primary font-semibold">
                   <tr>
                     <th className="p-4">{t('overview.transaction')}</th>
                     <th className="p-4">{t('overview.category')}</th>
@@ -291,22 +291,22 @@ export const DashboardPage = ({
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {recentTransactions.map((transaction) => (
-                    <tr key={transaction.id} className="hover:bg-gray-50 transition-colors group cursor-pointer" onClick={() => onNavigate('[]')}>
+                    <tr key={transaction.id} className="group cursor-pointer transition-colors hover:bg-app-muted/60" onClick={() => onNavigate('[]')}>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-full ${transaction.color} flex items-center justify-center text-white text-xs font-bold shadow-sm`}>{transaction.icon}</div>
-                          <span className="font-medium text-gray-900 truncate max-w-[120px]">{transaction.name}</span>
+                          <span className="max-w-[120px] truncate font-medium text-app-primary">{transaction.name}</span>
                         </div>
                       </td>
                       <td className="p-4"><Badge>{transaction.category}</Badge></td>
-                      <td className={`p-4 text-right font-bold ${transaction.amount > 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                      <td className={`p-4 text-right font-bold ${transaction.amount > 0 ? 'text-green-600 dark:text-emerald-300' : 'text-app-primary'}`}>
                         {transaction.amount > 0 ? '+' : ''}{formatCurrency(Math.abs(transaction.amount), language)}
                       </td>
                     </tr>
                   ))}
                   {recentTransactions.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="p-8 text-center text-sm text-gray-500 font-medium">
+                      <td colSpan={3} className="p-8 text-center text-sm font-medium text-app-secondary">
                         {t('overview.noSynchronizedActivity')}
                       </td>
                     </tr>

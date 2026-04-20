@@ -5,6 +5,7 @@ import { normalizeLanguage, isSupportedLanguage } from '../../i18n/constants';
 
 import {
   BankAccountRecord,
+  BankConnectionRecord,
   ForecastResponse,
   LegalPublicInfoRecord,
   TaxRecord,
@@ -48,6 +49,7 @@ type UseAppDataArgs = {
 export const useAppData = ({ isAuthenticated, setErrorMessage }: UseAppDataArgs) => {
   const { language } = useAppLanguage();
   const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
+  const [bankConnections, setBankConnections] = useState<BankConnectionRecord[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccountRecord[]>([]);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [taxes, setTaxes] = useState<TaxRecord[]>([]);
@@ -66,8 +68,9 @@ export const useAppData = ({ isAuthenticated, setErrorMessage }: UseAppDataArgs)
     setErrorMessage(null);
 
     try {
-      const [accountsResult, transactionsResult, taxesResult, forecastResult, taxProvidersResult] =
+      const [connectionsResult, accountsResult, transactionsResult, taxesResult, forecastResult, taxProvidersResult] =
         await Promise.all([
+          opexApi.getMyBankConnections(),
           opexApi.getMyBankAccounts(0, 50),
           opexApi.getAllMyTransactions(),
           opexApi.getMyTaxes(0, 50),
@@ -87,6 +90,7 @@ export const useAppData = ({ isAuthenticated, setErrorMessage }: UseAppDataArgs)
         activityLimit: 8
       });
 
+      setBankConnections(connectionsResult);
       setBankAccounts(accountsResult.content);
       setTransactions(transactionsResult);
       setTaxes(taxesResult.content);
@@ -96,6 +100,7 @@ export const useAppData = ({ isAuthenticated, setErrorMessage }: UseAppDataArgs)
 
       return {
         accountsResult,
+        connectionsResult,
         transactionsResult,
         taxesResult,
         forecastResult,
@@ -251,6 +256,7 @@ export const useAppData = ({ isAuthenticated, setErrorMessage }: UseAppDataArgs)
   return {
     userProfile,
     setUserProfile,
+    bankConnections,
     bankAccounts,
     allTransactions: transactions,
     transactions: visibleTransactions,

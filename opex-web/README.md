@@ -56,6 +56,62 @@ Questa sezione:
 
 La vecchia route tecnica `/security` non e piu parte del flow normale del frontend e viene ricondotta alla tab `Settings > Security`.
 
+## Banking UX
+
+La UX banking ufficiale del frontend vive adesso dentro:
+
+- `Settings > Banche e conti`
+
+Questa sezione rappresenta tutta l’area bancaria del prodotto, non solo Open Banking.
+
+### Modello frontend ufficiale
+
+Il frontend usa un modello `connection-first`, allineato al backend:
+
+- `BankConnection`
+  - `SALTEDGE` oppure `MANUAL`
+- `BankAccount`
+  - sempre figlio della propria `BankConnection`
+
+Questo significa che il frontend non usa piu grouping artificiale dei conti manuali.
+Le banche manuali e le banche Salt Edge arrivano entrambe come contenitori reali con `accounts` nidificati.
+
+### Flow supportati
+
+Da `Settings > Banche e conti` l’utente puo:
+
+- collegare una banca con Open Banking
+- creare una banca manuale
+- aprire una banca collegata o manuale
+- vedere i conti sotto quella banca
+- aggiungere un nuovo conto sotto una banca manuale
+- modificare il singolo conto
+- rinominare una banca manuale
+- rimuovere una banca manuale
+- scollegare una banca Salt Edge
+
+### Regole UX correnti
+
+- non esistono piu pagine duplicate per la review dei conti importati
+- il ritorno da Salt Edge rientra sempre nello stesso posto:
+  - `Settings > Banche e conti`
+- i conti importati usano badge chiari:
+  - `Da rivedere`
+  - `Configurato`
+- la creazione e modifica delle banche manuali resta dentro Settings
+- i manual account non portano piu fuori verso dashboard o flow separati
+
+### API frontend da considerare ufficiali
+
+Per la write path banking, il frontend considera ufficiali solo i percorsi nested:
+
+- manual bank connection
+- manual account under connection
+- Salt Edge connection
+- Salt Edge accounts under connection
+
+I vecchi endpoint flat dei conti manuali non fanno piu parte del flow frontend ufficiale.
+
 ## Source Layout
 
 ```text

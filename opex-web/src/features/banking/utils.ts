@@ -1,7 +1,7 @@
 import { DEFAULT_LANGUAGE } from '../../i18n/constants';
 import { formatCurrencyForLanguage } from '../../i18n/formatting';
-import { BankAccountRecord, TaxBufferProviderItem } from '../../shared/types';
-import { AccountCategory, ProviderConnectionCard, ProviderConnectionGroup } from './types';
+import { BankAccountRecord, BankConnectionRecord } from '../../shared/types';
+import { AccountCategory, ProviderConnectionCard } from './types';
 
 export const ACCOUNT_CATEGORY_OPTIONS: AccountCategory[] = ['Personal', 'Business', 'Savings'];
 
@@ -52,93 +52,34 @@ export const resolveConnectionRecordId = (account: BankAccountRecord | null | un
   return (account.id ?? '').trim();
 };
 
-export const groupProviderConnections = (
-  bankAccounts: BankAccountRecord[],
-  taxBufferProviders: TaxBufferProviderItem[] = []
-): ProviderConnectionGroup[] => {
-  const providerByConnectionId = new Map<string, string>();
-  const providerStatusByConnectionId = new Map<string, string>();
-
-  taxBufferProviders.forEach((provider) => {
-    const connectionId = (provider.connectionId ?? '').trim();
-    if (!connectionId) {
-      return;
-    }
-
-    const providerName = (provider.providerName ?? '').trim();
-    if (providerName) {
-      providerByConnectionId.set(connectionId, providerName);
-    }
-
-    const status = (provider.status ?? '').trim();
-    if (status) {
-      providerStatusByConnectionId.set(connectionId, status);
-    }
-  });
-
-  const groups = new Map<string, Map<string, BankAccountRecord[]>>();
-
-  bankAccounts.forEach((account) => {
-    const connectionId = (account.connectionId ?? '').trim();
-    const providerName = (
-      (connectionId ? providerByConnectionId.get(connectionId) : undefined)
-      || (account.institutionName ?? '').trim()
-      || 'Unknown Provider'
-    );
-
-    const groupKey = connectionId
-      ? `connection:${connectionId}`
-      : `local:${resolveConnectionRecordId(account) || account.id || providerName}`;
-
-    if (!groups.has(providerName)) {
-      groups.set(providerName, new Map<string, BankAccountRecord[]>());
-    }
-
-    const providerGroups = groups.get(providerName);
-    if (!providerGroups?.has(groupKey)) {
-      providerGroups?.set(groupKey, []);
-    }
-
-    providerGroups?.get(groupKey)?.push(account);
-  });
-
-  return Array.from(groups.entries())
-    .map(([providerName, connectionGroups]) => ({
-      providerName,
-      connections: Array.from(connectionGroups.entries())
-        .map<ProviderConnectionCard | null>(([groupKey, accounts]) => {
-          const sortedAccounts = [...accounts].sort((left, right) =>
-            resolveConnectionAccountName(left, providerName).localeCompare(
-              resolveConnectionAccountName(right, providerName)
-            )
-          );
-          const representativeAccount = sortedAccounts[0];
-          if (!representativeAccount) {
-            return null;
-          }
-
-          const normalizedConnectionId = (representativeAccount.connectionId ?? '').trim();
-
-          return {
-            key: groupKey,
-            account: representativeAccount,
-            allAccounts: sortedAccounts,
-            accountCount: sortedAccounts.length,
-            totalBalance: sortedAccounts.reduce((sum, item) => sum + Number(item.balance ?? 0), 0),
-            connectionId: normalizedConnectionId || null,
-            status: normalizedConnectionId ? (providerStatusByConnectionId.get(normalizedConnectionId) ?? null) : null,
-            isManagedConnection: Boolean(normalizedConnectionId) && sortedAccounts.some((item) => item.isSaltedge)
-          };
-        })
-        .filter((item): item is ProviderConnectionCard => item !== null)
-        .sort((left, right) =>
-          resolveConnectionAccountName(left.account, providerName).localeCompare(
-            resolveConnectionAccountName(right.account, providerName)
-          )
+export const buildConnectionCards = (bankConnections: BankConnectionRecord[]): ProviderConnectionCard[] =>
+  bankConnections
+    .map((connection) => {
+      const providerName = (connection.providerName ?? '').trim()
+        || resolveConnectionAccountName(connection.accounts[0])
+        || 'Unknown Provider';
+      const sortedAccounts = [...connection.accounts].sort((left, right) =>
+        resolveConnectionAccountName(left, providerName).localeCompare(
+          resolveConnectionAccountName(right, providerName)
         )
-    }))
-    .sort((left, right) => left.providerName.localeCompare(right.providerName));
-};
+      );
+
+      return {
+        key: connection.id,
+        providerName,
+        allAccounts: sortedAccounts,
+        accountCount: connection.accountCount || sortedAccounts.length,
+        totalBalance: Number(connection.totalBalance ?? 0),
+        currency: sortedAccounts[0]?.currency ?? null,
+        connectionId: connection.id,
+        status: (connection.status ?? '').trim() || null,
+        isManagedConnection: connection.type === 'SALTEDGE',
+        connection
+      };
+    })
+    .sort((left, right) =>
+      left.providerName.localeCompare(right.providerName) || left.connectionId.localeCompare(right.connectionId)
+    );
 
 export const formatBankBalance = (
   amount: number,

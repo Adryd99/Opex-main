@@ -69,7 +69,7 @@ export const TransactionsPage = ({
       title={t('transactions.allActivity')}
       actions={(
         <div className="flex gap-2">
-          <button className="p-2 text-gray-400 hover:bg-gray-100 rounded-xl">
+          <button className="rounded-xl p-2 text-app-tertiary transition-colors hover:bg-app-muted hover:text-app-secondary">
             <Download size={20} />
           </button>
         </div>
@@ -78,8 +78,8 @@ export const TransactionsPage = ({
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="space-y-1">
-            <h2 className="text-3xl font-black text-gray-900">{t('transactions.historyTitle')}</h2>
-            <p className="text-sm font-medium text-gray-500">{t('transactions.historyDescription')}</p>
+            <h2 className="text-3xl font-black text-app-primary">{t('transactions.historyTitle')}</h2>
+            <p className="text-sm font-medium text-app-secondary">{t('transactions.historyDescription')}</p>
           </div>
           <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
             <ToggleFilter
@@ -99,27 +99,27 @@ export const TransactionsPage = ({
           {grouped.length === 0 && (
             <Card>
               <div className="py-14 text-center">
-                <p className="text-sm font-bold text-gray-500">{t('transactions.noTransactions')}</p>
+                <p className="text-sm font-bold text-app-secondary">{t('transactions.noTransactions')}</p>
               </div>
             </Card>
           )}
           {grouped.map(([date, items]) => (
             <div key={date} className="space-y-4">
               <div className="flex items-center gap-4 px-2">
-                <span className="text-xs font-black text-gray-400 uppercase tracking-widest">
+                <span className="text-xs font-black uppercase tracking-widest text-app-tertiary">
                   {formatDateForLanguage(language, `${date}T12:00:00`, { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
-                <div className="flex-1 h-px bg-gray-100" />
+                <div className="h-px flex-1 bg-app-border" />
               </div>
-              <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
+              <div className="overflow-hidden rounded-[2rem] border border-app-border bg-app-surface shadow-sm divide-y divide-app-border">
                 {items.map((transaction) => (
-                  <div key={transaction.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 transition-colors group cursor-pointer">
+                  <div key={transaction.id} className="group flex cursor-pointer flex-col justify-between gap-4 p-6 transition-colors hover:bg-app-muted/60 sm:flex-row sm:items-center">
                     <div className="flex items-center gap-4">
                       <div className={`w-12 h-12 rounded-2xl ${transaction.color} flex items-center justify-center text-white text-xs font-bold shadow-sm transition-transform group-hover:scale-110`}>
                         {transaction.icon}
                       </div>
                       <div className="space-y-0.5">
-                        <p className="font-bold text-gray-900">{transaction.name}</p>
+                        <p className="font-bold text-app-primary">{transaction.name}</p>
                         <div className="flex items-center gap-2">
                           <Badge>{transaction.category}</Badge>
                         </div>
@@ -128,14 +128,14 @@ export const TransactionsPage = ({
 
                     <div className="flex items-center justify-between sm:justify-end gap-8">
                       <div className="text-right">
-                        <p className={`text-lg font-black ${transaction.amount > 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                        <p className={`text-lg font-black ${transaction.amount > 0 ? 'text-green-600 dark:text-emerald-300' : 'text-app-primary'}`}>
                           {transaction.amount > 0 ? '+' : ''}{formatCurrency(Math.abs(transaction.amount), language)}
                         </p>
-                        <p className={`text-[10px] font-bold uppercase tracking-tighter ${String(transaction.status).toUpperCase() === 'COMPLETED' ? 'text-gray-400' : 'text-orange-500'}`}>
+                        <p className={`text-[10px] font-bold uppercase tracking-tighter ${String(transaction.status).toUpperCase() === 'COMPLETED' ? 'text-app-tertiary' : 'text-orange-500 dark:text-orange-300'}`}>
                           {transaction.status}
                         </p>
                       </div>
-                      <ChevronRight size={18} className="text-gray-200 group-hover:text-opex-teal transition-colors" />
+                      <ChevronRight size={18} className="text-app-tertiary transition-colors group-hover:text-opex-teal" />
                     </div>
                   </div>
                 ))}

@@ -38,37 +38,37 @@ export const TaxSidebarCards = ({
 
   return (
     <>
-      <Card title={t('sidebar.setupTitle')} action={<Globe size={18} className="text-gray-400" />}>
+      <Card title={t('sidebar.setupTitle')} action={<Globe size={18} className="text-app-tertiary" />}>
         <div className="space-y-4">
-          <div className="rounded-[1.5rem] bg-gray-50 p-4 space-y-3">
+          <div className="space-y-3 rounded-[1.5rem] bg-app-muted p-4">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest">{t('sidebar.fiscalResidence')}</span>
-              <span className="text-sm font-black text-gray-900">{userProfile.fiscalResidence || t('sidebar.notConfigured')}</span>
+              <span className="text-xs font-black uppercase tracking-widest text-app-tertiary">{t('sidebar.fiscalResidence')}</span>
+              <span className="text-sm font-black text-app-primary">{userProfile.fiscalResidence || t('sidebar.notConfigured')}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest">{t('sidebar.taxRegime')}</span>
-              <span className="text-sm font-black text-gray-900">{userProfile.taxRegime || t('sidebar.notConfigured')}</span>
+              <span className="text-xs font-black uppercase tracking-widest text-app-tertiary">{t('sidebar.taxRegime')}</span>
+              <span className="text-sm font-black text-app-primary">{userProfile.taxRegime || t('sidebar.notConfigured')}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest">{t('sidebar.activityType')}</span>
-              <span className="text-sm font-black text-gray-900 text-right">{userProfile.activityType || t('sidebar.notConfigured')}</span>
+              <span className="text-xs font-black uppercase tracking-widest text-app-tertiary">{t('sidebar.activityType')}</span>
+              <span className="text-right text-sm font-black text-app-primary">{userProfile.activityType || t('sidebar.notConfigured')}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest">{t('sidebar.vatFiling')}</span>
-              <span className="text-sm font-black text-gray-900">{userProfile.vatFrequency || t('sidebar.notConfigured')}</span>
+              <span className="text-xs font-black uppercase tracking-widest text-app-tertiary">{t('sidebar.vatFiling')}</span>
+              <span className="text-sm font-black text-app-primary">{userProfile.vatFrequency || t('sidebar.notConfigured')}</span>
             </div>
           </div>
-          <p className="text-xs text-gray-500 font-medium leading-relaxed">{t('sidebar.setupDescription')}</p>
+          <p className="text-xs font-medium leading-relaxed text-app-secondary">{t('sidebar.setupDescription')}</p>
           <Button variant="outline" size="sm" fullWidth icon={Edit2} onClick={onOpenTaxSettings}>
             {isTaxProfileConfigured ? t('sidebar.updateSetup') : t('sidebar.completeSetup')}
           </Button>
         </div>
       </Card>
 
-      <Card title={t('sidebar.deadlinesTitle')} action={<Calendar size={18} className="text-gray-400" />}>
+      <Card title={t('sidebar.deadlinesTitle')} action={<Calendar size={18} className="text-app-tertiary" />}>
         <div className="space-y-5">
           {nextDeadlines.length === 0 && (
-            <p className="text-sm text-gray-500 font-medium">{t('sidebar.noUpcomingDeadlines')}</p>
+            <p className="text-sm font-medium text-app-secondary">{t('sidebar.noUpcomingDeadlines')}</p>
           )}
           {nextDeadlines.map((item) => {
             const status = item.status.toLowerCase();
@@ -81,12 +81,12 @@ export const TaxSidebarCards = ({
             return (
               <div key={item.id || `${item.title}-${item.dueDate}`} className="flex items-start justify-between">
                 <div className="flex gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${status.includes('overdue') ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
-                    <Clock size={16} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900 leading-none mb-1">{item.title}</p>
-                    <p className="text-xs text-gray-400 font-medium">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${status.includes('overdue') ? 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-300' : 'bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300'}`}>
+                      <Clock size={16} />
+                    </div>
+                    <div>
+                    <p className="mb-1 text-sm font-bold leading-none text-app-primary">{item.title}</p>
+                    <p className="text-xs font-medium text-app-tertiary">
                       {item.periodLabel ? `${item.periodLabel} - ` : ''}{formatTaxDate(item.dueDate, language)}
                     </p>
                   </div>
@@ -98,25 +98,25 @@ export const TaxSidebarCards = ({
         </div>
       </Card>
 
-      <Card title={t('sidebar.activityTitle')} action={<History size={18} className="text-gray-400" />}>
+      <Card title={t('sidebar.activityTitle')} action={<History size={18} className="text-app-tertiary" />}>
         <div className="space-y-6">
           {activity.length === 0 && (
-            <p className="text-sm text-gray-500 font-medium">{t('sidebar.noRecentActivity')}</p>
+            <p className="text-sm font-medium text-app-secondary">{t('sidebar.noRecentActivity')}</p>
           )}
           {activity.map((item) => {
             const isIn = item.direction.toLowerCase().includes('in');
             return (
               <div key={item.id || `${item.title}-${item.date}`} className="flex items-start justify-between">
                 <div className="flex gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isIn ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                    {isIn ? <ArrowUp size={16} /> : <ArrowDownRight size={16} />}
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900 leading-none mb-1">{item.title}</p>
-                    <p className="text-xs text-gray-400">{formatTaxDate(item.date, language)}</p>
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isIn ? 'bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-emerald-300' : 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-300'}`}>
+                      {isIn ? <ArrowUp size={16} /> : <ArrowDownRight size={16} />}
+                    </div>
+                    <div>
+                    <p className="mb-1 text-sm font-bold leading-none text-app-primary">{item.title}</p>
+                    <p className="text-xs text-app-tertiary">{formatTaxDate(item.date, language)}</p>
                   </div>
                 </div>
-                <span className={`text-sm font-bold ${isIn ? 'text-green-600' : 'text-gray-900'}`}>
+                <span className={`text-sm font-bold ${isIn ? 'text-green-600 dark:text-emerald-300' : 'text-app-primary'}`}>
                   {isIn ? '+' : '-'}{formatTaxMoney(Math.abs(item.amount), 'EUR', language)}
                 </span>
               </div>

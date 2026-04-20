@@ -77,6 +77,68 @@ Non e corretto aggiungere nuovi bucket globali al root tipo:
 - `repositories`
 - `utils`
 
+## Banking Model
+
+Il modulo `banking` adesso usa un modello unificato e `connection-first`.
+
+La regola di dominio e:
+
+- `BankConnection` e il contenitore di primo livello
+- `BankAccount` appartiene sempre a una `BankConnection`
+- esistono due tipi di connessione:
+  - `SALTEDGE`
+  - `MANUAL`
+
+Questo permette di supportare con lo stesso modello:
+
+- banche collegate via Salt Edge con piu conti
+- banche manuali con piu conti
+
+Il modello legacy flat dei conti manuali non e piu il modello ufficiale.
+I write flow ufficiali sono adesso sempre nested sotto la connessione.
+
+### Contratto corrente lato banking
+
+API ufficiali:
+
+- `GET /api/bank-connections/my-connections`
+  - ritorna connessioni con `accounts` gia nidificati
+- `POST /api/bank-connections/manual`
+  - crea una banca manuale
+- `PATCH /api/bank-connections/manual/{connectionId}`
+  - rinomina una banca manuale
+- `DELETE /api/bank-connections/manual/{connectionId}`
+  - rimuove una banca manuale e i suoi dati locali
+- `POST /api/bank-connections/{connectionId}/accounts/local`
+  - crea un conto manuale sotto una banca manuale esistente
+- `PATCH /api/bank-connections/{connectionId}/accounts/local/{accountId}`
+  - aggiorna un conto manuale sotto la sua banca manuale
+
+Gli endpoint `Salt Edge` restano separati e continuano a rappresentare solo:
+
+- create/connect
+- refresh
+- sync
+- delete/disconnect
+
+La separazione corretta oggi e:
+
+- `bank-connections/*` per il modello unificato di banche e conti
+- `bank-integration/*` per il lifecycle tecnico Salt Edge
+- `bank-accounts/*` per read model e update Salt Edge del singolo conto
+
+### Compatibilita e migrazione
+
+In locale il progetto usa ancora `ddl-auto=update`, quindi il riallineamento del modello viene completato dal backfill applicativo.
+
+Per production, quando servira una migrazione esplicita, il backfill corretto resta:
+
+1. garantire `connection_type` ed `external_connection_id` su `bank_connection`
+2. creare una `bank_connection` manuale per i vecchi conti locali privi di connessione
+3. valorizzare `bank_account.connection_id` per quei conti
+4. valorizzare `transaction.connection_id` per le transazioni locali collegate
+5. marcare le connessioni Salt Edge storiche come `SALTEDGE`
+
 ## Regole per `common`
 
 `common` non deve diventare una discarica.

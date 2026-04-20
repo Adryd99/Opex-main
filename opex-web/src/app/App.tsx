@@ -5,7 +5,7 @@ import {
   Settings,
   Wallet
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -19,35 +19,80 @@ import {
 } from './navigation';
 import { CenteredStatusCard, Sidebar, TopBar, WorkspacePreparationScreen } from './layout';
 import { Button } from '../shared/ui';
-import { AccountSetupPage, BankRedirectionPage } from '../features/banking';
-import { BudgetPage } from '../features/budget';
-import {
-  AddTransactionPage,
-  BreakdownLayout,
-  DashboardPage,
-  InsightsDetail,
-  TransactionsPage
-} from '../features/dashboard';
-import { AddInvoicePage, InvoicingPage } from '../features/invoicing';
 import { LegalCenterPage, resolveLegalCenterSlug } from '../features/legal';
-import { PostBankConnectionGdprPage } from '../features/onboarding';
 import {
-  CategoriesPage,
-  NotificationDetailsPage,
-  RecurringPage,
-  RenewConsentPage,
-  SettingsPage,
-  SupportPage
-} from '../features/settings';
+  PostBankConnectionGdprPage,
+  PostBankConnectionSuccessOverlay
+} from '../features/onboarding';
 import {
   clearPendingSettingsReturnSection,
   readPendingSettingsReturnSection,
   writePendingSettingsReturnSection
 } from '../features/settings/support/securityNavigation';
-import { TaxesPage } from '../features/taxes';
 import { DEFAULT_LEGAL_PUBLIC_INFO } from '../shared/legal';
 import { useAppController } from './useAppController';
 import { useKeycloakAuth } from '../services/auth/useKeycloakAuth';
+
+const DashboardPage = lazy(() =>
+  import('../features/dashboard/pages/DashboardPage').then((module) => ({
+    default: module.DashboardPage
+  }))
+);
+const BudgetPage = lazy(() =>
+  import('../features/budget/pages/BudgetPage').then((module) => ({
+    default: module.BudgetPage
+  }))
+);
+const TaxesPage = lazy(() =>
+  import('../features/taxes/pages/TaxesPage').then((module) => ({
+    default: module.TaxesPage
+  }))
+);
+const AddTransactionPage = lazy(() =>
+  import('../features/dashboard/pages/AddTransactionPage').then((module) => ({
+    default: module.AddTransactionPage
+  }))
+);
+const BreakdownLayout = lazy(() =>
+  import('../features/dashboard/pages/BreakdownLayout').then((module) => ({
+    default: module.BreakdownLayout
+  }))
+);
+const InsightsDetail = lazy(() =>
+  import('../features/dashboard/pages/InsightsDetail').then((module) => ({
+    default: module.InsightsDetail
+  }))
+);
+const TransactionsPage = lazy(() =>
+  import('../features/dashboard/pages/TransactionsPage').then((module) => ({
+    default: module.TransactionsPage
+  }))
+);
+const InvoicingPage = lazy(() =>
+  import('../features/invoicing').then((module) => ({
+    default: module.InvoicingPage
+  }))
+);
+const AddInvoicePage = lazy(() =>
+  import('../features/invoicing').then((module) => ({
+    default: module.AddInvoicePage
+  }))
+);
+const SettingsPage = lazy(() =>
+  import('../features/settings/pages/SettingsPage').then((module) => ({
+    default: module.SettingsPage
+  }))
+);
+const RecurringPage = lazy(() =>
+  import('../features/settings/pages/RecurringPage').then((module) => ({
+    default: module.RecurringPage
+  }))
+);
+const RenewConsentPage = lazy(() =>
+  import('../features/settings/pages/RenewConsentPage').then((module) => ({
+    default: module.RenewConsentPage
+  }))
+);
 
 export const App = () => {
   const { t } = useTranslation(['app', 'settings']);
@@ -71,11 +116,10 @@ export const App = () => {
     activeTab,
     setActiveTab,
     lastMainTab,
-    selectedBank,
-    selectedBankAccount,
-    selectedBankAccountId,
     userProfile,
     setUserProfile,
+    pendingConnectionReviewById,
+    bankConnections,
     bankAccounts,
     transactions,
     selectedProviderName,
@@ -89,19 +133,18 @@ export const App = () => {
     isDataRefreshing,
     isBankSyncInProgress,
     bankSyncStage,
-    isManualBankSaving,
     isTransactionSaving,
     errorMessage: appErrorMessage,
     clearError,
     handleNavigate,
-    startBankFlow,
-    startConnectionSetup,
     refreshDashboardData,
     syncExternalBankAndNavigate,
+    createManualBankConnection,
+    updateManualBankConnection,
+    deleteManualBankConnection,
+    createManualBankAccount,
     deleteExternalBankConnection,
     syncAfterSuccessRedirect,
-    completeManualBankSetup,
-    completeConnectionSetup,
     createLocalTransaction,
     saveUserProfile,
     requestEmailVerification,
@@ -113,12 +156,19 @@ export const App = () => {
 
   const successSyncRequestedRef = useRef(false);
   const [postSaltEdgeGdprPending, setPostSaltEdgeGdprPending] = useState(false);
+  const [postSyncImportedAccountsSummary, setPostSyncImportedAccountsSummary] = useState<{
+    providerName: string;
+    importedAccountCount: number;
+    connectionId: string | null;
+  } | null>(null);
+  const [initialBankConnectionId, setInitialBankConnectionId] = useState<string | null>(null);
   const isSuccessRoute = window.location.pathname === '/success';
   const isEmbeddedWindow = window.self !== window.top;
   const activeLegalPublicInfo = legalPublicInfo ?? DEFAULT_LEGAL_PUBLIC_INFO;
   const shouldShowWorkspacePreparation =
     !authErrorMessage && (!isAuthenticated || isInitialSyncLoading);
   const shouldKeepBootSplash = !legalDocumentSlug && shouldShowWorkspacePreparation;
+  const displayedTab = isSuccessRoute ? APP_TABS.SETTINGS_BANKING : activeTab;
 
   useEffect(() => {
     const bootSplash = document.getElementById('boot-splash');
@@ -176,6 +226,14 @@ export const App = () => {
   }, [activeTab, settingsResumeApplied, settingsResumeSection]);
 
   useEffect(() => {
+    if (!isAuthenticated || !isSuccessRoute) {
+      return;
+    }
+
+    setActiveTab(APP_TABS.SETTINGS_BANKING);
+  }, [isAuthenticated, isSuccessRoute, setActiveTab]);
+
+  useEffect(() => {
     if (!isAuthenticated || !isSuccessRoute || successSyncRequestedRef.current || isEmbeddedWindow) {
       return;
     }
@@ -206,65 +264,6 @@ export const App = () => {
     );
   }
 
-  if (isSuccessRoute) {
-    if (postSaltEdgeGdprPending && !isBankSyncInProgress) {
-      return (
-        <PostBankConnectionGdprPage
-          legalPublicInfo={activeLegalPublicInfo}
-          isSyncing={isBankSyncInProgress}
-          onConfirm={() => {
-            setPostSaltEdgeGdprPending(false);
-            void syncAfterSuccessRedirect().catch(() => {
-              successSyncRequestedRef.current = false;
-            });
-          }}
-          onCancel={() => {
-            window.history.replaceState({}, document.title, '/');
-            setPostSaltEdgeGdprPending(false);
-            successSyncRequestedRef.current = false;
-          }}
-        />
-      );
-    }
-
-    return (
-      <CenteredStatusCard
-        title={t('app:status.syncTitle')}
-        icon={(
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-opex-teal/10 text-opex-teal flex items-center justify-center">
-            <Loader2 size={28} className="animate-spin" />
-          </div>
-        )}
-        description={
-          appErrorMessage ? (
-            <div className="space-y-3">
-              <p className="text-red-600">{appErrorMessage}</p>
-              <p>
-                {isBankSyncInProgress || bankSyncStage === 'syncing_success'
-                  ? t('app:status.syncInProgress')
-                  : t('app:status.preparingSync')}
-              </p>
-            </div>
-          ) : (
-            isBankSyncInProgress || bankSyncStage === 'syncing_success'
-              ? t('app:status.syncInProgress')
-              : t('app:status.preparingSync')
-          )
-        }
-        actions={appErrorMessage ? (
-          <Button
-            onClick={() => {
-              successSyncRequestedRef.current = false;
-              void syncAfterSuccessRedirect();
-            }}
-          >
-            {t('app:status.retrySync')}
-          </Button>
-        ) : undefined}
-      />
-    );
-  }
-
   const handleSettingsNavigate = (value: string) => {
     handleNavigate(resolveSettingsNavigationTarget(value));
   };
@@ -272,14 +271,20 @@ export const App = () => {
   const settingsPageProps = {
     userProfile,
     setUserProfile,
+    bankConnections,
     bankAccounts,
     taxBufferProviders,
     legalPublicInfo: activeLegalPublicInfo,
-    onBankSelect: startBankFlow,
-    onConnectionSelect: startConnectionSetup,
+    onCreateManualBankConnection: createManualBankConnection,
+    onUpdateManualBankConnection: updateManualBankConnection,
+    onRemoveManualBankConnection: deleteManualBankConnection,
+    onCreateManualBankAccount: createManualBankAccount,
     onCreateOpenBankConnection: syncExternalBankAndNavigate,
     onRemoveOpenBankConnection: deleteExternalBankConnection,
     onUpdateBankAccount: updateBankAccountSettings,
+    pendingConnectionReviewById,
+    initialBankConnectionId,
+    onInitialBankConnectionHandled: () => setInitialBankConnectionId(null),
     isConnectingOpenBank: isBankSyncInProgress,
     openBankErrorMessage: appErrorMessage,
     onDownloadDataExport: downloadDataExport,
@@ -299,34 +304,41 @@ export const App = () => {
     />
   );
 
-  const pageTitle = getAppPageTitle(activeTab, t);
-  const isSubpage = isSubpageAppTab(activeTab);
+  const pageTitle = getAppPageTitle(displayedTab, t);
+  const isSubpage = isSubpageAppTab(displayedTab);
+  const pageLoadingFallback = (
+    <div className="flex min-h-[320px] items-center justify-center">
+      <div className="flex items-center justify-center rounded-2xl border border-app-border bg-app-surface px-4 py-4 shadow-soft">
+        <Loader2 size={22} className="animate-spin text-opex-teal" />
+      </div>
+    </div>
+  );
 
   const mobileNavItems = [
     {
       id: APP_TABS.DASHBOARD,
       icon: LayoutGrid,
-      isActive: isDashboardMobileTab(activeTab)
+      isActive: isDashboardMobileTab(displayedTab)
     },
     {
       id: APP_TABS.BUDGET,
       icon: Wallet,
-      isActive: isBudgetMobileTab(activeTab)
+      isActive: isBudgetMobileTab(displayedTab)
     },
     {
       id: APP_TABS.TAXES,
       icon: Calculator,
-      isActive: activeTab === APP_TABS.TAXES
+      isActive: displayedTab === APP_TABS.TAXES
     },
     {
       id: APP_TABS.SETTINGS,
       icon: Settings,
-      isActive: activeTab === APP_TABS.SETTINGS || isSettingsTab(activeTab)
+      isActive: displayedTab === APP_TABS.SETTINGS || isSettingsTab(displayedTab)
     }
   ] as const;
 
   const renderContent = () => {
-    switch (activeTab) {
+    switch (displayedTab) {
       case APP_TABS.DASHBOARD:
         return (
           <DashboardPage
@@ -405,46 +417,10 @@ export const App = () => {
         return <AddInvoicePage onBack={() => setActiveTab(lastMainTab)} userProfile={userProfile} bankAccounts={bankAccounts} />;
 
       // Settings Subpages
-      case APP_TABS.SETTINGS_OPEN_BANKING:
+      case APP_TABS.SETTINGS_BANKING:
         return renderSettingsPage('BANKING');
-      case APP_TABS.SETTINGS_BANK_REDIRECT:
-        return selectedBank ? (
-          <BankRedirectionPage
-            bank={selectedBank}
-            onComplete={syncExternalBankAndNavigate}
-            onBack={() => setActiveTab(APP_TABS.SETTINGS_OPEN_BANKING)}
-            isSyncing={isBankSyncInProgress}
-            syncStage={bankSyncStage}
-            errorMessage={appErrorMessage}
-          />
-        ) : null;
-      case APP_TABS.SETTINGS_BANK_SETUP:
-        return selectedBank ? (
-          <AccountSetupPage
-            bank={selectedBank}
-            onBack={() => setActiveTab(APP_TABS.SETTINGS_OPEN_BANKING)}
-            onComplete={(payload) => {
-              if (selectedBankAccount) {
-                if (!selectedBankAccountId) {
-                  return Promise.reject(new Error('Missing accountId for selected connection.'));
-                }
-                return completeConnectionSetup(selectedBankAccountId, payload);
-              }
-              return completeManualBankSetup(payload);
-            }}
-            isSaving={isManualBankSaving}
-            isManual={Boolean(selectedBank.isManual)}
-            presetAccount={selectedBankAccount}
-          />
-        ) : null;
       case APP_TABS.SETTINGS_RENEW_CONSENT:
         return <RenewConsentPage onBack={() => setActiveTab(APP_TABS.SETTINGS)} />;
-      case APP_TABS.SETTINGS_CATEGORIES:
-        return <CategoriesPage onBack={() => setActiveTab(APP_TABS.SETTINGS)} />;
-      case APP_TABS.SETTINGS_NOTIFICATIONS:
-        return <NotificationDetailsPage onBack={() => setActiveTab(APP_TABS.SETTINGS)} />;
-      case APP_TABS.SETTINGS_SUPPORT:
-        return <SupportPage onBack={() => setActiveTab(APP_TABS.SETTINGS)} />;
 
       default:
         return (
@@ -461,10 +437,104 @@ export const App = () => {
     }
   };
 
+  const successOverlay = (() => {
+    if (postSyncImportedAccountsSummary) {
+      return (
+        <PostBankConnectionSuccessOverlay
+          bankName={postSyncImportedAccountsSummary.providerName}
+          importedAccountCount={postSyncImportedAccountsSummary.importedAccountCount}
+          onReviewAccounts={() => {
+            setInitialBankConnectionId(postSyncImportedAccountsSummary.connectionId);
+            setPostSyncImportedAccountsSummary(null);
+            setActiveTab(APP_TABS.SETTINGS_BANKING);
+          }}
+          onDoLater={() => {
+            setPostSyncImportedAccountsSummary(null);
+            setInitialBankConnectionId(null);
+            setActiveTab(APP_TABS.SETTINGS_BANKING);
+          }}
+        />
+      );
+    }
+
+    if (!isSuccessRoute) {
+      return null;
+    }
+
+    if (postSaltEdgeGdprPending && !isBankSyncInProgress) {
+      return (
+        <PostBankConnectionGdprPage
+          legalPublicInfo={activeLegalPublicInfo}
+          isSyncing={isBankSyncInProgress}
+          onConfirm={() => {
+            setPostSaltEdgeGdprPending(false);
+            void syncAfterSuccessRedirect()
+              .then((summary) => {
+                if (summary) {
+                  setPostSyncImportedAccountsSummary(summary);
+                }
+              })
+              .catch(() => {
+                successSyncRequestedRef.current = false;
+              });
+          }}
+          onCancel={() => {
+            window.history.replaceState({}, document.title, '/');
+            setPostSaltEdgeGdprPending(false);
+            successSyncRequestedRef.current = false;
+          }}
+        />
+      );
+    }
+
+    return (
+      <div className="fixed inset-0 z-[160] flex items-center justify-center bg-slate-900/20 px-4 py-8 backdrop-blur-[6px] dark:bg-slate-950/55">
+        <div className="w-full max-w-md rounded-[2.25rem] border border-white/70 bg-white/95 p-6 text-center shadow-[0_32px_80px_-32px_rgba(15,23,42,0.45)] md:p-8 dark:border-app-border dark:bg-app-surface/95">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-opex-teal/10 text-opex-teal flex items-center justify-center">
+            <Loader2 size={28} className={`${isBankSyncInProgress || bankSyncStage === 'syncing_success' ? 'animate-spin' : ''}`} />
+          </div>
+          <h1 className="mt-5 text-2xl font-black text-app-primary">
+            {t('app:status.syncTitle')}
+          </h1>
+          <div className="mt-3 text-sm text-app-secondary space-y-3">
+            {appErrorMessage ? (
+              <>
+                <p className="font-medium text-red-600 dark:text-red-200">{appErrorMessage}</p>
+                <p>
+                  {isBankSyncInProgress || bankSyncStage === 'syncing_success'
+                    ? t('app:status.syncInProgress')
+                    : t('app:status.preparingSync')}
+                </p>
+              </>
+            ) : (
+              <p>
+                {isBankSyncInProgress || bankSyncStage === 'syncing_success'
+                  ? t('app:status.syncInProgress')
+                  : t('app:status.preparingSync')}
+              </p>
+            )}
+          </div>
+          {appErrorMessage ? (
+            <div className="mt-6 flex justify-center">
+              <Button
+                onClick={() => {
+                  successSyncRequestedRef.current = false;
+                  void syncAfterSuccessRedirect();
+                }}
+              >
+                {t('app:status.retrySync')}
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  })();
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 font-sans flex text-gray-900 dark:text-gray-100 transition-colors duration-200">
+    <div className="min-h-screen bg-app-base font-sans flex text-app-primary transition-colors duration-200">
       <Sidebar activeTab={activeTab} setActiveTab={handleNavigate} onLogout={logout} userProfile={userProfile} />
-      <main className="flex-1 md:ml-64 min-w-0 relative dark:bg-slate-900">
+      <main className="flex-1 md:ml-64 min-w-0 relative bg-app-base transition-colors duration-200">
         {!isSubpage && <TopBar title={pageTitle} />}
         {appErrorMessage && (
           <div className="px-4 md:px-6 pt-4 max-w-7xl mx-auto">
@@ -475,21 +545,24 @@ export const App = () => {
           </div>
         )}
         <div className={`${isSubpage ? 'p-0' : 'p-4 md:p-6'} max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-          {renderContent()}
+          <Suspense fallback={pageLoadingFallback}>
+            {renderContent()}
+          </Suspense>
         </div>
 
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around p-4 z-50 shadow-up">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-app-surface border-t border-app-border flex justify-around p-4 z-50 shadow-up transition-colors duration-200">
           {mobileNavItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleNavigate(item.id)}
-              className={`p-2 rounded-xl transition-colors ${item.isActive ? 'text-opex-teal' : 'text-gray-400'}`}
+              className={`p-2 rounded-xl transition-colors ${item.isActive ? 'text-opex-teal' : 'text-app-tertiary'}`}
             >
               <item.icon size={24} />
             </button>
           ))}
         </div>
       </main>
+      {successOverlay}
     </div>
   );
 };

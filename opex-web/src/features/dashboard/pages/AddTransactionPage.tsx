@@ -116,22 +116,22 @@ export const AddTransactionPage = ({
   return (
     <SubpageShell onBack={onBack} title={isIncome ? t('addTransaction.addIncome') : t('addTransaction.addExpense')}>
       <div className="max-w-2xl mx-auto space-y-8 pb-20">
-        <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/50 text-center space-y-8">
+        <div className="space-y-8 rounded-[2.5rem] border border-app-border bg-app-surface p-10 text-center shadow-xl shadow-gray-200/20 dark:shadow-slate-950/30">
           <div className="space-y-2">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{t('addTransaction.amount')}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-app-tertiary">{t('addTransaction.amount')}</p>
             <div className="flex items-center justify-center gap-2 group">
               <input
                 type="number"
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
-                className={`text-6xl font-black w-full max-w-[320px] bg-transparent border-none focus:ring-0 text-center outline-none ${isIncome ? 'text-green-500' : 'text-opex-dark'}`}
+                className={`w-full max-w-[320px] border-none bg-transparent text-center text-6xl font-black outline-none focus:ring-0 ${isIncome ? 'text-green-500 dark:text-emerald-300' : 'text-app-primary'}`}
                 placeholder="0.00"
               />
             </div>
           </div>
           <div className="flex justify-center">
             <div className="w-full max-w-2xl space-y-3">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center">{t('addTransaction.localAccount')}</p>
+              <p className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-app-tertiary">{t('addTransaction.localAccount')}</p>
               {localAccounts.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {localAccounts.map((account) => {
@@ -143,16 +143,16 @@ export const AddTransactionPage = ({
                         key={accountId}
                         onClick={() => setSelectedAccountId(accountId)}
                         className={`text-left rounded-[1.75rem] border p-4 transition-all ${isSelected
-                          ? 'bg-white border-opex-teal/40 shadow-lg shadow-teal-900/10'
-                          : 'bg-gray-50 border-gray-100 hover:border-gray-200'
+                          ? 'bg-app-surface border-opex-teal/40 shadow-lg shadow-teal-900/10 dark:bg-opex-teal/10'
+                          : 'bg-app-muted border-app-border hover:border-gray-200 dark:hover:border-app-tertiary/50'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <p className="text-sm font-black text-gray-900">{account.institutionName}</p>
-                            <p className="mt-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('addTransaction.localAccountLabel')}</p>
+                            <p className="text-sm font-black text-app-primary">{account.institutionName}</p>
+                            <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-app-tertiary">{t('addTransaction.localAccountLabel')}</p>
                           </div>
-                          <p className="text-sm font-bold text-gray-700">
+                          <p className="text-sm font-bold text-app-secondary">
                             {formatCurrency(account.balance ?? 0, language, account.currency || 'EUR')}
                           </p>
                         </div>
@@ -161,9 +161,9 @@ export const AddTransactionPage = ({
                   })}
                 </div>
               ) : (
-                <div className="rounded-[1.75rem] border border-gray-100 bg-gray-50 px-5 py-4 text-center">
-                  <p className="text-sm font-bold text-gray-500">{t('addTransaction.noLocalAccount')}</p>
-                  <p className="mt-1 text-xs text-gray-400">{t('addTransaction.noLocalAccountDescription')}</p>
+                <div className="rounded-[1.75rem] border border-app-border bg-app-muted px-5 py-4 text-center">
+                  <p className="text-sm font-bold text-app-secondary">{t('addTransaction.noLocalAccount')}</p>
+                  <p className="mt-1 text-xs text-app-tertiary">{t('addTransaction.noLocalAccountDescription')}</p>
                 </div>
               )}
             </div>
@@ -171,44 +171,44 @@ export const AddTransactionPage = ({
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('addTransaction.selectCategory')}</h3>
+          <h3 className="px-1 text-[10px] font-black uppercase tracking-widest text-app-tertiary">{t('addTransaction.selectCategory')}</h3>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
             {categories.map((category) => (
               <button
                 key={category.value}
                 onClick={() => setSelectedCat(category.value)}
-                className={`flex flex-col items-center gap-3 p-4 rounded-[1.5rem] border-2 transition-all ${selectedCat === category.value ? 'bg-white border-opex-teal shadow-lg scale-105' : 'bg-gray-50 border-transparent hover:border-gray-200'}`}
+                className={`flex flex-col items-center gap-3 rounded-[1.5rem] border-2 p-4 transition-all ${selectedCat === category.value ? 'bg-app-surface border-opex-teal shadow-lg scale-105 dark:bg-opex-teal/10' : 'bg-app-muted border-transparent hover:border-gray-200 dark:hover:border-app-tertiary/50'}`}
               >
                 <div className={`w-12 h-12 rounded-2xl ${category.color} flex items-center justify-center`}>
                   <category.icon size={24} />
                 </div>
-                <span className="text-[10px] font-black text-gray-700 uppercase tracking-tighter">{category.label}</span>
+                <span className="text-[10px] font-black uppercase tracking-tighter text-app-secondary">{category.label}</span>
               </button>
             ))}
           </div>
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('addTransaction.details')}</h3>
+          <h3 className="px-1 text-[10px] font-black uppercase tracking-widest text-app-tertiary">{t('addTransaction.details')}</h3>
           <Card>
             <div className="space-y-6">
               <div className="flex items-center gap-3">
-                <Calendar size={20} className="text-gray-400 flex-shrink-0" />
+                <Calendar size={20} className="flex-shrink-0 text-app-tertiary" />
                 <input
                   type="date"
                   value={date}
                   onChange={(event) => setDate(event.target.value)}
-                  className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold text-gray-900 outline-none"
+                  className="w-full border-none bg-transparent text-sm font-bold text-app-primary outline-none focus:ring-0"
                 />
               </div>
-              <div className="h-px bg-gray-50 w-full" />
+              <div className="h-px w-full bg-app-border" />
               <div className="flex items-center gap-3">
-                <Edit2 size={20} className="text-gray-400" />
+                <Edit2 size={20} className="text-app-tertiary" />
                 <input
                   placeholder={t('addTransaction.notePlaceholder')}
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
-                  className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold text-gray-900 outline-none"
+                  className="w-full border-none bg-transparent text-sm font-bold text-app-primary outline-none focus:ring-0"
                 />
               </div>
             </div>

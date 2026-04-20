@@ -13,6 +13,21 @@ export interface BankAccountRecord {
   country?: string | null;
 }
 
+export type BankConnectionType = 'SALTEDGE' | 'MANUAL';
+
+export interface BankConnectionRecord {
+  id: string;
+  userId: string;
+  providerName: string;
+  type: BankConnectionType;
+  externalConnectionId?: string | null;
+  status?: string | null;
+  createdAt?: string | null;
+  accountCount: number;
+  totalBalance: number;
+  accounts: BankAccountRecord[];
+}
+
 export interface TransactionRecord {
   id: string;
   bankAccountId?: string;
@@ -24,14 +39,6 @@ export interface TransactionRecord {
   merchantName?: string;
   status?: string;
   type?: string;
-}
-
-export interface ManualBankSetupInput {
-  institutionName: string;
-  balance: number;
-  currency: string;
-  isForTax: boolean;
-  nature: string;
 }
 
 export interface CreateLocalTransactionInput {

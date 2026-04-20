@@ -1,6 +1,7 @@
 package com.opex.backend.notification.service;
 
 import com.opex.backend.banking.model.BankConnection;
+import com.opex.backend.banking.model.BankConnectionType;
 import com.opex.backend.banking.repository.BankConnectionRepository;
 import com.opex.backend.tax.model.Tax;
 import com.opex.backend.tax.repository.TaxRepository;
@@ -31,7 +32,9 @@ public class NotificationScheduleService {
         LocalDate in2 = today.plusDays(2);
 
         for (BankConnection connection : bankConnectionRepository.findAll()) {
-            if (connection.getCreatedAt() == null || !"active".equalsIgnoreCase(connection.getStatus())) {
+            if (connection.getType() != BankConnectionType.SALTEDGE
+                    || connection.getCreatedAt() == null
+                    || !"active".equalsIgnoreCase(connection.getStatus())) {
                 continue;
             }
 

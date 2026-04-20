@@ -26,7 +26,7 @@ export const appEn = {
     title: 'Quick Actions',
     addIncome: 'Add Income',
     addExpense: 'Add Expense',
-    openBanking: 'Open Banking'
+    banking: 'Banks & accounts'
   },
   accountSelector: {
     selectAccount: 'Select Account',

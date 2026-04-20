@@ -1,6 +1,7 @@
 package com.opex.backend.banking.saltedge;
 
 import com.opex.backend.banking.model.BankConnection;
+import com.opex.backend.banking.model.BankConnectionType;
 import com.opex.backend.banking.saltedge.dto.SaltEdgeConnectionsResponse;
 import com.opex.backend.common.exception.BadRequestException;
 import com.opex.backend.user.model.User;
@@ -43,11 +44,18 @@ class SaltEdgeBankSyncServiceTest {
         BankConnection connection = new BankConnection();
         connection.setId("conn-1");
         connection.setUserId("user-1");
+        connection.setType(BankConnectionType.SALTEDGE);
+
+        BankConnection manualConnection = new BankConnection();
+        manualConnection.setId("manual-1");
+        manualConnection.setUserId("user-1");
+        manualConnection.setType(BankConnectionType.MANUAL);
 
         SaltEdgeConnectionsResponse connectionsResponse = new SaltEdgeConnectionsResponse();
 
         when(saltEdgeApiService.getConnections("customer-1")).thenReturn(connectionsResponse);
-        when(bankConnectionRepository.findByUserId("user-1")).thenReturn(List.of(connection));
+        when(bankConnectionRepository.findByUserIdAndType("user-1", BankConnectionType.SALTEDGE))
+                .thenReturn(List.of(connection));
 
         saltEdgeBankSyncService.syncUserData(user);
 

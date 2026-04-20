@@ -2,6 +2,7 @@ export { SettingsBrandingSection } from './SettingsBrandingSection';
 export { SettingsBankingSection } from './SettingsBankingSection';
 export { SettingsHeader } from './SettingsHeader';
 export { SettingsHelpSection } from './SettingsHelpSection';
+export { SettingsNotificationPreferencesSection } from './SettingsNotificationPreferencesSection';
 export { SettingsPreferencesSection } from './SettingsPreferencesSection';
 export { SettingsPrivacySection } from './SettingsPrivacySection';
 export { SettingsSectionNotice } from './SettingsSectionNotice';

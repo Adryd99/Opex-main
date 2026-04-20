@@ -2,9 +2,8 @@ import { Dispatch, SetStateAction, useCallback, useState } from 'react';
 
 import {
   BankAccountRecord,
-  BankOption,
+  BankConnectionRecord,
   LegalPublicInfoRecord,
-  ManualBankSetupInput,
   OpenBankingConsentPayload,
   UserProfile
 } from '../../shared/types';
@@ -16,11 +15,9 @@ import { extractBankPopupUrl, opexApi } from '../../services/api/opexApi';
 import {
   BANK_SYNC_COMPLETED_EVENT_KEY,
   normalizeText,
-  resolveAccountProviderName,
-  resolveBankAccountId,
-  toConnectionIcon
+  resolveBankAccountId
 } from './providerSupport';
-import { APP_TABS, type AppTab } from '../navigation';
+import { APP_TABS } from '../navigation';
 import { BankSyncStage, DEFAULT_USER_PROFILE } from './defaults';
 import { toErrorMessage } from './errors';
 import { BankAccountSettingsPayload, DashboardRefreshResult } from './types';
@@ -28,159 +25,77 @@ import { BankAccountSettingsPayload, DashboardRefreshResult } from './types';
 const CONSENT_REQUIRED_ERROR = 'You must accept the current privacy notice and terms before connecting a bank.';
 
 type UseBankingFlowArgs = {
-  activeTab: AppTab;
   setActiveTab: (tab: string) => void;
+  bankConnections: BankConnectionRecord[];
   bankAccounts: BankAccountRecord[];
   legalPublicInfo: LegalPublicInfoRecord | null;
-  providerByConnectionId: Map<string, string>;
   refreshDashboardData: () => Promise<DashboardRefreshResult>;
   setErrorMessage: (message: string | null) => void;
   setUserProfile: Dispatch<SetStateAction<UserProfile>>;
 };
 
+export type PostSyncImportedAccountsSummary = {
+  providerName: string;
+  importedAccountCount: number;
+  connectionId: string | null;
+};
+
 export const useBankingFlow = ({
-  activeTab,
   setActiveTab,
+  bankConnections,
   bankAccounts,
   legalPublicInfo,
-  providerByConnectionId,
   refreshDashboardData,
   setErrorMessage,
   setUserProfile
 }: UseBankingFlowArgs) => {
-  const [selectedBank, setSelectedBank] = useState<BankOption | null>(null);
-  const [selectedBankAccount, setSelectedBankAccount] = useState<BankAccountRecord | null>(null);
-  const [selectedBankAccountId, setSelectedBankAccountId] = useState<string | null>(null);
-  const [connectionSetupAccounts, setConnectionSetupAccounts] = useState<BankAccountRecord[]>([]);
+  const [pendingConnectionReviewById, setPendingConnectionReviewById] = useState<Record<string, string[]>>({});
   const [isBankSyncInProgress, setIsBankSyncInProgress] = useState(false);
   const [bankSyncStage, setBankSyncStage] = useState<BankSyncStage>('idle');
-  const [bankPopupUrl, setBankPopupUrl] = useState<string | null>(null);
   const [isManualBankSaving, setIsManualBankSaving] = useState(false);
 
-  const prepareBankPopup = useCallback((): Window | null => {
-    const popup = window.open('', '_blank', 'popup=yes,width=460,height=760');
-    if (!popup) {
-      return null;
-    }
-
-    try {
-      popup.opener = null;
-      popup.document.title = 'Opex Open Banking';
-      popup.document.body.innerHTML = `
-        <div style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8fafc;color:#0c2131;font-family:Inter,Segoe UI,sans-serif;">
-          <div style="text-align:center;max-width:320px;padding:32px;">
-            <div style="width:56px;height:56px;margin:0 auto 20px;border-radius:18px;background:#0c2131;display:flex;align-items:center;justify-content:center;color:white;font-size:24px;font-weight:700;">OB</div>
-            <div style="font-size:24px;font-weight:800;letter-spacing:-0.03em;">Preparing secure connection</div>
-            <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#64748b;">Opex is generating the Salt Edge authorization page for your bank.</p>
-          </div>
-        </div>
-      `;
-    } catch {
-      // Ignore rendering errors and keep the popup available for navigation.
-    }
-
-    return popup;
-  }, []);
-
-  const resetSelection = useCallback(() => {
-    setSelectedBank(null);
-    setSelectedBankAccount(null);
-    setSelectedBankAccountId(null);
-    setConnectionSetupAccounts([]);
-  }, []);
-
-  const startBankFlow = useCallback((bank: BankOption) => {
-    setSelectedBank(bank);
-    setSelectedBankAccount(null);
-    setSelectedBankAccountId(null);
-    setConnectionSetupAccounts([]);
-    setBankPopupUrl(null);
-    setBankSyncStage('idle');
-
-    if (bank.isManual) {
-      setActiveTab(APP_TABS.SETTINGS_BANK_SETUP);
-      return;
-    }
-
-    setActiveTab(APP_TABS.SETTINGS_BANK_REDIRECT);
-  }, [setActiveTab]);
-
-  const selectConnectionAccountForSetup = useCallback((account: BankAccountRecord): boolean => {
-    const bankAccountId = resolveBankAccountId(account);
-    if (!bankAccountId) {
-      setErrorMessage('Unable to edit this connection because accountId is missing.');
-      return false;
-    }
-
-    setErrorMessage(null);
-    setSelectedBankAccount(account);
-    setSelectedBankAccountId(bankAccountId);
-    return true;
-  }, [setErrorMessage]);
-
-  const startConnectionSetup = useCallback((account: BankAccountRecord, providerName?: string) => {
-    const normalizedConnectionId = normalizeText(account.connectionId);
-    const relatedAccounts = normalizedConnectionId.length > 0
-      ? bankAccounts.filter((item) => normalizeText(item.connectionId) === normalizedConnectionId)
-      : [account];
-    const initialAccount = relatedAccounts[0] ?? account;
-
-    if (!selectConnectionAccountForSetup(initialAccount)) {
-      return;
-    }
-
-    const resolvedProviderName =
-      normalizeText(providerName) ||
-      resolveAccountProviderName(account, providerByConnectionId) ||
-      'Connection';
-
-    setSelectedBank({
-      name: resolvedProviderName,
-      color: 'bg-opex-dark',
-      icon: toConnectionIcon(resolvedProviderName)
-    });
-    setConnectionSetupAccounts(relatedAccounts.length > 0 ? relatedAccounts : [account]);
-    setBankPopupUrl(null);
-    setBankSyncStage('idle');
-    setActiveTab(APP_TABS.SETTINGS_BANK_SETUP);
-  }, [bankAccounts, providerByConnectionId, selectConnectionAccountForSetup, setActiveTab]);
-
-  const openBankPopup = useCallback((
-    connectUrl: string,
-    popupErrorMessage: string,
-    preparedPopup?: Window | null
+  const markPendingConnectionAccountReviewed = useCallback((
+    connectionId: string | null | undefined,
+    reviewedAccountId: string,
+    connectionAccountIds: string[]
   ) => {
-    setBankPopupUrl(connectUrl);
-    const popup = preparedPopup && !preparedPopup.closed
-      ? preparedPopup
-      : window.open('', '_blank', 'popup=yes,width=460,height=760');
-    if (!popup) {
-      throw new Error(popupErrorMessage);
+    const normalizedConnectionId = normalizeText(connectionId);
+    if (!normalizedConnectionId || !reviewedAccountId) {
+      return;
     }
 
-    try {
-      popup.opener = null;
-      popup.location.replace(connectUrl);
-    } catch {
-      try {
-        popup.close();
-      } catch {
-        // Ignore popup close failures.
+    setPendingConnectionReviewById((current) => {
+      const existingPendingIds = current[normalizedConnectionId];
+      if (!existingPendingIds) {
+        return current;
       }
-      throw new Error(popupErrorMessage);
-    }
 
-    popup.focus();
+      const validConnectionAccountIds = connectionAccountIds.filter(Boolean);
+      const nextPendingIds = existingPendingIds.filter(
+        (accountId) => accountId !== reviewedAccountId && validConnectionAccountIds.includes(accountId)
+      );
+
+      if (nextPendingIds.length === 0) {
+        const { [normalizedConnectionId]: _removed, ...rest } = current;
+        return rest;
+      }
+
+      return {
+        ...current,
+        [normalizedConnectionId]: nextPendingIds
+      };
+    });
+  }, []);
+
+  const redirectToBankConnection = useCallback((connectUrl: string) => {
     setBankSyncStage('waiting_success_redirect');
+    window.location.assign(connectUrl);
   }, []);
 
   const syncExternalBankAndNavigate = useCallback(async (consent: OpenBankingConsentPayload) => {
-    const preparedPopup = prepareBankPopup();
-
     setIsBankSyncInProgress(true);
     setErrorMessage(null);
     setBankSyncStage('opening_widget');
-    setBankPopupUrl(null);
 
     try {
       if (legalPublicInfo) {
@@ -194,16 +109,8 @@ export const useBankingFlow = ({
         throw new Error('Bank integration connect did not return a valid Salt Edge URL.');
       }
 
-      openBankPopup(
-        connectUrl,
-        'Unable to open bank connection page. Please allow popups and retry.',
-        preparedPopup
-      );
+      redirectToBankConnection(connectUrl);
     } catch (error) {
-      if (preparedPopup && !preparedPopup.closed) {
-        preparedPopup.close();
-      }
-
       const errorMessage = toErrorMessage(error);
 
       if (errorMessage === CONSENT_REQUIRED_ERROR && legalPublicInfo) {
@@ -226,11 +133,10 @@ export const useBankingFlow = ({
 
       setErrorMessage(errorMessage);
       setBankSyncStage('idle');
-      throw error;
-    } finally {
       setIsBankSyncInProgress(false);
+      throw error;
     }
-  }, [legalPublicInfo, openBankPopup, prepareBankPopup, setErrorMessage, setUserProfile]);
+  }, [legalPublicInfo, redirectToBankConnection, setErrorMessage, setUserProfile]);
 
   const refreshExternalBankConnection = useCallback(async (connectionId: string) => {
     const normalizedConnectionId = normalizeText(connectionId);
@@ -238,12 +144,9 @@ export const useBankingFlow = ({
       throw new Error('Missing Salt Edge connection identifier.');
     }
 
-    const preparedPopup = prepareBankPopup();
-
     setIsBankSyncInProgress(true);
     setErrorMessage(null);
     setBankSyncStage('opening_widget');
-    setBankPopupUrl(null);
 
     try {
       const connectPayload = await opexApi.bankIntegrationRefreshConnection(normalizedConnectionId);
@@ -253,23 +156,14 @@ export const useBankingFlow = ({
         throw new Error('Connection refresh did not return a valid Salt Edge URL.');
       }
 
-      openBankPopup(
-        connectUrl,
-        'Unable to open Salt Edge refresh page. Please allow popups and retry.',
-        preparedPopup
-      );
+      redirectToBankConnection(connectUrl);
     } catch (error) {
-      if (preparedPopup && !preparedPopup.closed) {
-        preparedPopup.close();
-      }
-
       setErrorMessage(toErrorMessage(error));
       setBankSyncStage('idle');
-      throw error;
-    } finally {
       setIsBankSyncInProgress(false);
+      throw error;
     }
-  }, [openBankPopup, prepareBankPopup, setErrorMessage]);
+  }, [redirectToBankConnection, setErrorMessage]);
 
   const deleteExternalBankConnection = useCallback(async (connectionId: string) => {
     const normalizedConnectionId = normalizeText(connectionId);
@@ -281,26 +175,32 @@ export const useBankingFlow = ({
 
     try {
       await opexApi.bankIntegrationDeleteConnection(normalizedConnectionId);
-
-      if (normalizeText(selectedBankAccount?.connectionId) === normalizedConnectionId) {
-        resetSelection();
-        if (activeTab === APP_TABS.SETTINGS_BANK_SETUP) {
-          setActiveTab(APP_TABS.SETTINGS_OPEN_BANKING);
+      setPendingConnectionReviewById((current) => {
+        if (!current[normalizedConnectionId]) {
+          return current;
         }
-      }
+
+        const { [normalizedConnectionId]: _removed, ...rest } = current;
+        return rest;
+      });
 
       await refreshDashboardData();
     } catch (error) {
       setErrorMessage(toErrorMessage(error));
       throw error;
     }
-  }, [activeTab, refreshDashboardData, resetSelection, selectedBankAccount?.connectionId, setActiveTab, setErrorMessage]);
+  }, [refreshDashboardData, setErrorMessage]);
 
-  const syncAfterSuccessRedirect = useCallback(async () => {
+  const syncAfterSuccessRedirect = useCallback(async (): Promise<PostSyncImportedAccountsSummary | null> => {
     setIsBankSyncInProgress(true);
     setBankSyncStage('syncing_success');
     setErrorMessage(null);
 
+    const existingConnectionIds = new Set(
+      bankConnections
+        .map((connection) => normalizeText(connection.id))
+        .filter((connectionId): connectionId is string => Boolean(connectionId))
+    );
     const existingAccountIds = new Set(
       bankAccounts
         .map((account) => resolveBankAccountId(account))
@@ -315,6 +215,33 @@ export const useBankingFlow = ({
         window.history.replaceState({}, document.title, '/');
       }
 
+      const firstNewConnection = refreshedData.connectionsResult.find((connection) =>
+        connection.type === 'SALTEDGE'
+        && !existingConnectionIds.has(normalizeText(connection.id))
+        && connection.accounts.length > 0
+      );
+
+      if (firstNewConnection) {
+        const accountIdsForNewConnection = firstNewConnection.accounts
+          .map((account) => resolveBankAccountId(account))
+          .filter((accountId): accountId is string => Boolean(accountId));
+
+        if (accountIdsForNewConnection.length > 0) {
+          setPendingConnectionReviewById((current) => ({
+            ...current,
+            [firstNewConnection.id]: accountIdsForNewConnection
+        }));
+        }
+
+        setActiveTab(APP_TABS.SETTINGS_BANKING);
+        setBankSyncStage('idle');
+        return {
+          providerName: normalizeText(firstNewConnection.providerName) || 'Connection',
+          importedAccountCount: firstNewConnection.accounts.length,
+          connectionId: firstNewConnection.id
+        };
+      }
+
       const refreshedAccounts = refreshedData.accountsResult.content;
       const newSaltedgeAccounts = refreshedAccounts.filter((account) => {
         if (!account.isSaltedge) {
@@ -327,42 +254,40 @@ export const useBankingFlow = ({
 
       const firstNewAccount = newSaltedgeAccounts[0];
       if (!firstNewAccount) {
-        resetSelection();
-        setActiveTab(APP_TABS.DASHBOARD);
-        setBankPopupUrl(null);
+        setActiveTab(APP_TABS.SETTINGS_BANKING);
         setBankSyncStage('idle');
-        return;
+        return null;
       }
 
       const newConnectionId = normalizeText(firstNewAccount.connectionId);
       const accountsForNewConnection = newConnectionId.length > 0
         ? refreshedAccounts.filter((account) => normalizeText(account.connectionId) === newConnectionId)
         : [firstNewAccount];
-      const providerFromTaxProviders = newConnectionId.length > 0
-        ? refreshedData.taxProvidersResult.find(
-            (provider) => normalizeText(provider.connectionId) === newConnectionId
+      const accountIdsForNewConnection = accountsForNewConnection
+        .map((account) => resolveBankAccountId(account))
+        .filter((accountId): accountId is string => Boolean(accountId));
+      const providerFromConnections = newConnectionId.length > 0
+        ? refreshedData.connectionsResult.find(
+            (connection) => normalizeText(connection.id) === newConnectionId
           )?.providerName
         : null;
       const providerName =
-        normalizeText(providerFromTaxProviders) ||
+        normalizeText(providerFromConnections) ||
         normalizeText(firstNewAccount.institutionName) ||
         'Connection';
-      const initialAccount = accountsForNewConnection[0] ?? firstNewAccount;
-
-      setSelectedBank({
-        name: providerName,
-        color: 'bg-opex-dark',
-        icon: toConnectionIcon(providerName)
-      });
-      setConnectionSetupAccounts(accountsForNewConnection);
-      if (!selectConnectionAccountForSetup(initialAccount)) {
-        setActiveTab(APP_TABS.DASHBOARD);
-        return;
+      if (newConnectionId.length > 0 && accountIdsForNewConnection.length > 0) {
+        setPendingConnectionReviewById((current) => ({
+          ...current,
+          [newConnectionId]: accountIdsForNewConnection
+        }));
       }
-
-      setActiveTab(APP_TABS.SETTINGS_BANK_SETUP);
-      setBankPopupUrl(null);
+      setActiveTab(APP_TABS.SETTINGS_BANKING);
       setBankSyncStage('idle');
+      return {
+        providerName,
+        importedAccountCount: accountsForNewConnection.length,
+        connectionId: newConnectionId.length > 0 ? newConnectionId : null
+      };
     } catch (error) {
       setErrorMessage(toErrorMessage(error));
       throw error;
@@ -370,22 +295,29 @@ export const useBankingFlow = ({
       setIsBankSyncInProgress(false);
     }
   }, [
+    bankConnections,
     bankAccounts,
     refreshDashboardData,
-    resetSelection,
-    selectConnectionAccountForSetup,
     setActiveTab,
     setErrorMessage
   ]);
 
-  const completeManualBankSetup = useCallback(async (payload: ManualBankSetupInput) => {
+  const createManualBankConnection = useCallback(async (providerName: string): Promise<BankConnectionRecord> => {
+    const normalizedProviderName = providerName.trim();
+    if (!normalizedProviderName) {
+      throw new Error('Manual bank name is required.');
+    }
+
     setIsManualBankSaving(true);
     setErrorMessage(null);
 
     try {
-      await opexApi.createLocalBankAccount(payload);
+      const createdConnection = await opexApi.createManualBankConnection({
+        providerName: normalizedProviderName
+      });
       await refreshDashboardData();
-      setActiveTab(APP_TABS.DASHBOARD);
+      setActiveTab(APP_TABS.SETTINGS_BANKING);
+      return createdConnection;
     } catch (error) {
       setErrorMessage(toErrorMessage(error));
       throw error;
@@ -394,50 +326,55 @@ export const useBankingFlow = ({
     }
   }, [refreshDashboardData, setActiveTab, setErrorMessage]);
 
-  const completeConnectionSetup = useCallback(async (
-    bankAccountId: string,
-    payload: ManualBankSetupInput
-  ) => {
+  const updateManualBankConnection = useCallback(async (
+    connectionId: string,
+    providerName: string
+  ): Promise<BankConnectionRecord> => {
+    const normalizedConnectionId = normalizeText(connectionId);
+    const normalizedProviderName = providerName.trim();
+    if (!normalizedConnectionId) {
+      throw new Error('Manual bank connection identifier is required.');
+    }
+    if (!normalizedProviderName) {
+      throw new Error('Manual bank name is required.');
+    }
+
     setIsManualBankSaving(true);
     setErrorMessage(null);
 
     try {
-      if (selectedBankAccount?.isSaltedge) {
-        await opexApi.updateSaltedgeBankAccount(bankAccountId, {
-          institutionName: payload.institutionName,
-          nature: payload.nature,
-          isForTax: payload.isForTax
-        });
-      } else {
-        await opexApi.updateLocalBankAccount(bankAccountId, {
-          institutionName: payload.institutionName,
-          nature: payload.nature,
-          isForTax: payload.isForTax
-        });
-      }
+      const updatedConnection = await opexApi.updateManualBankConnection(normalizedConnectionId, {
+        providerName: normalizedProviderName
+      });
       await refreshDashboardData();
-      setActiveTab(APP_TABS.SETTINGS_OPEN_BANKING);
+      setActiveTab(APP_TABS.SETTINGS_BANKING);
+      return updatedConnection;
     } catch (error) {
       setErrorMessage(toErrorMessage(error));
       throw error;
     } finally {
       setIsManualBankSaving(false);
     }
-  }, [refreshDashboardData, selectedBankAccount?.isSaltedge, setActiveTab, setErrorMessage]);
+  }, [refreshDashboardData, setActiveTab, setErrorMessage]);
 
-  const updateBankAccountSettings = useCallback(async (
-    bankAccountId: string,
-    isSaltedge: boolean,
-    payload: BankAccountSettingsPayload
-  ) => {
+  const deleteManualBankConnection = useCallback(async (connectionId: string) => {
+    const normalizedConnectionId = normalizeText(connectionId);
+    if (!normalizedConnectionId) {
+      throw new Error('Manual bank connection identifier is required.');
+    }
+
     setErrorMessage(null);
 
     try {
-      if (isSaltedge) {
-        await opexApi.updateSaltedgeBankAccount(bankAccountId, payload);
-      } else {
-        await opexApi.updateLocalBankAccount(bankAccountId, payload);
-      }
+      await opexApi.deleteManualBankConnection(normalizedConnectionId);
+      setPendingConnectionReviewById((current) => {
+        if (!current[normalizedConnectionId]) {
+          return current;
+        }
+
+        const { [normalizedConnectionId]: _removed, ...rest } = current;
+        return rest;
+      });
       await refreshDashboardData();
     } catch (error) {
       setErrorMessage(toErrorMessage(error));
@@ -445,26 +382,86 @@ export const useBankingFlow = ({
     }
   }, [refreshDashboardData, setErrorMessage]);
 
+  const createManualBankAccount = useCallback(async (
+    connectionId: string,
+    payload: {
+      institutionName: string;
+      balance: number;
+      currency: string;
+      isForTax: boolean;
+      nature: string;
+    }
+  ): Promise<BankAccountRecord> => {
+    const normalizedConnectionId = normalizeText(connectionId);
+    if (!normalizedConnectionId) {
+      throw new Error('Manual bank connection identifier is required.');
+    }
+
+    setIsManualBankSaving(true);
+    setErrorMessage(null);
+
+    try {
+      const createdAccount = await opexApi.createManualBankAccountForConnection(normalizedConnectionId, payload);
+      await refreshDashboardData();
+      setActiveTab(APP_TABS.SETTINGS_BANKING);
+      return createdAccount;
+    } catch (error) {
+      setErrorMessage(toErrorMessage(error));
+      throw error;
+    } finally {
+      setIsManualBankSaving(false);
+    }
+  }, [refreshDashboardData, setActiveTab, setErrorMessage]);
+
+  const updateBankAccountSettings = useCallback(async (
+    bankAccountId: string,
+    isSaltedge: boolean,
+    payload: BankAccountSettingsPayload,
+    reviewContext?: {
+      connectionId: string | null | undefined;
+      connectionAccountIds: string[];
+    }
+  ) => {
+    setErrorMessage(null);
+    const normalizedConnectionId = normalizeText(reviewContext?.connectionId);
+
+    try {
+      if (isSaltedge) {
+        await opexApi.updateSaltedgeBankAccount(bankAccountId, payload);
+      } else {
+        if (!normalizedConnectionId) {
+          throw new Error('Manual accounts must belong to a manual bank connection before they can be updated.');
+        }
+        await opexApi.updateManualBankAccountForConnection(normalizedConnectionId, bankAccountId, payload);
+      }
+      await refreshDashboardData();
+      if (reviewContext) {
+        markPendingConnectionAccountReviewed(
+          reviewContext.connectionId,
+          bankAccountId,
+          reviewContext.connectionAccountIds
+        );
+      }
+    } catch (error) {
+      setErrorMessage(toErrorMessage(error));
+      throw error;
+    }
+  }, [markPendingConnectionAccountReviewed, refreshDashboardData, setErrorMessage]);
+
   return {
-    selectedBank,
-    setSelectedBank,
-    selectedBankAccount,
-    setSelectedBankAccount,
-    selectedBankAccountId,
-    connectionSetupAccounts,
+    pendingConnectionReviewById,
     isBankSyncInProgress,
     bankSyncStage,
-    bankPopupUrl,
     isManualBankSaving,
-    startBankFlow,
-    startConnectionSetup,
-    selectConnectionAccountForSetup,
     syncExternalBankAndNavigate,
+    createManualBankConnection,
+    updateManualBankConnection,
+    deleteManualBankConnection,
+    createManualBankAccount,
     refreshExternalBankConnection,
     deleteExternalBankConnection,
     syncAfterSuccessRedirect,
-    completeManualBankSetup,
-    completeConnectionSetup,
+    markPendingConnectionAccountReviewed,
     updateBankAccountSettings
   };
 };

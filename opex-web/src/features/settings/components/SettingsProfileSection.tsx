@@ -68,11 +68,11 @@ export const SettingsProfileSection = ({
           />
         ) : (
           <div className="space-y-6">
-            <div className="rounded-[2rem] border border-gray-100 bg-gradient-to-br from-white via-gray-50 to-opex-teal/5 p-6 md:p-8">
+            <div className="rounded-[2rem] border border-app-border bg-gradient-to-br from-app-surface via-app-muted to-opex-teal/10 p-6 md:p-8 transition-colors duration-200">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex flex-col gap-5 md:flex-row md:items-center">
                   <div className="shrink-0">
-                    <div className="w-28 h-28 rounded-[2rem] overflow-hidden border-4 border-white shadow-2xl bg-opex-teal/10 flex items-center justify-center">
+                    <div className="w-28 h-28 rounded-[2rem] overflow-hidden border-4 border-white/60 dark:border-app-border shadow-2xl bg-opex-teal/10 dark:bg-opex-teal/15 flex items-center justify-center transition-colors duration-200">
                       {userProfile.logo
                         ? <img src={userProfile.logo} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         : <span className="text-3xl font-black text-opex-teal select-none">{initials}</span>
@@ -82,9 +82,9 @@ export const SettingsProfileSection = ({
 
                   <div className="space-y-3">
                     <div className="space-y-1">
-                      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-gray-400">{t('profile.personalProfile')}</p>
-                      <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">{displayName}</h2>
-                      <p className="text-sm font-medium text-gray-500 max-w-2xl">
+                      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-app-tertiary">{t('profile.personalProfile')}</p>
+                      <h2 className="text-2xl md:text-3xl font-black text-app-primary tracking-tight">{displayName}</h2>
+                      <p className="text-sm font-medium text-app-secondary max-w-2xl">
                         {managedByGoogle
                           ? t('profile.managedByGoogleDescription')
                           : t('profile.managedByOpexDescription')}
@@ -103,8 +103,8 @@ export const SettingsProfileSection = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:w-[440px]">
-                  <SummaryTile
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:w-[440px]">
+                <SummaryTile
                     label={t('profile.profileOwner')}
                     value={displayName}
                     detail={managedByGoogle ? t('profile.syncedFromGoogle') : t('profile.localWorkspaceIdentity')}
@@ -119,7 +119,7 @@ export const SettingsProfileSection = ({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="mt-3 w-full rounded-xl border-gray-200 px-3 py-2 text-xs font-black"
+                        className="mt-3 w-full rounded-xl px-3 py-2 text-xs font-black"
                         onClick={() => void verificationEmailAction.requestVerificationEmail()}
                         disabled={verificationEmailAction.actionDisabled}
                       >
@@ -138,7 +138,7 @@ export const SettingsProfileSection = ({
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_1.2fr_0.9fr] gap-5">
-              <div className="rounded-[1.75rem] border border-gray-100 bg-gray-50/80 p-5 space-y-5">
+              <div className="rounded-[1.75rem] border border-app-border bg-app-muted/80 p-5 space-y-5 transition-colors duration-200">
                 <SectionHeading
                   icon={UserRound}
                   title={t('profile.identity')}
@@ -174,7 +174,7 @@ export const SettingsProfileSection = ({
                 )}
               </div>
 
-              <div className="rounded-[1.75rem] border border-gray-100 bg-gray-50/80 p-5 space-y-5">
+              <div className="rounded-[1.75rem] border border-app-border bg-app-muted/80 p-5 space-y-5 transition-colors duration-200">
                 <SectionHeading
                   icon={Globe}
                   title={t('profile.personalDetails')}
@@ -206,7 +206,7 @@ export const SettingsProfileSection = ({
                 </div>
               </div>
 
-              <div className="rounded-[1.75rem] border border-gray-100 bg-white p-5 space-y-5 shadow-sm">
+              <div className="rounded-[1.75rem] border border-app-border bg-app-surface p-5 space-y-5 shadow-sm transition-colors duration-200">
                 <SectionHeading
                   icon={BadgeCheck}
                   title={t('profile.accountStatus')}
@@ -248,12 +248,12 @@ const SectionHeading = ({
   description: string;
 }) => (
   <div className="flex items-start gap-3">
-    <div className="w-10 h-10 rounded-2xl bg-white text-opex-teal flex items-center justify-center border border-gray-100 shadow-sm">
+    <div className="w-10 h-10 rounded-2xl bg-app-surface text-opex-teal flex items-center justify-center border border-app-border shadow-sm transition-colors duration-200">
       <Icon size={18} />
     </div>
     <div>
-      <p className="text-sm font-black text-gray-900">{title}</p>
-      <p className="text-xs font-medium text-gray-500">{description}</p>
+      <p className="text-sm font-black text-app-primary">{title}</p>
+      <p className="text-xs font-medium text-app-secondary">{description}</p>
     </div>
   </div>
 );
@@ -271,13 +271,13 @@ const SummaryTile = ({
   icon: typeof Globe;
   action?: ReactNode;
 }) => (
-  <div className="min-w-0 rounded-[1.5rem] border border-white/80 bg-white/90 px-4 py-4 shadow-sm backdrop-blur-sm">
-    <div className="flex items-center gap-2 text-gray-400">
+  <div className="min-w-0 rounded-[1.5rem] border border-white/50 dark:border-app-border bg-white/90 dark:bg-app-surface/90 px-4 py-4 shadow-sm backdrop-blur-sm transition-colors duration-200">
+    <div className="flex items-center gap-2 text-app-tertiary">
       <Icon size={14} className="shrink-0" />
       <p className="text-[10px] font-black uppercase tracking-[0.2em] leading-snug break-words [overflow-wrap:anywhere]">{label}</p>
     </div>
-    <p className="mt-3 min-w-0 text-sm font-black text-gray-900 leading-tight break-words [overflow-wrap:anywhere]">{value}</p>
-    <p className="mt-1 min-w-0 text-xs font-medium text-gray-500 leading-relaxed break-words [overflow-wrap:anywhere]">{detail}</p>
+    <p className="mt-3 min-w-0 text-sm font-black text-app-primary leading-tight break-words [overflow-wrap:anywhere]">{value}</p>
+    <p className="mt-1 min-w-0 text-xs font-medium text-app-secondary leading-relaxed break-words [overflow-wrap:anywhere]">{detail}</p>
     {action}
   </div>
 );
@@ -289,8 +289,8 @@ const ProfileDetailItem = ({
   isMuted = false
 }: ProfileDetailItemProps) => (
   <div className="space-y-1.5">
-    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</label>
-    <p className={`min-h-[24px] flex items-center gap-2 text-sm font-bold ${isMuted ? 'text-gray-400' : 'text-gray-800'}`}>
+    <label className="text-[10px] font-black text-app-tertiary uppercase tracking-widest">{label}</label>
+    <p className={`min-h-[24px] flex items-center gap-2 text-sm font-bold ${isMuted ? 'text-app-tertiary' : 'text-app-primary'}`}>
       {Icon && <Icon size={14} className="shrink-0" />}
       <span>{value}</span>
     </p>
@@ -306,10 +306,10 @@ const StatusRow = ({
   value: string;
   variant: 'neutral' | 'success' | 'warning' | 'info';
 }) => (
-  <div className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+  <div className="flex items-center justify-between gap-3 rounded-2xl border border-app-border bg-app-muted px-4 py-3 transition-colors duration-200">
     <div>
-      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{label}</p>
-      <p className="mt-1 text-sm font-bold text-gray-800">{value}</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-app-tertiary">{label}</p>
+      <p className="mt-1 text-sm font-bold text-app-primary">{value}</p>
     </div>
     <Badge variant={variant}>{value}</Badge>
   </div>
