@@ -164,6 +164,8 @@ else {
   Write-Host "Secrets file not found, using parameter/default secret names." -ForegroundColor Yellow
 }
 
+$envVarDelimiter = '^~^'
+
 $arguments = @(
   'run', 'deploy', $ServiceName,
   '--project', $ProjectId,
@@ -179,7 +181,7 @@ $arguments = @(
   '--network', $Network,
   '--subnet', $Subnet,
   '--vpc-egress', 'private-ranges-only',
-  '--set-env-vars', ("^@^" + ($envVars -join '@')),
+  '--set-env-vars', ($envVarDelimiter + ($envVars -join '~')),
   '--update-secrets', ($secrets -join ',')
 )
 

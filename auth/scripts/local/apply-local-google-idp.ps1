@@ -115,7 +115,7 @@ function Get-AuthenticationExecutionByProviderId {
         -RealmName $RealmName `
         -Token $Token `
         -FlowAlias $FlowAlias |
-        Where-Object { $_.providerId -eq $ProviderId } |
+        Where-Object { $_.PSObject.Properties['providerId'] -and $_.providerId -eq $ProviderId } |
         Select-Object -First 1
 }
 
@@ -260,7 +260,7 @@ function Remove-DuplicateAuthenticationExecutions {
         -RealmName $RealmName `
         -Token $Token `
         -FlowAlias $FlowAlias |
-        Where-Object { $_.providerId -eq $ProviderId })
+        Where-Object { $_.PSObject.Properties['providerId'] -and $_.providerId -eq $ProviderId })
 
     if ($matchingExecutions.Count -le 1) {
         return

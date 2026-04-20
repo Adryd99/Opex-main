@@ -79,6 +79,12 @@ For Cloud Run build and deploy flow, environment files, and secret handling, see
 
 - [deploy/cloud-run/README.md](C:/Users/danie/workspace/Opex/Opex-main/deploy/cloud-run/README.md)
 
+The Cloud Run README is the authoritative production runbook and now reflects the current clean deployment on:
+
+- project `opex-v2-493902`
+- region `europe-west1`
+- domains `opes.dani.host`, `api.opes.dani.host`, `auth.opes.dani.host`
+
 Before any real production deploy, run the deployment preflight:
 
 ```powershell

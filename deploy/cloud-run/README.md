@@ -1,5 +1,22 @@
 # Cloud Run Deployment
 
+Reference production stack for the current clean deploy:
+
+- `PROJECT_ID=opex-v2-493902`
+- `REGION=europe-west1`
+- `REPOSITORY=opex`
+- `NETWORK=opex-v2-vpc`
+- `SUBNET=opex-v2-europe-west1`
+- `SUBNET_RANGE=10.20.0.0/24`
+- `APP_DOMAIN=opes.dani.host`
+- `API_DOMAIN=api.opes.dani.host`
+- `AUTH_DOMAIN=auth.opes.dani.host`
+- `SQL_INSTANCE=opex-v2-pg`
+- `APP_DB=opexdb`
+- `APP_DB_USER=opex`
+- `KEYCLOAK_DB=keycloak`
+- `KEYCLOAK_DB_USER=keycloak`
+
 Low-cost target setup:
 
 - `opex-web` on Cloud Run
@@ -10,18 +27,6 @@ Low-cost target setup:
   - `keycloak`
 - Artifact Registry for images
 - Secret Manager for sensitive values
-
-Current recommended values:
-
-- `PROJECT_ID=opex-v1-493608`
-- `REGION=us-central1`
-- `REPOSITORY=opex`
-- `NETWORK=opex-vpc`
-- `SUBNET=opex-us-central1`
-- `SUBNET_RANGE=10.20.0.0/24`
-- `APP_DOMAIN=opex.dani.host`
-- `API_DOMAIN=api.opex.dani.host`
-- `AUTH_DOMAIN=auth.opex.dani.host`
 
 ## What Bootstraps Automatically
 
@@ -45,21 +50,26 @@ No manual SQL import is needed for the first deploy.
 - `env.api.secrets.example`: template for API Secret Manager secret names, used by `deploy-api.ps1` after copying it to `env.api.secrets`
 - `env.web.example`: template for frontend build/deploy values, used after copying it to `env.web`
 
-For auth, the deploy scripts now read:
+For auth, the deploy scripts read:
 
 - `deploy/cloud-run/env.auth`
 - `deploy/cloud-run/env.auth.secrets`
 
-For the backend API, the deploy script now reads:
+For the backend API, the deploy script reads:
 
 - `deploy/cloud-run/env.api`
 - `deploy/cloud-run/env.api.secrets`
 
-The `*.example` files are templates only and should be copied to the non-example filenames above.
-
-For the frontend web app, the production build/deploy now reads:
+For the frontend web app, the production build/deploy reads:
 
 - `deploy/cloud-run/env.web`
+
+Ignored local-only helpers used during real deploys:
+
+- `deploy/cloud-run/env.stack.local`
+- `deploy/cloud-run/env.secrets.local`
+
+The `*.example` files are templates only and should be copied to the non-example filenames above.
 
 There is intentionally no `env.web.secrets` file.
 The browser bundle must not contain passwords or secret tokens.
@@ -93,20 +103,20 @@ gcloud auth application-default login
 Set global variables:
 
 ```powershell
-$PROJECT_ID = "opex-v1-493608"
-$REGION = "us-central1"
+$PROJECT_ID = "opex-v2-493902"
+$REGION = "europe-west1"
 $REPOSITORY = "opex"
 
-$NETWORK = "opex-vpc"
-$SUBNET = "opex-us-central1"
+$NETWORK = "opex-v2-vpc"
+$SUBNET = "opex-v2-europe-west1"
 $SUBNET_RANGE = "10.20.0.0/24"
 
 $BASE_DOMAIN = "dani.host"
-$APP_DOMAIN = "opex.dani.host"
-$API_DOMAIN = "api.opex.dani.host"
-$AUTH_DOMAIN = "auth.opex.dani.host"
+$APP_DOMAIN = "opes.dani.host"
+$API_DOMAIN = "api.opes.dani.host"
+$AUTH_DOMAIN = "auth.opes.dani.host"
 
-$SQL_INSTANCE = "opex-main-pg"
+$SQL_INSTANCE = "opex-v2-pg"
 $APP_DB = "opexdb"
 $APP_DB_USER = "opex"
 $KEYCLOAK_DB = "keycloak"
@@ -118,9 +128,10 @@ Configure `gcloud`:
 ```powershell
 gcloud config set project $PROJECT_ID
 gcloud config set run/region $REGION
+gcloud auth application-default set-quota-project $PROJECT_ID
 ```
 
-Prepare backend API deploy files:
+Prepare deploy files:
 
 ```powershell
 Copy-Item .\deploy\cloud-run\env.auth.example .\deploy\cloud-run\env.auth
@@ -169,12 +180,19 @@ gcloud services enable `
   servicenetworking.googleapis.com
 ```
 
-Verify the base domain in Search Console and add the TXT record on `@`:
+## Domain Verification Rule
+
+If your base domain is not already verified in Google, verify it first:
 
 ```powershell
 gcloud domains verify $BASE_DOMAIN
 gcloud domains list-user-verified
 ```
+
+If you are deploying under subdomains of a base domain that is already verified, you can skip that step.
+The current production deploy uses `opes.dani.host`, `api.opes.dani.host`, and `auth.opes.dani.host` under the already verified base domain `dani.host`.
+
+## Infrastructure
 
 Create Artifact Registry:
 
@@ -253,10 +271,15 @@ Read the private DB IP:
 gcloud sql instances describe $SQL_INSTANCE --format="json(ipAddresses)"
 ```
 
-Then set:
+Then update:
+
+- `KEYCLOAK_DB_HOST` in `deploy/cloud-run/env.auth`
+- `APP_PG_HOST` in `deploy/cloud-run/env.api`
+
+Example from the current stack:
 
 ```powershell
-$CLOUD_SQL_PRIVATE_IP = "10.136.0.3"
+$CLOUD_SQL_PRIVATE_IP = "172.18.0.3"
 ```
 
 Create the non-DB secret values:
@@ -295,6 +318,8 @@ gcloud projects add-iam-policy-binding $PROJECT_ID `
   --role="roles/secretmanager.secretAccessor"
 ```
 
+## Build And Deploy Order
+
 Build images:
 
 ```powershell
@@ -309,10 +334,6 @@ Deploy services:
   -ConfigFile .\deploy\cloud-run\env.auth `
   -SecretsFile .\deploy\cloud-run\env.auth.secrets
 
-.\deploy\cloud-run\apply-auth-production-settings.ps1 `
-  -ConfigFile .\deploy\cloud-run\env.auth `
-  -SecretsFile .\deploy\cloud-run\env.auth.secrets
-
 .\deploy\cloud-run\deploy-api.ps1 `
   -ConfigFile .\deploy\cloud-run\env.api `
   -SecretsFile .\deploy\cloud-run\env.api.secrets
@@ -321,23 +342,12 @@ Deploy services:
   -ConfigFile .\deploy\cloud-run\env.web
 ```
 
-If you also want SMTP and Google configured on the production realm, run:
+Important:
 
-```powershell
-.\deploy\cloud-run\apply-auth-production-settings.ps1 `
-  -ConfigFile .\deploy\cloud-run\env.auth `
-  -SecretsFile .\deploy\cloud-run\env.auth.secrets `
-  -ApplySmtp `
-  -ApplyGoogleIdp
-```
+- `env.web` values are baked into the frontend image.
+- If `APP_DOMAIN`, `API_DOMAIN`, or `AUTH_DOMAIN` changes, rebuild the web image before redeploying `opex-web`.
 
-This script reads the sensitive values from Secret Manager and writes them to the Keycloak realm through the Admin API.
-
-If `gcloud beta` is missing:
-
-```powershell
-gcloud components install beta
-```
+## Domain Mapping
 
 Create domain mappings:
 
@@ -368,21 +378,77 @@ gcloud beta run domain-mappings describe --domain=$AUTH_DOMAIN --region=$REGION
 
 For the current setup, add:
 
-- `opex` -> `CNAME` -> `ghs.googlehosted.com.`
-- `api.opex` -> `CNAME` -> `ghs.googlehosted.com.`
-- `auth.opex` -> `CNAME` -> `ghs.googlehosted.com.`
+- `opes` -> `CNAME` -> `ghs.googlehosted.com.`
+- `api.opes` -> `CNAME` -> `ghs.googlehosted.com.`
+- `auth.opes` -> `CNAME` -> `ghs.googlehosted.com.`
 
-Smoke tests:
+Wait until the domain mappings report `Ready=True` before the next step.
+
+## Auth Production Settings
+
+Once `auth.opes.dani.host` is live, apply production auth settings:
+
+```powershell
+.\deploy\cloud-run\apply-auth-production-settings.ps1 `
+  -ConfigFile .\deploy\cloud-run\env.auth `
+  -SecretsFile .\deploy\cloud-run\env.auth.secrets `
+  -ApplySmtp `
+  -ApplyGoogleIdp
+```
+
+This script reads the sensitive values from Secret Manager and writes them to the Keycloak realm through the Admin API.
+
+If your local TLS stack cannot reach the custom auth domain yet, you can temporarily target the Cloud Run hostname for the Admin API call only:
+
+```powershell
+.\deploy\cloud-run\apply-auth-production-settings.ps1 `
+  -ConfigFile .\deploy\cloud-run\env.auth `
+  -SecretsFile .\deploy\cloud-run\env.auth.secrets `
+  -AuthDomain opex-auth-504598836630.europe-west1.run.app `
+  -ApplySmtp `
+  -ApplyGoogleIdp
+```
+
+That workaround only changes the Admin API endpoint used by the script. It does not change the public Keycloak hostname configured in the service.
+
+## Google OAuth Console
+
+After the auth domain is decided, update the Google OAuth client:
+
+- Authorized JavaScript origins:
+  - `https://auth.opes.dani.host`
+- Authorized redirect URIs:
+  - `https://auth.opes.dani.host/realms/opex/broker/google/endpoint`
+
+If the auth domain changes later, update these values again before testing Google login.
+
+## Smoke Tests
+
+Control plane:
 
 ```powershell
 gcloud run services describe opex-web --region=$REGION
 gcloud run services describe opex-api --region=$REGION
 gcloud run services describe opex-auth --region=$REGION
+
+gcloud beta run domain-mappings list --region=$REGION
 ```
+
+User-facing URLs:
+
+- `https://opes.dani.host`
+- `https://api.opes.dani.host/api/legal/public`
+- `https://auth.opes.dani.host`
+
+## Go-Live Notes
+
+- Replace placeholder `LEGAL_*` values in `deploy/cloud-run/env.api` before a real go-live.
+- Keep `deploy/cloud-run/env.stack.local` and `deploy/cloud-run/env.secrets.local` local only.
+- If any secret was ever pasted in chat or shared insecurely, rotate it before production use.
 
 ## Recovery Note
 
-`deploy-auth.ps1` now supports `-DatabaseName`.
+`deploy-auth.ps1` supports `-DatabaseName`.
 
 That matters if you ever need to move Keycloak to a fresh Cloud SQL database without editing the script again. Example:
 
